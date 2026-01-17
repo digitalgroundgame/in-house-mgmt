@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import '@mantine/core/styles.css';
+import '@mantine/dates/styles.css';
+
 import { Geist, Geist_Mono } from "next/font/google";
 import NavbarSimple from './components/Navbar/Navbar';
 import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from '@mantine/core';
