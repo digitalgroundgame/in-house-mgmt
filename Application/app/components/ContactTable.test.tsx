@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, userEvent } from '../../test-utils/render';
+import { render, screen, userEvent, within } from '../../test-utils/render';
 import ContactTable, { Contact, Tag } from './ContactTable';
 
 const mockTags: Tag[] = [
@@ -117,6 +117,72 @@ describe('ContactTable', () => {
     });
   });
 
+  describe('row interaction (selection-aware)', () => {
+    it('calls onRowClick when no rows are selected and row is clicked', async () => {
+      const user = userEvent.setup();
+      const onRowClick = vi.fn();
+      const toggleSelect = vi.fn();
+
+      render(
+        <ContactTable
+          contacts={[mockContacts[0]]}
+          onRowClick={onRowClick}
+          selectedIds={new Set()}
+          toggleSelect={toggleSelect}
+        />
+      );
+
+      await user.click(screen.getByText('Alice Smith'));
+
+      expect(onRowClick).toHaveBeenCalledWith(mockContacts[0]);
+      expect(toggleSelect).not.toHaveBeenCalled();
+    });
+
+    it('calls toggleSelect when row checkbox is clicked', async () => {
+      const user = userEvent.setup();
+      const toggleSelect = vi.fn();
+      const onRowClick = vi.fn();
+
+      render(
+        <ContactTable
+          contacts={[mockContacts[0]]}
+          onRowClick={onRowClick}
+          selectedIds={new Set([mockContacts[0].id])}
+          toggleSelect={toggleSelect}
+        />
+      );
+
+      // Scope to row to avoid header checkbox
+      const row = screen.getByText('Alice Smith').closest('tr')!;
+      const checkbox = within(row).getByRole('checkbox');
+
+      await user.click(checkbox);
+
+      expect(toggleSelect).toHaveBeenCalledWith(mockContacts[0].id);
+      expect(onRowClick).not.toHaveBeenCalled();
+    });
+
+    it('calls toggleSelect when a row is clicked and some rows are already selected', async () => {
+      const user = userEvent.setup();
+      const onRowClick = vi.fn();
+      const toggleSelect = vi.fn();
+
+      render(
+        <ContactTable
+          contacts={[mockContacts[0]]}
+          onRowClick={onRowClick}
+          selectedIds={new Set([999])} // simulate existing selection
+          toggleSelect={toggleSelect}
+        />
+      );
+
+      await user.click(screen.getByText('Alice Smith'));
+
+      expect(toggleSelect).toHaveBeenCalledWith(mockContacts[0].id);
+      expect(onRowClick).not.toHaveBeenCalled();
+    });
+  });
+
   describe('pagination', () => {
     it('shows pagination when multiple pages exist', () => {
       const onPageChange = vi.fn();
@@ -155,6 +221,58 @@ describe('ContactTable', () => {
       await user.click(screen.getByRole('button', { name: '2' }));
       expect(onPageChange).toHaveBeenCalledWith(2);
     });
+  });
+
+  describe('select-all checkbox behavior', () => {
+    it('selects all rows when none are selected', async () => {
+      const user = userEvent.setup();
+      const toggleSelect = vi.fn();
+
+      render(
+        <ContactTable
+          contacts={mockContacts}
+          selectedIds={new Set()}
+          toggleSelect={toggleSelect}
+        />
+      );
+
+      await user.click(screen.getAllByRole('checkbox')[0]);
+
+      expect(toggleSelect).toHaveBeenCalledTimes(mockContacts.length);
+      mockContacts.forEach(c =>
+        expect(toggleSelect).toHaveBeenCalledWith(c.id)
+      );
+    });
+
+    it('clears all rows when all are selected', async () => {
+      const user = userEvent.setup();
+      const toggleSelect = vi.fn();
+
+      render(
+        <ContactTable
+          contacts={mockContacts}
+          selectedIds={new Set(mockContacts.map(c => c.id))}
+          toggleSelect={toggleSelect}
+        />
+      );
+
+      await user.click(screen.getAllByRole('checkbox')[0]);
+
+      expect(toggleSelect).toHaveBeenCalledTimes(mockContacts.length);
+    });
+  });
+
+  it('shows indeterminate state when some rows are selected', () => {
+    render(
+      <ContactTable
+        contacts={mockContacts}
+        selectedIds={new Set([mockContacts[0].id])}
+        toggleSelect={vi.fn()}
+      />
+    );
+
+    const selectAll = screen.getAllByRole('checkbox')[0];
+    expect(selectAll).toHaveAttribute('data-indeterminate', 'true');
   });
 
   describe('title', () => {

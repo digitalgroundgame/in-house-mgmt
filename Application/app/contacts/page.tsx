@@ -6,6 +6,7 @@ import {
   Group,
   Button,
   Paper,
+  Text,
   TextInput,
   Select,
   Stack,
@@ -32,6 +33,7 @@ export default function ContactsPage() {
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
 
   const form = useForm({
     initialValues: {
@@ -183,6 +185,14 @@ export default function ContactsPage() {
     }
   };
 
+  const toggleRowSelection = (id: number) => {
+    setSelectedRows(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
   const handleUploadCSV = () => {
     // TODO: Open CSV upload modal
     console.log('Upload CSV clicked');
@@ -251,12 +261,36 @@ export default function ContactsPage() {
           loading={loading}
           onRowClick={handleRowClick}
           showTitle={false}
+          selectedIds={selectedRows}
+          toggleSelect={toggleRowSelection}
         />
 
-        {/* Pagination and count */}
+        {/* Pagination, result and selected count */}
         <Paper p="sm" withBorder>
-          <Group justify="space-between">
-            <span>{totalCount} {totalCount === 1 ? 'contact' : 'contacts'} found</span>
+          <Group justify="space-between" align="center">
+            <Group gap="xs">
+              <Text>
+                {totalCount} {totalCount === 1 ? 'contact' : 'contacts'} found
+              </Text>
+
+              {selectedRows.size > 0 && (
+                <>
+                  <Text size="sm" c="dimmed">
+                    {selectedRows.size} selected
+                  </Text>
+                  <Button
+                    variant="subtle"
+                    color="red"
+                    size="xs"
+                    px={6}
+                    onClick={() => setSelectedRows(new Set())}
+                  >
+                    Clear
+                  </Button>
+                </>
+              )}
+            </Group>
+
             <Group gap="xs">
               <ActionIcon
                 variant="filled"
