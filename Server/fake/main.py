@@ -15,6 +15,43 @@ def get_db_conn(dsn: str):
         return psycopg.connect(dsn)
     raise ValueError(f"Unsupported DB scheme: {parsed.scheme}")
 
+def generate_ticket_description(fake):
+    ticket_number = random.randint(100, 999)
+    title = " ".join(fake.words(2)).title()
+    inline_code = "`send message`"
+    block_code = f"""```\n{' '.join(fake.words(8))}\n{' '.join(fake.words(3))}\n```"""
+    
+    table = "| Key | Thing |\n|------|-------|\n| {word} | `{msg}` |".format(
+        word="".join(fake.words(1)),
+        msg=" ".join(fake.words(2))
+    )
+    
+    markdown = f"""
+# Ticket #{ticket_number}: {title}
+
+This is a fake ticket
+
+---
+
+## Instructions
+
+Follow these instructions
+
+1. Open Discord
+2. Click {inline_code}
+3. Copy below
+
+{block_code}
+
+---
+
+## Example Table
+
+{table}
+
+"""
+    return markdown.strip()
+
 
 # --- Fake Data Population ---
 def populate_with_fake_data(conn, num_contacts=50, num_events=15, num_tickets=30):
@@ -139,7 +176,7 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=15, num_tickets=30
     ticket_ids = []
     for _ in range(num_tickets):
         name = fake.catch_phrase()
-        description = fake.text(max_nb_chars=200)
+        description = generate_ticket_description(fake)
         event = random.choice(event_ids + [None])
         contact = random.choice(contact_ids + [None])
         ticket_status = random.choice(['OPEN','TODO','IN_PROGRESS','BLOCKED','COMPLETED','CANCELED'])
