@@ -23,9 +23,8 @@ import ContactSearch from '@/app/components/ContactSearch';
 import { type Ticket } from '@/app/components/ticket-utils';
 
 // TODO: /tickets/123 doesn't work, we should make sure the url reflects the current ticket
-// TODO: Rename reaches/calls to use Ticket as name
 export default function TicketPage() {
-  const [reaches, setTicketes] = useState<Ticket[]>([]);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('in-progress');
@@ -52,13 +51,13 @@ export default function TicketPage() {
       const response = await fetch(fetchUrl);
       console.log('Fetch response:', response);
       const data = await response.json();
-      console.log('Fetched reaches data:', data);
-      setTicketes(data.results);
+      console.log('Fetched tickets data:', data);
+      setTickets(data.results || []);
       setTotalCount(data.count);
       setNextUrl(data.next);
       setPreviousUrl(data.previous);
     } catch (error) {
-      console.error('Error fetching reaches:', error);
+      console.error('Error fetching tickets:', error);
     } finally {
       setLoading(false);
     }
@@ -166,7 +165,7 @@ export default function TicketPage() {
             {/* Tickets Table or Call Instructions */}
               <>
                 <TicketTable
-                  tickets={reaches}
+                  tickets={tickets}
                   loading={loading}
                   onRowClick={handleRowClick}
                 />

@@ -1,3 +1,7 @@
+export interface TicketType {
+  value: string;
+  label: string;
+}
 
 export interface Ticket {
   id: number;

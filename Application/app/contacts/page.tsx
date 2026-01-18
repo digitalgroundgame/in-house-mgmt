@@ -17,11 +17,13 @@ import {
 import { IconPlus, IconFileUpload, IconSearch, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { useState, useEffect } from 'react';
 import { useForm } from '@mantine/form';
+import { TicketBulkCreateModal } from '@/app/components/TicketBulkCreateModal';
 import ContactTable, { type Contact, type Group as ContactGroup, type Tag } from '@/app/components/ContactTable';
 import './page.css';
 
 export default function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [bulkTicketModalOpen, setBulkTicketModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string | null>('all');
@@ -279,6 +281,13 @@ export default function ContactsPage() {
                     {selectedRows.size} selected
                   </Text>
                   <Button
+                    size="xs"
+                    variant="light"
+                    onClick={() => setBulkTicketModalOpen(true)}
+                  >
+                    Create Tickets
+                  </Button>
+                  <Button
                     variant="subtle"
                     color="red"
                     size="xs"
@@ -367,6 +376,16 @@ export default function ContactsPage() {
           </Stack>
         </form>
       </Modal>
+      <TicketBulkCreateModal
+        opened={bulkTicketModalOpen}
+        onClose={() => setBulkTicketModalOpen(false)}
+        contactIds={Array.from(selectedRows)}
+        events={[]} // 🔧 plug in events once available
+        users={[]}  // 🔧 plug in users once available
+        onSuccess={() => {
+          setSelectedRows(new Set());
+        }}
+      />
     </Container>
   );
 }

@@ -220,3 +220,8 @@ class TicketViewSet(viewsets.ModelViewSet):
         """
         user = self.request.user
         serializer.save(reported_by=user if user and user.is_authenticated else None)
+
+class TicketTypeViewSet(viewsets.ViewSet):
+    def list(self, request):
+        types = [{'value': t.value, 'label': t.label} for t in TicketType]
+        return Response(types)
