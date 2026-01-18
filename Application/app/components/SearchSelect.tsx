@@ -13,8 +13,8 @@ import {
   ThemeIcon,
 } from '@mantine/core';
 import { IconX, IconCheck } from '@tabler/icons-react';
-import { useClickOutside } from '@mantine/hooks';
-import { useEffect, useState } from 'react';
+import { useDebouncedValue, useClickOutside } from '@mantine/hooks';
+import { useCallback, useEffect, useState } from 'react';
 
 export interface SearchSelectOption<T = unknown> {
   id: number | string;
@@ -44,13 +44,14 @@ export function SearchSelect<T = unknown>({
   mapResult,
 }: SearchSelectProps<T>) {
   const [query, setQuery] = useState('');
+  const [debounced] = useDebouncedValue(query, 300);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<SearchSelectOption<T>[]>([]);
   const [opened, setOpened] = useState(false);
 
   const ref = useClickOutside(() => setOpened(false));
 
-  const fetchResults = (search: string) => {
+  const fetchResults = useCallback((search: string) => {
     setLoading(true);
 
     fetch(`${endpoint}?search=${encodeURIComponent(search)}&page_size=${limit}`)
@@ -66,7 +67,11 @@ export function SearchSelect<T = unknown>({
         setResults(items.slice(0, limit).map(mapResult));
       })
       .finally(() => setLoading(false));
-  };
+  }, [endpoint, limit, mapResult]);
+
+  useEffect(() => {
+    if (opened) fetchResults(debounced); // eslint-disable-line react-hooks/set-state-in-effect
+  }, [debounced, opened, fetchResults]);
 
   return (
     <Box pos="relative" ref={ref}>
