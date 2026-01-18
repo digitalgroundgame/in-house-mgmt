@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Grid, Stack, Group, Title, Button, Paper, Box, Badge, Divider, Text, Timeline, Container } from "@mantine/core"
 import { useRouter } from "next/navigation"
 import { getStatusColor, getPriorityColor } from "./TicketTable"
+import TicketDescription from "./TicketDescription";
 import { Ticket } from "./ticket-utils"
 import ContactSearch from "./ContactSearch"
 import getCookie from '@/app/utils/cookie';
@@ -17,7 +18,7 @@ export default function TicketView({ticket} : { ticket: Ticket}) {
         <Stack gap="md">
           <TitleCard ticket={ticket}/>
           {/* Status Info */}
-          <CallInstructionsCard ticket={ticket}/>
+          <TicketDescription description={ticket.description}/>
           <ActivityCard />
 
         </Stack>
@@ -170,7 +171,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
         <Box>
           <Text size="sm" c="dimmed">Contact</Text>
           {ticket.contact ? (
-            <Link href={`/events/${ticket.contact}`}>
+            <Link href={`/contacts/${ticket.contact}`}>
               <Text size="sm" mt={4}>{ticket.contact_display}</Text>
             </Link>
           ) : (
