@@ -1,14 +1,16 @@
 'use client'
+import Link from 'next/link';
 
+import { useState } from 'react';
 import { Grid, Stack, Group, Title, Button, Paper, Box, Badge, Divider, Text, Timeline, Container } from "@mantine/core"
 import { useRouter } from "next/navigation"
 import { getStatusColor, getPriorityColor } from "./TicketTable"
 import { Ticket } from "./ticket-utils"
 import ContactSearch from "./ContactSearch"
+import getCookie from '@/app/utils/cookie';
+
 
 export default function TicketView({ticket} : { ticket: Ticket}) {
-
-  console.log(ticket)
   return <Container size="xl" py="xl">
     <Grid>
       <Grid.Col span={{ base: 12, md: 8 }}>
@@ -73,40 +75,127 @@ function CallInstructionsCard({ticket}: {ticket: Ticket}) {
   </Paper>
 }
 
-function TicketMetadataCard({ticket}: {ticket: Ticket}) {
-  return <Paper p="md" withBorder>
-    <Stack gap="sm">
-      <Box>
-        <Text size="sm" c="dimmed">Status</Text>
-        <Badge variant="filled" color={getStatusColor(ticket?.ticket_status)} mt={4}>
-          {ticket.status_display}
-        </Badge>
-      </Box>
-      <Divider />
-      <Box>
-        <Text size="sm" c="dimmed">Priority</Text>
-        <Badge variant="light" color={getPriorityColor(ticket?.priority)} mt={4}>
-          P{ticket.priority}
-        </Badge>
-      </Box>
-      <Divider />
-      <Box>
-        <Text size="sm" c="dimmed">Type</Text>
-        <Text size="sm" mt={4}>{ticket.type_display}</Text>
-      </Box>
-      <Divider />
-      <Box>
-        <Text size="sm" c="dimmed">Associated Contact</Text>
-        <Text size="sm" mt={4}>{ticket.contact || 'Unassigned'}</Text>
-      </Box>
-      <Divider />
-      <Box>
-        <Text size="sm" c="dimmed">Ticket ID</Text>
-        <Text size="sm" mt={4}>#{ticket.id}</Text>
-      </Box>
-    </Stack>
-  </Paper>
+function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
+  const [loading, setLoading] = useState(false);
+  const isClaimed = Boolean(ticket.assigned_to);
+
+  const handleClaimToggle = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/tickets/${ticket.id}/claim`, {
+        credentials: "include",
+        method: isClaimed ? 'DELETE' : 'POST',
+        headers: {
+          "X-CSRFToken": getCookie('csrftoken')!,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update claim status');
+      }
+
+      // simplest option: reload page data
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to update ticket claim status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Paper p="md" withBorder>
+      <Stack gap="sm">
+
+        <Button
+          fullWidth
+          loading={loading}
+          color={isClaimed ? 'gray' : 'blue'}
+          variant={isClaimed ? 'outline' : 'filled'}
+          onClick={handleClaimToggle}
+        >
+          {isClaimed ? 'Unclaim Ticket' : 'Claim Ticket'}
+        </Button>
+
+        <Divider />
+
+        <Box>
+          <Text size="sm" c="dimmed">Status</Text>
+          <Badge variant="filled" color={getStatusColor(ticket.ticket_status)} mt={4}>
+            {ticket.status_display}
+          </Badge>
+        </Box>
+
+        <Divider />
+
+        <Box>
+          <Text size="sm" c="dimmed">Priority</Text>
+          <Badge variant="light" color={getPriorityColor(ticket.priority)} mt={4}>
+            {ticket.priority_display}
+          </Badge>
+        </Box>
+
+        <Divider />
+
+        <Box>
+          <Text size="sm" c="dimmed">Claimed By</Text>
+          {ticket.assigned_to_username ? (
+            <Text size="sm" mt={4}>{ticket.assigned_to_username}</Text>
+          ) : (
+            <Text size="sm" c="dimmed" mt={4}>None</Text>
+          )}
+        </Box>
+
+        <Divider />
+
+        <Box>
+          <Text size="sm" c="dimmed">Reported By</Text>
+          {ticket.reported_by_username ? (
+            <Text size="sm" mt={4}>{ticket.reported_by_username}</Text>
+          ) : (
+            <Text size="sm" c="dimmed" mt={4}>None</Text>
+          )}
+        </Box>
+
+        <Divider />
+
+        <Box>
+          <Text size="sm" c="dimmed">Type</Text>
+          <Text size="sm" mt={4}>{ticket.type_display}</Text>
+        </Box>
+
+        <Divider />
+
+        <Box>
+          <Text size="sm" c="dimmed">Contact</Text>
+          {ticket.contact ? (
+            <Link href={`/events/${ticket.contact}`}>
+              <Text size="sm" mt={4}>{ticket.contact_display}</Text>
+            </Link>
+          ) : (
+            <Text size="sm" c="dimmed" mt={4}>None</Text>
+          )}
+        </Box>
+
+        <Divider />
+
+        <Box>
+          <Text size="sm" c="dimmed">Event</Text>
+          {ticket.event ? (
+            <Link href={`/events/${ticket.event}`}>
+              <Text size="sm" mt={4}>{ticket.event_display}</Text>
+            </Link>
+          ) : (
+            <Text size="sm" c="dimmed" mt={4}>None</Text>
+          )}
+        </Box>
+
+      </Stack>
+    </Paper>
+  );
 }
+
 
 function ActivityCard() {
   return <Paper p="md" withBorder>

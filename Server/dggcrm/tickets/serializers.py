@@ -21,6 +21,14 @@ class TicketSerializer(serializers.ModelSerializer):
         source='reported_by.username',
         read_only=True
     )
+    contact_display = serializers.CharField(
+        source='contact',
+        read_only=True
+    )
+    event_display = serializers.CharField(
+        source='event',
+        read_only=True
+    )
     priority_display = serializers.CharField(
         source='get_priority_display',
         read_only=True
@@ -29,7 +37,12 @@ class TicketSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ticket
         fields = "__all__"
-        read_only_fields = ['id', 'created_at', 'modified_at', 'status_display', 'type_display', 'assigned_to_username', 'reported_by_username', 'priority_display', 'reported_by']
+        read_only_fields = [
+            'id',
+            'created_at',
+            'modified_at',
+            'reported_by'
+        ]
 
 
 class TicketClaimSerializer(serializers.Serializer):
