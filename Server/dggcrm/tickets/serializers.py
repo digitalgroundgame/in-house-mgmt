@@ -134,3 +134,7 @@ class BulkTicketCreateSerializer(serializers.Serializer):
             tickets.append(ticket)
 
         return Ticket.objects.bulk_create(tickets)
+
+class TicketTypeSerializer(serializers.Serializer):
+    value = serializers.CharField()
+    label = serializers.CharField()

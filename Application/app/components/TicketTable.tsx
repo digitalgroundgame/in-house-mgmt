@@ -7,7 +7,6 @@ import { Ticket } from './ticket-utils';
 interface TicketTableProps {
   tickets: Ticket[];
   loading?: boolean;
-  onRowClick?: (reach: Ticket) => void;
   showTitle?: boolean;
 }
 
@@ -34,7 +33,6 @@ export const getStatusColor = (status: string) => {
 export default function TicketTable({
   tickets: tickets,
   loading = false,
-  onRowClick,
   showTitle = true
 }: TicketTableProps) {
   const router = useRouter()
@@ -60,7 +58,7 @@ export default function TicketTable({
               <Table.Tr
                 key={ticket.id}
                 onClick={() => router.push(`/tickets/${ticket.id}`)}
-                style={{ cursor: onRowClick ? 'pointer' : 'default' }}
+                style={{ cursor: 'pointer' }}
               >
                 <Table.Td>{ticket.id}</Table.Td>
                 <Table.Td>{ticket.title}</Table.Td>
