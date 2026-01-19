@@ -55,7 +55,6 @@ class Migration(migrations.Migration):
             name='TicketComment',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('type', models.CharField(choices=[('UNKNOWN', 'Unknown'), ('INTRODUCTION', 'Introduction'), ('RECRUIT', 'Recruit for event'), ('CONFIRM', 'Confirm event participation')], default='UNKNOWN', max_length=50)),
                 ('message', models.TextField()),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('modified_at', models.DateTimeField(auto_now=True)),

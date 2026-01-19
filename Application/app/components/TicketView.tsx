@@ -7,11 +7,40 @@ import { useRouter } from "next/navigation"
 import { getStatusColor, getPriorityColor } from "./TicketTable"
 import TicketDescription from "./TicketDescription";
 import { Ticket } from "./ticket-utils"
-import ContactSearch from "./ContactSearch"
+import ContactSearch, { Contact } from "./ContactSearch"
+import { Event } from "./EventTable"
 import getCookie from '@/app/utils/cookie';
+import TicketActions from '@/app/components/tickets/TicketActions';
 
 
 export default function TicketView({ticket} : { ticket: Ticket}) {
+  const [contact, setContact] = useState<Contact>(null);
+  const [event, setEvent] = useState<Event>(null);
+
+  useEffect(() => {
+    async function fetchInfo() {
+      try {
+        if (ticket.contact) {
+          const contactRes = await fetch(`/api/contacts/${ticket.contact}`);
+          if (contactRes.ok) {
+            setContact(await contactRes.json());
+          }
+        }
+
+        if (ticket.event) {
+          const eventRes = await fetch(`/api/events/${ticket.event}`);
+          if (eventRes.ok) {
+            setEvent(await eventRes.json());
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch associated contact/event', err);
+      }
+    }
+
+    fetchInfo();
+  }, [ticket.contact, ticket.event]);
+
   return <Container size="xl" py="xl">
     <Grid>
       <Grid.Col span={{ base: 12, md: 8 }}>
@@ -26,8 +55,7 @@ export default function TicketView({ticket} : { ticket: Ticket}) {
       <Grid.Col span={{base: 12, md: 4}}>
         <Stack gap='md'>
           <TicketMetadataCard ticket={ticket}/>
-          {/* Show call instructions for selected reach */}
-          <Actions ticketId={ticket.id} />
+          <TicketActions ticket={ticket} contact={contact} event={event}/>
 
         </Stack>
       </Grid.Col>
@@ -213,41 +241,5 @@ function ActivityCard() {
         <Text size="xs" mt={4}>Dec 31, 16:05</Text>
       </Timeline.Item>
     </Timeline>
-  </Paper>
-}
-
-function Actions({ ticketId }: { ticketId: number }) {
-  const [askStatuses, setAskStatuses] = useState<{ value: string; label: string }[]>([])
-
-  useEffect(() => {
-    fetch(`/api/tickets/get_ask_statuses/`)
-      .then(res => res.json())
-      .then(data => setAskStatuses(data))
-      .catch(console.error)
-    console.log(askStatuses)
-  }, [])
-
-  const handleAction = (status: string) => {
-    // TODO: Implement API call to record ask status for ticket
-    console.log(`Recording ask status: ${status} for ticket ${ticketId}`)
-  }
-
-  return <Paper p="md" withBorder>
-    <Title order={5} mb="md">Actions</Title>
-    <Stack gap="xs">
-      {askStatuses
-        .filter(s => s.value !== 'UNKNOWN')
-        .map(status => (
-          <Button
-            key={status.value}
-            fullWidth
-            variant="light"
-            color="gray"
-            onClick={() => handleAction(status.value)}
-          >
-            {status.label}
-          </Button>
-        ))}
-    </Stack>
   </Paper>
 }

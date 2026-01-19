@@ -152,9 +152,6 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=15, num_tickets=30
     # Users
     c.execute("SELECT id FROM auth_user")
     user_ids = [row[0] for row in c.fetchall()]
-    if not user_ids:
-        # TODO: Generate fake users?
-        users_id = []
 
     # Users in events
     for eid in event_ids:
@@ -204,12 +201,11 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=15, num_tickets=30
         for _ in range(num_logs):
             message = fake.sentence(nb_words=12)
             author = random.choice(user_ids + [None])  # None = system
-            comment_type = random.choice(['UNKNOWN', 'INTRODUCTION', 'RECRUIT', 'CONFIRM'])
             created_at = fake.date_time_between(start_date='-1y', end_date='now')
             c.execute(
-                "INSERT INTO ticket_comments (ticket_id, author_id, type, message, created_at, modified_at) "
-                "VALUES (%s, %s, %s, %s, %s, %s)",
-                (tid, author, comment_type, message, created_at, created_at)
+                "INSERT INTO ticket_comments (ticket_id, author_id, message, created_at, modified_at) "
+                "VALUES (%s, %s, %s, %s, %s)",
+                (tid, author, message, created_at, created_at)
             )
     conn.commit()
 
