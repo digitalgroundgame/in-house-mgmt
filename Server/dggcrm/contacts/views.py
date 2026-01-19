@@ -72,7 +72,7 @@ class ContactViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(taggings__tag__name__iexact=tag)
         date_filter = Q()
         if start_date:
-            date_filter &= Q(event_participations__event__created_at__gte=start_date)
+            date_filter &= Q(event_participations__event__ends_at__gte=start_date)
         if end_date:
             date_filter &= Q(event_participations__event__created_at__lte=end_date)
 
