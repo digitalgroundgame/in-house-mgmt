@@ -12,13 +12,21 @@ class TicketStatus(models.TextChoices):
     COMPLETED = "COMPLETED", "Completed"
     CANCELED = "CANCELED", "Canceled"
 
-# TODO: Should we convert to table? 
+# TODO: Should we convert to table?  (Yes, we def should)
 class TicketType(models.TextChoices):
     UNKNOWN = "UNKNOWN", "Unknown"
     INTRODUCTION = "INTRODUCTION", "Introduction"
     RECRUIT = "RECRUIT", "Recruit for event"
     CONFIRM = "CONFIRM", "Confirm event participation"
     # TODO: What other types do we want?
+
+class TicketAskStatus(models.TextChoices):
+    UNKNOWN = "UNKNOWN", "Unknown"
+    REJECTED = "REJECTED", "Rejected"
+    AGREED = "AGREED", "Agreed"
+    DELIVERED = "DELIVERED", "Delivered"
+    FAILED = "FAILED", "Failed"
+    GHOSTED = "GHOSTED", "Ghosted"
 
 class Ticket(models.Model):
     """
@@ -118,6 +126,11 @@ class TicketComment(models.Model):
         on_delete=models.SET_NULL,
     )
 
+    type = models.CharField(
+        max_length=50,
+        choices=TicketType,
+        default=TicketType.UNKNOWN,
+    )
     message = models.TextField()
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -129,5 +142,41 @@ class TicketComment(models.Model):
 
     def __str__(self):
         return f"Comment on {self.ticket_id}"
+
+class TicketAsks(models.Model):
+    ticket = models.ForeignKey(
+        "tickets.Ticket",
+        on_delete=models.CASCADE,
+        related_name="audit_logs",
+    )
+
+    contact = models.ForeignKey(
+        "contacts.Contact",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="ticket_asks",
+    )
+
+   # user_id = models.ForeignKey(
+   #     settings.AUTH_USER_MODEL,
+   #     null=True,
+   #     blank=True,
+   #     on_delete=models.SET_NULL,
+   #  )
+
+    status = models.CharField(
+        max_length=15,
+        choices=TicketAskStatus.choices,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    # Change field on edit
+    edited_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'ticket_asks'
+        ordering = ["-created_at"]
 
 # TODO: implement missing tables from DB diagram

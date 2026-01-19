@@ -13,6 +13,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@mantine/charts": "^8.3.12",
     "@mantine/core": "^8.3.10",
     "@mantine/dates": "^8.3.12",
     "@mantine/form": "^8.3.10",
@@ -21,6 +22,7 @@
     "next": "16.1.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "recharts": "^3.6.0",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1"
   },

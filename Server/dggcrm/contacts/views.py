@@ -1,6 +1,7 @@
 from rest_framework import viewsets, filters
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
+from rest_framework.response import Response
 from django.db.models import Q, Count
 
 from .models import Contact, Tag, TagAssignments
@@ -11,6 +12,7 @@ from .serializers import (
     TagSerializer,
     TagAssignmentSerializer,
 )
+from dggcrm.tickets.models import TicketAsks, TicketAskStatus, TicketType
 
 # TODO: Add permission_classes to these views
 class ContactViewSet(viewsets.ModelViewSet):
@@ -96,6 +98,37 @@ class ContactViewSet(viewsets.ModelViewSet):
 
         return queryset
 
+    @action(detail=True, methods=["get"], url_path="acceptance-rate")
+    def acceptance_rate(self, request, pk=None):
+        """
+        Get ticket ask statistics for a contact, broken down by ticket type.
+        Returns a JSON with counts for each TicketAskStatus per ticket type.
+        """
+        contact = self.get_object()
+
+        # Base queryset aggregated in DB
+        qs = (
+            TicketAsks.objects
+            .filter(contact=contact)
+            .values("ticket__ticket_type", "status")
+            .annotate(count=Count("id"))
+        )
+
+        # Initialize response with zeros
+        response_data = {
+            ticket_type_value: {
+                status.value: 0 for status in TicketAskStatus
+            }
+            for ticket_type_value, _ in TicketType.choices
+        }
+
+        # Fill in actual counts
+        for row in qs:
+            ticket_type = row["ticket__ticket_type"]
+            status = row["status"]
+            response_data[ticket_type][status] = row["count"]
+
+        return Response(response_data)
 
 class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()

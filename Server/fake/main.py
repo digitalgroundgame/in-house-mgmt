@@ -172,43 +172,75 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=15, num_tickets=30
             )
     conn.commit()
 
-    # Tickets
+    # Tickets - EVERY contact gets tickets across ALL ticket types for demo purposes
     ticket_ids = []
-    for _ in range(num_tickets):
-        name = fake.catch_phrase()
-        description = generate_ticket_description(fake)
-        event = random.choice(event_ids + [None])
-        contact = random.choice(contact_ids + [None])
-        ticket_status = random.choice(['OPEN','TODO','IN_PROGRESS','BLOCKED','COMPLETED','CANCELED'])
-        ticket_type = random.choice(['UNKNOWN', 'INTRODUCTION', 'RECURIT', 'CONFIRM'])
-        priority = random.choice([i for i in range(6)])
-        assigned_to = random.choice(user_ids + [None])
-        reported_by = random.choice(user_ids) if len(user_ids) > 0 else None
-        created_at = fake.date_time_between(start_date='-1y', end_date='now')
-        modified_at = created_at + timedelta(days=random.randint(0,5))
-        c.execute(
-            "INSERT INTO tickets (title, description, ticket_status, ticket_type, event_id, contact_id, assigned_to_id, reported_by_id, priority, created_at, modified_at) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
-            (name, description, ticket_status, ticket_type, event, contact, assigned_to, reported_by, priority, created_at, modified_at)
-        )
-        ticket_ids.append(c.fetchone()[0])
+    ticket_types = ['UNKNOWN', 'INTRODUCTION', 'RECRUIT', 'CONFIRM']
+
+    # For EVERY contact, create 1-3 tickets per ticket type to ensure bar graphs have data
+    for contact in contact_ids:
+        for ticket_type in ticket_types:
+            num_tickets_for_type = random.randint(1, 3)
+            for _ in range(num_tickets_for_type):
+                name = fake.catch_phrase()
+                description = fake.text(max_nb_chars=200)
+                event = random.choice(event_ids + [None])
+                ticket_status = random.choice(['OPEN','TODO','IN_PROGRESS','BLOCKED','COMPLETED','CANCELED'])
+                priority = random.choice([i for i in range(6)])
+                assigned_to = random.choice(user_ids + [None])
+                reported_by = random.choice(user_ids) if len(user_ids) > 0 else None
+                created_at = fake.date_time_between(start_date='-1y', end_date='now')
+                modified_at = created_at + timedelta(days=random.randint(0,5))
+                c.execute(
+                    "INSERT INTO tickets (title, description, ticket_status, ticket_type, event_id, contact_id, assigned_to_id, reported_by_id, priority, created_at, modified_at) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
+                    (name, description, ticket_status, ticket_type, event, contact, assigned_to, reported_by, priority, created_at, modified_at)
+                )
+                ticket_ids.append((c.fetchone()[0], contact))
     conn.commit()
 
-    # Ticket audit logs / comments
-    for tid in ticket_ids:
+    # Ticket comments
+    for tid, _ in ticket_ids:
         num_logs = random.randint(0, 5)
         for _ in range(num_logs):
             message = fake.sentence(nb_words=12)
             author = random.choice(user_ids + [None])  # None = system
+            comment_type = random.choice(['UNKNOWN', 'INTRODUCTION', 'RECRUIT', 'CONFIRM'])
             created_at = fake.date_time_between(start_date='-1y', end_date='now')
             c.execute(
-                "INSERT INTO ticket_comments (ticket_id, author_id, message, created_at, modified_at) "
-                "VALUES (%s, %s, %s, %s, %s)",
-                (tid, author, message, created_at, created_at)
+                "INSERT INTO ticket_comments (ticket_id, author_id, type, message, created_at, modified_at) "
+                "VALUES (%s, %s, %s, %s, %s, %s)",
+                (tid, author, comment_type, message, created_at, created_at)
             )
     conn.commit()
 
-    print(f"Populated {len(contact_ids)} contacts, {len(tags)} tags, {len(event_ids)} events, {len(ticket_ids)} tickets.")
+    # Ticket asks (for acceptance_rate calculation)
+    # Every ticket with a contact gets 1-4 asks to ensure good test coverage
+    ticket_ask_statuses = ['UNKNOWN', 'REJECTED', 'AGREED', 'DELIVERED', 'FAILED', 'GHOSTED']
+    ticket_ask_count = 0
+    for tid, contact in ticket_ids:
+        if contact is None:
+            num_asks = random.randint(0, 1)
+        else:
+            num_asks = random.randint(1, 4)
+
+        for _ in range(num_asks):
+            # Weight towards positive outcomes
+            status = random.choices(
+                ticket_ask_statuses,
+                weights=[10, 15, 35, 25, 10, 5]
+            )[0]
+            created_at = fake.date_time_between(start_date='-1y', end_date='now')
+            edited_at = created_at + timedelta(days=random.randint(0, 3))
+            c.execute(
+                "INSERT INTO ticket_asks (ticket_id, contact_id, status, created_at, edited_at) "
+                "VALUES (%s, %s, %s, %s, %s)",
+                (tid, contact, status, created_at, edited_at)
+            )
+            ticket_ask_count += 1
+    conn.commit()
+
+    print(f"Populated {len(contact_ids)} contacts, {len(tags)} tags, {len(event_ids)} events, {len(ticket_ids)} tickets, {ticket_ask_count} ticket asks.")
+    print(f"  - All contacts have tickets across all types for acceptance_rate demo")
 
 
 def parse_args():

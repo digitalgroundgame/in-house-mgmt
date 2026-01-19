@@ -18,12 +18,14 @@ import {
 import { DateInput } from '@mantine/dates'
 import { IconPlus, IconFileUpload, IconSearch, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from '@mantine/form';
 import { TicketBulkCreateModal } from '@/app/components/TicketBulkCreateModal';
 import ContactTable, { type Contact, type Group as ContactGroup, type Tag } from '@/app/components/ContactTable';
 import './page.css';
 
 export default function ContactsPage() {
+  const router = useRouter();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [bulkTicketModalOpen, setBulkTicketModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -145,6 +147,7 @@ export default function ContactsPage() {
 
   const handleRowClick = (contact: Contact) => {
     // TODO: Navigate to contact detail page or show modal
+    router.push(`/contacts/${contact.id}`);
     console.log('Clicked contact:', contact);
   };
 
