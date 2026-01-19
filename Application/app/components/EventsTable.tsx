@@ -1,21 +1,8 @@
 'use client';
 
 import { Table, Badge, Stack, Title, LoadingOverlay, Paper, Text } from '@mantine/core';
-
-export interface Event {
-  id:number,
-  event_status: string,
-  status_display: string,
-  name: string,
-  description: string | null,
-  location_name: string | null,
-  location_address: string | null,
-  location_display: string,
-  starts_at: string,
-  ends_at: string,
-  // created_at: string,
-  // modified_at: string,
-}
+import { useRouter } from 'next/navigation';
+import { Event } from './event-utils';
 
 interface EventsTableProps {
   events: Event[];
@@ -30,6 +17,7 @@ export default function EventsTable({
   onRowClick,
   showTitle = true
 }: EventsTableProps) {
+  const router = useRouter()
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'No date';
     try {
@@ -69,7 +57,7 @@ export default function EventsTable({
               events.map((event) => (
                 <Table.Tr
                   key={event.id}
-                  onClick={() => onRowClick?.(event)}
+                  onClick={() => router.push(`/events/${event.id}`)}
                   style={{ cursor: onRowClick ? 'pointer' : 'default' }}
                 >
                   <Table.Td>
