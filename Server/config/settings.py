@@ -33,6 +33,7 @@ ALLOWED_HOSTS = os.getenv(
 ).split(",")
 
 # CORS settings - Allow all origins for development
+# TODO: Change for production
 CORS_ALLOW_ALL_ORIGINS = True
 
 # Application definition
@@ -48,8 +49,13 @@ DJANGO_APPS = [
 
 THIRD_PARTY_APPS = [
     "rest_framework",
+    "rest_framework.authtoken",
     "corsheaders",
-    "auditlog"
+    "auditlog",
+
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
 ]
 
 LOCAL_APPS = [
@@ -58,6 +64,10 @@ LOCAL_APPS = [
     "dggcrm.contacts",
     "dggcrm.tickets",
     "dggcrm.events",
+    "dggcrm.accounts",
+
+    # For local mock only
+    "dggcrm.authmock.apps.AuthMockConfig",
 ]
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
@@ -73,6 +83,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "auditlog.middleware.AuditlogMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -109,16 +120,18 @@ REST_FRAMEWORK = {
         # 'django_filters.rest_framework.DjangoFilterBackend',
         'rest_framework.filters.OrderingFilter',
         # 'rest_framework.filters.SearchFilter',
-    )
+    ),
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
 }
 
-# Only for local development, we will disable all authentication
-if DEBUG:
-    REST_FRAMEWORK['DEFAULT_PERMISSION_CLASSES'] = [
-        'rest_framework.permissions.AllowAny'
-    ]
-    REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES']= []
-
+REST_AUTH = {
+    "USER_DETAILS_SERIALIZER": "dggcrm.accounts.serializers.CustomUserDetailsSerializer",
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
@@ -138,6 +151,57 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+
+# Mock values for local testing
+SOCIALACCOUNT_PROVIDERS = {
+    "mock-google": {
+        "APP": {
+            "client_id": "mock-google",
+            "secret": "google-secret",
+            "key": "",
+        },
+        "SCOPE": ["openid", "email", "profile"],
+    },
+    "mock-discord": {
+        "APP": {
+            "client_id": "mock-discord",
+            "secret": "discord-secret",
+            "key": "",
+        },
+        "SCOPE": ["openid", "identify", "email"],
+    },
+}
+
+# TODO: All these settings need to be tweaked for production
+SIGNUP_FIELDS = {
+    'email': {
+        'required': True
+    },
+    'username': {
+        'required': True
+    },
+}
+ACCOUNT_LOGIN_METHODS = {"email", "username"}
+ACCOUNT_EMAIL_VERIFICATION = "none"
+ACCOUNT_EMAIL_REQUIRED = False
+
+SOCIALACCOUNT_QUERY_EMAIL = True
+SOCIALACCOUNT_LOGIN_ON_GET = True
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_EMAIL_REQUIRED = True
+SOCIALACCOUNT_EMAIL_VERIFICATION = "optional"
+SOCIALACCOUNT_ADAPTER = "dggcrm.accounts.adapters.SocialAccountAdapter"
+
+LOGIN_URL = "/login"
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/login?logout"
+
+
+ACCOUNT_ADAPTER = "dggcrm.accounts.adapters.NoNewUsersAccountAdapter"
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/

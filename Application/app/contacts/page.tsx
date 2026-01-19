@@ -6,27 +6,38 @@ import {
   Group,
   Button,
   Paper,
+  Text,
   TextInput,
   Select,
   Stack,
   Modal,
   MultiSelect,
-  ActionIcon
+  ActionIcon,
+  NumberInput
 } from '@mantine/core';
+import { DateInput } from '@mantine/dates'
 import { IconPlus, IconFileUpload, IconSearch, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from '@mantine/form';
+import { TicketBulkCreateModal } from '@/app/components/TicketBulkCreateModal';
 import ContactTable, { type Contact, type Group as ContactGroup, type Tag } from '@/app/components/ContactTable';
 import './page.css';
 
 export default function ContactsPage() {
   const router = useRouter();
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [bulkTicketModalOpen, setBulkTicketModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string | null>('all');
   const [selectedTag, setSelectedTag] = useState<string | null>('all');
+  const [startDate, setStartDate] = useState<string | null>('')
+  const [endDate, setEndDate] = useState<string | null>('')
+  const [minEvents, setMinEvents] = useState<number | string>()
+  const [maxEvents, setMaxEvents] = useState<number | string>()
+  const [minTickets, setMinTickets] = useState<number | string>()
+  const [maxTickets, setMaxTickets] = useState<number | string>()
   const [tags, setTags] = useState<Tag[]>([]);
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [previousUrl, setPreviousUrl] = useState<string | null>(null);
@@ -34,6 +45,7 @@ export default function ContactsPage() {
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
 
   const form = useForm({
     initialValues: {
@@ -60,7 +72,7 @@ export default function ContactsPage() {
   // Fetch contacts whenever filters change (reset to first page)
   useEffect(() => {
     fetchContacts();
-  }, [searchQuery, selectedGroup, selectedTag]);
+  }, [searchQuery, selectedGroup, selectedTag, minEvents, minTickets, maxEvents, maxTickets, startDate, endDate]);
 
   const fetchGroupsAndTags = async () => {
     try {
@@ -91,7 +103,14 @@ export default function ContactsPage() {
       // If no URL provided, build the initial query
       if (!fetchUrl) {
         const params = new URLSearchParams();
-        if (searchQuery) params.append('q', searchQuery);
+        if (searchQuery) params.append('search', searchQuery);
+        if (minEvents) params.append('min_events', minEvents.toString());
+        if (minTickets) params.append('min_tickets', minTickets.toString());
+        if (maxTickets) params.append('max_tickets', maxTickets.toString());
+        if (maxEvents) params.append('max_tickets', maxEvents.toString());
+        if (startDate) params.append('start_date', startDate);
+        if (endDate) params.append('end_date', endDate);
+
         if (selectedTag && selectedTag !== 'all') params.append('tag', selectedTag);
         fetchUrl = `/api/contacts/?${params}`;
       }
@@ -117,6 +136,12 @@ export default function ContactsPage() {
     setSearchQuery('');
     setSelectedGroup('all');
     setSelectedTag('all');
+    setMaxEvents('');
+    setMinEvents('');
+    setMaxTickets('');
+    setMinTickets('');
+    setStartDate('');
+    setEndDate('');
     fetchContacts();
   };
 
@@ -186,6 +211,14 @@ export default function ContactsPage() {
     }
   };
 
+  const toggleRowSelection = (id: number) => {
+    setSelectedRows(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
   const handleUploadCSV = () => {
     // TODO: Open CSV upload modal
     console.log('Upload CSV clicked');
@@ -242,6 +275,64 @@ export default function ContactsPage() {
                 style={{ minWidth: 200 }}
               />
             </Group>
+            <Group>
+              <NumberInput
+                label="Minimum Events Attended"
+                placeholder="0"
+                value={minEvents}
+                onChange={
+                  num => {
+                    setMinEvents(typeof num === "number" ? num : 0)
+                  }
+                }
+                style={{flex: 1}}
+              />
+              <NumberInput
+                label="Maximum Events Attended" 
+                placeholder="0"
+                value={maxEvents}
+                onChange={
+                  num => {
+                    setMaxEvents(typeof num === "number" ? num : 0)
+                  }
+                }
+                style={{flex: 1}}
+              />
+              <NumberInput
+                label="Minimum Closed Tickets"
+                placeholder="0"
+                value={minTickets}
+                onChange={
+                  num => {
+                    setMinTickets(typeof num === "number" ? num : 0)
+                  }
+                }
+                style={{flex: 1}}
+              />
+              <NumberInput
+                label="Maximum Closed Tickets"
+                placeholder="0"
+                value={maxTickets}
+                onChange={
+                  num => {
+                    setMaxTickets(typeof num === "number" ? num : 0)
+                  }
+                }
+                style={{flex: 1}}
+              />
+              <DateInput 
+                label="Search Start Time"
+                value={startDate}
+                onChange={setStartDate}
+                placeholder="Date input"
+              />
+              <DateInput 
+                label="Search End Time"
+                onChange={setEndDate}
+                value={endDate}
+                placeholder="Date input"
+              />
+            </Group>
             <Group gap="sm">
               <Button variant="outline" onClick={handleReset}>Reset</Button>
             </Group>
@@ -254,12 +345,43 @@ export default function ContactsPage() {
           loading={loading}
           onRowClick={handleRowClick}
           showTitle={false}
+          selectedIds={selectedRows}
+          toggleSelect={toggleRowSelection}
         />
 
-        {/* Pagination and count */}
+        {/* Pagination, result and selected count */}
         <Paper p="sm" withBorder>
-          <Group justify="space-between">
-            <span>{totalCount} {totalCount === 1 ? 'contact' : 'contacts'} found</span>
+          <Group justify="space-between" align="center">
+            <Group gap="xs">
+              <Text>
+                {totalCount} {totalCount === 1 ? 'contact' : 'contacts'} found
+              </Text>
+
+              {selectedRows.size > 0 && (
+                <>
+                  <Text size="sm" c="dimmed">
+                    {selectedRows.size} selected
+                  </Text>
+                  <Button
+                    size="xs"
+                    variant="light"
+                    onClick={() => setBulkTicketModalOpen(true)}
+                  >
+                    Create Tickets
+                  </Button>
+                  <Button
+                    variant="subtle"
+                    color="red"
+                    size="xs"
+                    px={6}
+                    onClick={() => setSelectedRows(new Set())}
+                  >
+                    Clear
+                  </Button>
+                </>
+              )}
+            </Group>
+
             <Group gap="xs">
               <ActionIcon
                 variant="filled"
@@ -336,6 +458,16 @@ export default function ContactsPage() {
           </Stack>
         </form>
       </Modal>
+      <TicketBulkCreateModal
+        opened={bulkTicketModalOpen}
+        onClose={() => setBulkTicketModalOpen(false)}
+        contactIds={Array.from(selectedRows)}
+        events={[]} // 🔧 plug in events once available
+        users={[]}  // 🔧 plug in users once available
+        onSuccess={() => {
+          setSelectedRows(new Set());
+        }}
+      />
     </Container>
   );
 }

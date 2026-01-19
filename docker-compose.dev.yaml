@@ -14,6 +14,7 @@ services:
       - /app/.next
     environment:
       - BACKEND_URL=http://server:8080
+      - NEXT_PUBLIC_USE_MOCK_OAUTH=true
     ports:
       - '3030:3030'
 
@@ -47,6 +48,18 @@ services:
       - ./.envs/.dev/.postgres
     ports:
       - "5432:5432"
+
+  mock_oauth:
+    image: ghcr.io/navikt/mock-oauth2-server:3.0.1
+    container_name: mock_oauth
+    volumes:
+      - ./compose/dev/server/mock-oauth/config.json:/app/config.json
+      - ./compose/dev/server/mock-oauth/login.html:/app/login.html:ro
+    ports:
+      - "9000:9000"
+    environment:
+      SERVER_PORT: 9000
+      JSON_CONFIG_PATH: /app/config.json
 
 volumes:
   dggcrm_dev_postgres_data:

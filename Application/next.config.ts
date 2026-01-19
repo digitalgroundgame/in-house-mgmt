@@ -22,6 +22,10 @@ module.exports = {
   async rewrites() {
     return [
       {
+        source: "/accounts/:path*",
+        destination: `${BACKEND_URL}/accounts/:path*/`,
+      },
+      {
         source: '/api/:path*',
         destination: `${BACKEND_URL}/api/:path*/`,
       },

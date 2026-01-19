@@ -37,6 +37,7 @@ if [ "${CREATE_SUPER_USER}" = "1" ] || [ "${CREATE_SUPER_USER}" = "true" ]; then
     if ! python manage.py createsuperuser --noinput --skip-checks; then
         echo "Superuser creation failed (likely already exists). Continuing..."
     fi
+    python fake/create_users.py
 else
     echo "Skipping super user..."
 fi

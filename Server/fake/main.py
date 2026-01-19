@@ -15,6 +15,43 @@ def get_db_conn(dsn: str):
         return psycopg.connect(dsn)
     raise ValueError(f"Unsupported DB scheme: {parsed.scheme}")
 
+def generate_ticket_description(fake):
+    ticket_number = random.randint(100, 999)
+    title = " ".join(fake.words(2)).title()
+    inline_code = "`send message`"
+    block_code = f"""```\n{' '.join(fake.words(8))}\n{' '.join(fake.words(3))}\n```"""
+    
+    table = "| Key | Thing |\n|------|-------|\n| {word} | `{msg}` |".format(
+        word="".join(fake.words(1)),
+        msg=" ".join(fake.words(2))
+    )
+    
+    markdown = f"""
+# Ticket #{ticket_number}: {title}
+
+This is a fake ticket
+
+---
+
+## Instructions
+
+Follow these instructions
+
+1. Open Discord
+2. Click {inline_code}
+3. Copy below
+
+{block_code}
+
+---
+
+## Example Table
+
+{table}
+
+"""
+    return markdown.strip()
+
 
 # --- Fake Data Population ---
 def populate_with_fake_data(conn, num_contacts=50, num_events=15, num_tickets=30):

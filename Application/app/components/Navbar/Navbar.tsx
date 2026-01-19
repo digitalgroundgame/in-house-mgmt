@@ -3,38 +3,35 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   IconHome,
-  IconInfoCircle,
   IconTicket,
+  IconUser,
   IconUsers,
   IconCalendarEvent,
-  IconBuilding,
-  IconUser,
+  IconEyeFilled,
   IconLogout,
-  IconSwitchHorizontal,
-  IconEyeFilled
+  IconSwitchHorizontal
 } from '@tabler/icons-react';
 import { Code, Group, Switch } from '@mantine/core';
 import classes from './Navbar.module.css';
 import { useEffect, useState } from 'react';
-
+import { handleLogout } from '@/app/utils/oauth';
 
 const notAdminData = [
   { link: '/home', label: 'Home', icon: IconHome },
   { link: '/tickets', label: 'Tickets', icon: IconTicket },
   { link: '/contacts', label: 'Contacts', icon: IconUsers },
   { link: '/events', label: 'Events', icon: IconCalendarEvent },
-/*  { link: '/profile', label: 'Profile', icon: IconUser }, */
 ];
 
 const adminOnly = [
-  {link: '/admin/management', label: 'Management', icon: IconEyeFilled}
-]
+  { link: '/admin/management', label: 'Management', icon: IconEyeFilled },
+];
 
 export default function NavbarSimple() {
   const pathname = usePathname();
 
-  const [admin, changeMode] = useState(false)
-  const [data, changeData] = useState<typeof notAdminData>(notAdminData)
+  const [admin, changeMode] = useState(false);
+  const [data, changeData] = useState<typeof notAdminData>(notAdminData);
 
   useEffect (() => {
     const assignData = () => {
@@ -44,9 +41,10 @@ export default function NavbarSimple() {
         changeData(notAdminData)
       }
     }
-    assignData()
-  }, [admin])
+    assignData();
+  }, [admin]);
 
+  const showNavbar = pathname !== '/login';
 
   const links = data.map((item) => (
     <Link
@@ -60,12 +58,13 @@ export default function NavbarSimple() {
     </Link>
   ));
 
+  if (!showNavbar) {
+    return null;
+  }
+
   return (
     <nav className={classes.navbar}>
       <div className={classes.navbarMain}>
-        <Group className={classes.header} justify="space-between">
-          <Code fw={700}>v0.0.0</Code>
-        </Group>
         {links}
       </div>
 
@@ -77,16 +76,38 @@ export default function NavbarSimple() {
           onChange={() => changeMode(!admin)}
           />
         </div>
-        <a href="#" className={classes.link} onClick={(event) => event.preventDefault()}>
+
+        <a
+          href="#"
+          className={classes.link}
+          onClick={(event) => event.preventDefault()}
+        >
           <IconSwitchHorizontal className={classes.linkIcon} stroke={1.5} />
           <span>Change account</span>
         </a>
 
-        <a href="#" className={classes.link} onClick={(event) => event.preventDefault()}>
+        <Link
+          className={classes.link}
+          data-active={"/profile" === pathname || undefined}
+          href={"/profile"}
+          key={"profile"}
+        >
+          <IconUser className={classes.linkIcon} stroke={1.5} />
+          <span>Profile</span>
+        </Link>
+
+        <a
+          href="#"
+          className={classes.link}
+          onClick={handleLogout}
+        >
           <IconLogout className={classes.linkIcon} stroke={1.5} />
           <span>Logout</span>
         </a>
       </div>
+      <Group className={classes.header} justify="space-between">
+        <Code fw={700}>v0.0.0</Code>
+      </Group>
     </nav>
   );
 }

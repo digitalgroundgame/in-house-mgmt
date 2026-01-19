@@ -1,6 +1,6 @@
 'use client';
 
-import { Table, Badge, Stack, Title, LoadingOverlay, Paper, Group, Text, Pagination, Center, HoverCard } from '@mantine/core';
+import { Table, Badge, Stack, Title, LoadingOverlay, Paper, Group, Text, Pagination, Center, HoverCard, Checkbox } from '@mantine/core';
 import { useState } from 'react';
 
 export interface Contact {
@@ -32,6 +32,9 @@ interface ContactTableProps {
   currentPage?: number;
   totalPages?: number;
   onPageChange?: (page: number) => void;
+  isSelectable?: boolean;
+  selectedIds?: Set<number>;
+  toggleSelect?: (id: number) => void;
 }
 
 interface AcceptanceStats {
@@ -111,6 +114,9 @@ export default function ContactTable({
   showTitle = true,
   currentPage = 1,
   totalPages = 1,
+  isSelectable = true,
+  selectedIds,
+  toggleSelect,
   onPageChange
 }: ContactTableProps) {
   const formatContactInfo = (email: string | null, phone: string | null) => {
@@ -118,6 +124,35 @@ export default function ContactTable({
     if (email) parts.push(email);
     if (phone) parts.push(phone);
     return parts.length > 0 ? parts.join(' • ') : 'No contact info';
+  };
+
+  const allOnPageSelected =
+    isSelectable &&
+    contacts.length > 0 &&
+    contacts.every(c => selectedIds?.has(c.id));
+
+  const someOnPageSelected =
+    isSelectable &&
+    contacts.some(c => selectedIds?.has(c.id));
+
+  const toggleSelectAllOnPage = () => {
+    if (!toggleSelect || !selectedIds) return;
+
+    if (allOnPageSelected) {
+    // DESELECT all rows on this page
+    contacts.forEach(c => {
+      if (selectedIds.has(c.id)) {
+        toggleSelect(c.id);
+      }
+    });
+    } else {
+    // SELECT all rows on this page
+    contacts.forEach(c => {
+      if (!selectedIds.has(c.id)) {
+        toggleSelect(c.id);
+      }
+    });
+    }
   };
 
   return (
@@ -128,6 +163,15 @@ export default function ContactTable({
         <Table highlightOnHover>
           <Table.Thead>
             <Table.Tr>
+              {isSelectable && (
+                <Table.Th w={40}>
+                  <Checkbox
+                    checked={allOnPageSelected}
+                    indeterminate={someOnPageSelected && !allOnPageSelected}
+                    onChange={toggleSelectAllOnPage}
+                  />
+                </Table.Th>
+              )}
               <Table.Th>Name</Table.Th>
               <Table.Th>Discord ID</Table.Th>
               <Table.Th>Contact</Table.Th>
@@ -142,37 +186,64 @@ export default function ContactTable({
                 </Table.Td>
               </Table.Tr>
             ) : (
-              contacts.map((contact) => (
-                <Table.Tr
-                  key={contact.discord_id}
-                  onClick={() => onRowClick?.(contact)}
-                  style={{ cursor: onRowClick ? 'pointer' : 'default' }}
-                >
-                  <Table.Td>{contact.full_name}</Table.Td>
-                  <Table.Td>
-                    <Text size="sm" c="dimmed">{contact.discord_id}</Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="sm">{formatContactInfo(contact.email, contact.phone)}</Text>
-                  </Table.Td>
-                  <Table.Td>
-                    {contact.tags && contact.tags.length > 0 ? (
-                      <Group gap="xs">
-                        {contact.tags.slice(0, 3).map((tag) => (
-                          <TagWithStats key={tag.id} tag={tag} />
-                        ))}
-                        {contact.tags.length > 3 && (
-                          <Badge variant="dot" size="sm" c="dimmed">
-                            +{contact.tags.length - 3}
-                          </Badge>
-                        )}
-                      </Group>
-                    ) : (
-                      <Text size="sm" c="dimmed">No tags</Text>
+              contacts.map((contact) => {
+                const selected = selectedIds?.has(contact.id);
+
+                return (
+                  <Table.Tr
+                    key={contact.discord_id}
+                    bg={selected ? 'var(--mantine-color-blue-light)' : undefined}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => {
+                      if (isSelectable && toggleSelect && selectedIds?.size) {
+                        // If anything is selected, row click toggles selection
+                        toggleSelect(contact.id);
+                      } else {
+                        // Otherwise, normal row click behavior
+                        onRowClick?.(contact);
+                      }
+                    }}
+                  >
+                    {isSelectable && (
+                      <Table.Td onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selected}
+                          onChange={() => toggleSelect!(contact.id)}
+                        />
+                      </Table.Td>
                     )}
-                  </Table.Td>
-                </Table.Tr>
-              ))
+
+                    <Table.Td>{contact.full_name}</Table.Td>
+
+                    <Table.Td>
+                      <Text size="sm" c="dimmed">{contact.discord_id}</Text>
+                    </Table.Td>
+
+                    <Table.Td>
+                      <Text size="sm">
+                        {formatContactInfo(contact.email, contact.phone)}
+                      </Text>
+                    </Table.Td>
+
+                    <Table.Td>
+                      {contact.tags && contact.tags.length > 0 ? (
+                        <Group gap="xs">
+                          {contact.tags.slice(0, 3).map((tag) => (
+                            <TagWithStats key={tag.id} tag={tag} />
+                          ))}
+                          {contact.tags.length > 3 && (
+                            <Badge variant="dot" size="sm" c="dimmed">
+                              +{contact.tags.length - 3}
+                            </Badge>
+                          )}
+                        </Group>
+                      ) : (
+                        <Text size="sm" c="dimmed">No tags</Text>
+                      )}
+                    </Table.Td>
+                  </Table.Tr>
+                );
+              })
             )}
           </Table.Tbody>
         </Table>

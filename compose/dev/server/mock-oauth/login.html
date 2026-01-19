@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Mock OAuth Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    >
+</head>
+
+<body>
+<div class="container">
+    <div class="row mt-5 justify-content-center">
+        <div class="col-md-5">
+
+            <!-- MUST POST to /oauth/authorize -->
+            <form method="post">
+
+                <h4 class="mb-3">Mock OAuth2 Login</h4>
+                <hr>
+
+                <div class="form-group">
+                    <label for="userSelect">Select user</label>
+                    <select class="form-control" id="userSelect" name="username" required>
+                        <option value="">-- Choose a user --</option>
+                        <option
+                            value="admin"
+                            data-claims='{"email":"admin@example.com","name":"Admin","sub":"admin"}'
+                        >
+                            admin (admin@example.com)
+                        </option>
+                        <option
+                            value="tiny"
+                            data-claims='{"email":"tiny@destiny.gg","name":"Tiny","sub":"tiny"}'
+                        >
+                            tiny (tiny@destiny.gg)
+                        </option>
+                        <option
+                            value="dummy"
+                            data-claims='{"email":"dumb@example.com","name":"Dummy","sub":"dummy"}'
+                        >
+                            dummy (dumb@example.com)
+                        </option>
+                        <option
+                            value="nonexistent"
+                            data-claims='{"email":"nonexistent@example.com","name":"Does Not Exist","sub":"nonexistent"}'
+                        >
+                            nonexistent (nonexistent@example.com)
+                        </option>
+                        <option
+                            value="nonexistent"
+                            data-claims='{"email":"unverified@example.com","name":"Unverified Email","sub":"unverified"}'
+                        >
+                            unverified (unverified@example.com)
+                        </option>
+                    </select>
+                </div>
+
+                <!-- Claims sent to mock-oauth2-server -->
+                <input type="hidden" name="claims" id="claimsInput">
+                <input type="hidden" name="redirect_uri" value="http://localhost:3030/accounts/mock-google/login/callback/">
+                <input type="hidden" name="response_type" value="code">
+                <input type="hidden" name="scope" value="openid email profile">
+                
+                <button type="submit" class="btn btn-primary btn-block">
+                    Sign in
+                </button>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    const userSelect = document.getElementById("userSelect");
+    const claimsInput = document.getElementById("claimsInput");
+
+    userSelect.addEventListener("change", () => {
+        const selected = userSelect.options[userSelect.selectedIndex];
+        claimsInput.value = selected.dataset.claims || "";
+    });
+
+    const select = document.getElementById('userSelect');
+    const hiddenClaims = document.getElementById('claimsInput');
+
+    select.addEventListener('change', function () {
+        const selected = select.options[select.selectedIndex];
+        hiddenClaims.value = selected.dataset.claims || '{}';
+    });
+
+    // initialize first value
+    if(select.options.length > 1) select.dispatchEvent(new Event('change'));
+</script>
+
+</body>
+</html>

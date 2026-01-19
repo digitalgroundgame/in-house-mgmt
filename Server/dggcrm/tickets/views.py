@@ -10,7 +10,7 @@ from django.db.models import Count, Q, F
 from django.contrib.contenttypes.models import ContentType
 
 from .models import Ticket, TicketStatus, TicketType, TicketComment, TicketAskStatus
-from .serializers import TicketSerializer, TicketCommentSerializer, TicketTimelineSerializer, TicketClaimSerializer
+from .serializers import TicketSerializer, BulkTicketCreateSerializer, TicketClaimSerializer, TicketCommentSerializer, TicketTimelineSerializer
 
 # TODO: Handle permissions for views in file
 class TicketViewSet(viewsets.ModelViewSet):
@@ -58,6 +58,17 @@ class TicketViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(contact=contact_id)
 
         return queryset
+
+    # TODO: Limit this API to organizer role or above
+    @action(detail=False, methods=["post"], url_path="bulk", serializer_class=BulkTicketCreateSerializer)
+    def bulk_create_tickets(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        tickets = serializer.save()
+        return Response(
+            {"created_count": len(tickets)},
+            status=status.HTTP_201_CREATED
+        )
 
     # TODO: Limit this API to organizer role or above
     @action(detail=False, methods=["get"])
@@ -215,3 +226,7 @@ class TicketViewSet(viewsets.ModelViewSet):
         user = self.request.user
         serializer.save(reported_by=user if user and user.is_authenticated else None)
 
+class TicketTypeViewSet(viewsets.ViewSet):
+    def list(self, request):
+        types = [{'value': t.value, 'label': t.label} for t in TicketType]
+        return Response(types)

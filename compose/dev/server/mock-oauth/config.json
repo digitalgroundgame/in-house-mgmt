@@ -1,0 +1,91 @@
+{
+  "interactiveLogin": true,
+  "httpServer": "NettyWrapper",
+  "loginPagePath": "/app/login.html",
+  "tokenCallbacks": [
+    {
+      "issuerId": "mock-google",
+      "tokenExpiry": 3600,
+      "requestMappings": [
+        {
+          "requestParam": "username",
+          "match": "admin",
+          "claims": {
+            "sub": "admin",
+            "email": "admin@example.com",
+            "name": "Admin"
+          }
+        },
+        {
+          "requestParam": "username",
+          "match": "tiny",
+          "claims": {
+            "sub": "tiny",
+            "email": "tiny@destiny.gg",
+            "name": "Tiny"
+          }
+        },
+        {
+          "requestParam": "username",
+          "match": "dummy",
+          "claims": {
+            "sub": "dummy",
+            "email": "dumb@example.com",
+            "name": "Dummy"
+          }
+        },
+        {
+          "requestParam": "username",
+          "match": "unverified",
+          "claims": {
+            "sub": "unverified",
+            "email": "unverified@example.com",
+            "name": "Unverified Email"
+          }
+        }
+      ]
+    },
+    {
+      "issuerId": "mock-discord",
+      "tokenExpiry": 3600,
+      "requestMappings": [
+        {
+          "requestParam": "username",
+          "match": "admin",
+          "claims": {
+            "sub": "admin",
+            "email": "admin@example.com",
+            "name": "Admin"
+          }
+        },
+        {
+          "requestParam": "username",
+          "match": "tiny",
+          "claims": {
+            "sub": "tiny",
+            "email": "tiny@destiny.gg",
+            "name": "Tiny"
+          }
+        },
+        {
+          "requestParam": "username",
+          "match": "dummy",
+          "claims": {
+            "sub": "dummy",
+            "email": "dumb@example.com",
+            "name": "Dummy"
+          }
+        },
+        {
+          "requestParam": "username",
+          "match": "unverified",
+          "claims": {
+            "sub": "unverified",
+            "email": "unverified@example.com",
+            "name": "Unverified Email"
+          }
+        }
+      ]
+    }
+  ]
+}
