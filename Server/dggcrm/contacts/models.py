@@ -21,6 +21,9 @@ class Contact(models.Model):
 
     class Meta:
         db_table = 'contacts'
+        permissions = [
+            ("view_all_contacts", "Can view all contacts regardless of assignment"),
+        ]
 
     def __str__(self):
         if self.full_name:

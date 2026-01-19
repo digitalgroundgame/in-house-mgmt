@@ -42,6 +42,11 @@ class Event(models.Model):
 
     class Meta:
         db_table = 'events'
+        permissions = [
+            ("assign_users_to_event", "Can assign users to events"),
+            ("add_contacts_to_event", "Can add contacts to events"),
+        ]
+
 
     def __str__(self):
         return f"{self.name}"

@@ -97,6 +97,25 @@ class Ticket(models.Model):
 
     class Meta:
         db_table = 'tickets'
+        permissions = [
+            # Ticket viewership
+            ("view_all_tickets", "Can view all tickets regardless of assignment"),
+            ("view_event_tickets", "Can view tickets for events the user is assigned to"),
+            
+            # assignment / claiming
+            ("claim_ticket", "Can claim tickets"),
+            ("unclaim_ticket", "Can unclaim tickets"),
+            ("assign_ticket", "Can assign tickets to other users"),
+
+            # commenting overrides
+            ("comment_any_ticket", "Can comment on any ticket"),
+
+            # status changes
+            ("change_ticket_status", "Can change ticket status"),
+
+            # templates (admin-only)
+            ("manage_ticket_templates", "Can create and update ticket templates"),
+        ]
 
     def __str__(self):
         return f"{self.id} ({self.get_ticket_status_display()})"
