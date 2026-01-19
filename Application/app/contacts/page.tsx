@@ -136,6 +136,8 @@ export default function ContactsPage() {
     setMinEvents('');
     setMaxTickets('');
     setMinTickets('');
+    setStartDate('');
+    setEndDate('');
     fetchContacts();
   };
 
