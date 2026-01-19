@@ -74,7 +74,7 @@ class ContactViewSet(viewsets.ModelViewSet):
         if start_date:
             date_filter &= Q(event_participations__event__ends_at__gte=start_date)
         if end_date:
-            date_filter &= Q(event_participations__event__created_at__lte=end_date)
+            date_filter &= Q(event_participations__event__starts_at__lte=end_date)
 
         if min_tickets and min_tickets.isdigit():
             min_tickets = int(min_tickets)
