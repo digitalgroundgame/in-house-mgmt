@@ -12,8 +12,10 @@ import {
   Stack,
   Modal,
   MultiSelect,
-  ActionIcon
+  ActionIcon,
+  NumberInput
 } from '@mantine/core';
+import { DateInput } from '@mantine/dates'
 import { IconPlus, IconFileUpload, IconSearch, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { useState, useEffect } from 'react';
 import { useForm } from '@mantine/form';
@@ -28,6 +30,12 @@ export default function ContactsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string | null>('all');
   const [selectedTag, setSelectedTag] = useState<string | null>('all');
+  const [startDate, setStartDate] = useState<string | null>('')
+  const [endDate, setEndDate] = useState<string | null>('')
+  const [minEvents, setMinEvents] = useState<number | string>()
+  const [maxEvents, setMaxEvents] = useState<number | string>()
+  const [minTickets, setMinTickets] = useState<number | string>()
+  const [maxTickets, setMaxTickets] = useState<number | string>()
   const [tags, setTags] = useState<Tag[]>([]);
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [previousUrl, setPreviousUrl] = useState<string | null>(null);
@@ -62,7 +70,7 @@ export default function ContactsPage() {
   // Fetch contacts whenever filters change (reset to first page)
   useEffect(() => {
     fetchContacts();
-  }, [searchQuery, selectedGroup, selectedTag]);
+  }, [searchQuery, selectedGroup, selectedTag, minEvents, minTickets, maxEvents, maxTickets, startDate, endDate]);
 
   const fetchGroupsAndTags = async () => {
     try {
@@ -93,7 +101,14 @@ export default function ContactsPage() {
       // If no URL provided, build the initial query
       if (!fetchUrl) {
         const params = new URLSearchParams();
-        if (searchQuery) params.append('q', searchQuery);
+        if (searchQuery) params.append('search', searchQuery);
+        if (minEvents) params.append('min_events', minEvents.toString());
+        if (minTickets) params.append('min_tickets', minTickets.toString());
+        if (maxTickets) params.append('max_tickets', maxTickets.toString());
+        if (maxEvents) params.append('max_tickets', maxEvents.toString());
+        if (startDate) params.append('start_date', startDate);
+        if (endDate) params.append('end_date', endDate);
+
         if (selectedTag && selectedTag !== 'all') params.append('tag', selectedTag);
         fetchUrl = `/api/contacts/?${params}`;
       }
@@ -119,6 +134,12 @@ export default function ContactsPage() {
     setSearchQuery('');
     setSelectedGroup('all');
     setSelectedTag('all');
+    setMaxEvents('');
+    setMinEvents('');
+    setMaxTickets('');
+    setMinTickets('');
+    setStartDate('');
+    setEndDate('');
     fetchContacts();
   };
 
@@ -249,6 +270,64 @@ export default function ContactsPage() {
                 onChange={setSelectedTag}
                 data={tagOptions}
                 style={{ minWidth: 200 }}
+              />
+            </Group>
+            <Group>
+              <NumberInput
+                label="Minimum Events Attended"
+                placeholder="0"
+                value={minEvents}
+                onChange={
+                  num => {
+                    setMinEvents(typeof num === "number" ? num : 0)
+                  }
+                }
+                style={{flex: 1}}
+              />
+              <NumberInput
+                label="Maximum Events Attended" 
+                placeholder="0"
+                value={maxEvents}
+                onChange={
+                  num => {
+                    setMaxEvents(typeof num === "number" ? num : 0)
+                  }
+                }
+                style={{flex: 1}}
+              />
+              <NumberInput
+                label="Minimum Closed Tickets"
+                placeholder="0"
+                value={minTickets}
+                onChange={
+                  num => {
+                    setMinTickets(typeof num === "number" ? num : 0)
+                  }
+                }
+                style={{flex: 1}}
+              />
+              <NumberInput
+                label="Maximum Closed Tickets"
+                placeholder="0"
+                value={maxTickets}
+                onChange={
+                  num => {
+                    setMaxTickets(typeof num === "number" ? num : 0)
+                  }
+                }
+                style={{flex: 1}}
+              />
+              <DateInput 
+                label="Search Start Time"
+                value={startDate}
+                onChange={setStartDate}
+                placeholder="Date input"
+              />
+              <DateInput 
+                label="Search End Time"
+                onChange={setEndDate}
+                value={endDate}
+                placeholder="Date input"
               />
             </Group>
             <Group gap="sm">
