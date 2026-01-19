@@ -3,13 +3,14 @@ from rest_framework.exceptions import APIException
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
-from auditlog.models import LogEntry
+from auditlog.models import LogEntry    
 
+from django.shortcuts import get_object_or_404
 from django.http import HttpResponseBadRequest
 from django.db.models import Count, Q, F
 from django.contrib.contenttypes.models import ContentType
 
-from .models import Ticket, TicketStatus, TicketType, TicketComment, TicketAskStatus
+from .models import Ticket, TicketStatus, TicketType, TicketComment
 from .serializers import TicketSerializer, BulkTicketCreateSerializer, TicketClaimSerializer, TicketCommentSerializer, TicketTimelineSerializer
 
 # TODO: Handle permissions for views in file
@@ -160,12 +161,7 @@ class TicketViewSet(viewsets.ModelViewSet):
         )
 
         return Response(TicketCommentSerializer(comment, context={'request': request}).data, status=status.HTTP_201_CREATED)
-    @action(detail=False, methods=["get"])
-    def get_ask_statuses(self, request):
-        return Response([
-            {"value": value, "label": label}
-            for value, label in TicketAskStatus.choices
-        ])
+
 
     @action(detail=True, methods=["get"])
     def timeline(self, request, pk=None):
@@ -229,4 +225,9 @@ class TicketViewSet(viewsets.ModelViewSet):
 class TicketTypeViewSet(viewsets.ViewSet):
     def list(self, request):
         types = [{'value': t.value, 'label': t.label} for t in TicketType]
+        return Response(types)
+
+class TicketPrioritiesViewSet(viewsets.ViewSet):
+    def list(self, request):
+        types = [{'value': t.value, 'label': t.label} for t in Ticket.Priority]
         return Response(types)
