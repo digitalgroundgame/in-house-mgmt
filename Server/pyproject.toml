@@ -6,8 +6,8 @@ requires-python = ">=3.13"
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["dggcrm"]
-asyncio_mode = "auto"
 DJANGO_SETTINGS_MODULE = "config.settings"
+addopts = "-p no:asyncio"
 
 [tool.taskipy.tasks]
 test = "python -m pytest"

@@ -40,7 +40,7 @@ source ../.envs/.dev/local/.server  # if you have custom settings
 
 ## Testing
 
-This project uses [pytest](https://pytest.org/) with [aioresponses](https://github.com/pnuckowski/aioresponses) for mocking async HTTP requests.
+This project uses [pytest](https://pytest.org/) with [pytest-django](https://pytest-django.readthedocs.io/) for Django integration and [responses](https://github.com/getsentry/responses) for mocking HTTP requests.
 
 ### Running Tests
 
@@ -66,17 +66,24 @@ python -m pytest dggcrm/discord/tests/ -v
 Test files should be placed in a `tests/` directory within each Django app with a `test_*.py` naming convention.
 
 ```python
-import pytest
-from aioresponses import aioresponses
+import responses
+
+from myapp.client import MyClient
 
 class TestMyClient:
+    @responses.activate
     def test_fetches_data(self):
-        with aioresponses() as mocked:
-            mocked.get("https://api.example.com/data", payload={"key": "value"})
+        responses.add(
+            responses.GET,
+            "https://api.example.com/data",
+            json={"key": "value"},
+            status=200,
+        )
 
-            result = my_client.fetch_data()
+        client = MyClient()
+        result = client.fetch_data()
 
-            assert result == {"key": "value"}
+        assert result == {"key": "value"}
 ```
 
-For mocking HTTP requests at the boundary (recommended approach), use `aioresponses` for aiohttp clients.
+For mocking HTTP requests at the boundary (recommended approach), use the `responses` library to mock `requests` calls.

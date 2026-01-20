@@ -6,10 +6,9 @@ Currently relies on environment variables which works for local dev but
 needs a secure secrets solution (Vault, AWS Secrets Manager, etc.) for production.
 """
 import os
-import asyncio
 import logging
 
-import aiohttp
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -55,53 +54,42 @@ class DiscordClient:
     def __init__(self, token: str, guild_id: int):
         self.token = token
         self.guild_id = guild_id
+        self.session = requests.Session()
+        self.session.headers["Authorization"] = f"Bot {token}"
 
     def fetch_all_member_ids(self) -> set[str]:
         """
         Fetch all guild member Discord IDs (paginated).
-        Returns set of Discord user ID strings.
-        """
-        return asyncio.run(self._fetch_all_member_ids())
-
-    async def _fetch_all_member_ids(self) -> set[str]:
-        """
-        Paginate through all guild members.
 
         Discord API: GET /guilds/{guild_id}/members
         - limit: max 1000 per request
         - after: user ID to paginate from (results sorted by user_id ascending)
-        - Auth: "Bot {token}" header required
+
+        Returns set of Discord user ID strings.
         """
-        members = set()
+        members: set[str] = set()
         after: str | None = None
+        page_size = 1000
+        has_more = True
 
-        headers = {"Authorization": f"Bot {self.token}"}
+        while has_more:
+            url = f"{DISCORD_API_BASE}/guilds/{self.guild_id}/members?limit={page_size}"
+            if after:
+                url += f"&after={after}"
 
-        async with aiohttp.ClientSession() as session:
-            while True:
-                url = f"{DISCORD_API_BASE}/guilds/{self.guild_id}/members?limit=1000"
-                if after:
-                    url += f"&after={after}"
+            resp = self.session.get(url)
+            if resp.status_code != 200:
+                logger.error(f"Failed to fetch members: {resp.status_code} - {resp.text}")
+                break
 
-                async with session.get(url, headers=headers) as resp:
-                    if resp.status != 200:
-                        error_text = await resp.text()
-                        logger.error(f"Failed to fetch members: {resp.status} - {error_text}")
-                        break
+            data = resp.json()
 
-                    data = await resp.json()
-                    if not data:
-                        break
+            for member in data:
+                members.add(member["user"]["id"])
 
-                    for member in data:
-                        members.add(member["user"]["id"])
-
-                    # Pagination: use last member's user ID as cursor
-                    after = data[-1]["user"]["id"]
-
-                    # If we got less than 1000, we've reached the end
-                    if len(data) < 1000:
-                        break
+            has_more = len(data) == page_size
+            if has_more:
+                after = data[-1]["user"]["id"]
 
         logger.info(f"Fetched {len(members)} members from guild {self.guild_id}")
         return members
