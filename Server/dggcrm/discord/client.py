@@ -8,7 +8,6 @@ needs a secure secrets solution (Vault, AWS Secrets Manager, etc.) for productio
 import os
 import asyncio
 import logging
-from typing import Optional
 
 import aiohttp
 
@@ -17,7 +16,7 @@ logger = logging.getLogger(__name__)
 DISCORD_API_BASE = "https://discord.com/api/v10"
 
 # Module-level singleton
-_client: Optional["DiscordClient"] = None
+_client: "DiscordClient | None" = None
 
 
 def initialize() -> None:
@@ -42,7 +41,7 @@ def initialize() -> None:
     logger.info(f"Discord client initialized for guild {guild_id}")
 
 
-def get_discord_client() -> Optional["DiscordClient"]:
+def get_discord_client() -> "DiscordClient | None":
     """
     Get the Discord client singleton.
     Returns None if not configured/disabled.

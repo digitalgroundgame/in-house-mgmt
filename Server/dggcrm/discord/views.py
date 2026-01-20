@@ -1,9 +1,11 @@
 import os
 import logging
 
+from django.db import transaction
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 
 from dggcrm.contacts.models import Contact, Tag, TagAssignments
 from .client import get_discord_client
@@ -16,7 +18,10 @@ class SyncMembershipTagsView(APIView):
     POST /api/discord/sync-membership/
 
     Fetches all Discord guild members and syncs membership tags for contacts.
+    Requires authentication.
     """
+
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         # Get the injected client singleton
@@ -34,20 +39,41 @@ class SyncMembershipTagsView(APIView):
         tag_name = os.environ.get("DISCORD_MEMBERSHIP_TAG", "DGG Discord")
         tag, _ = Tag.objects.get_or_create(name=tag_name)
 
-        added = 0
-        removed = 0
+        with transaction.atomic():
+            # Fetch all contacts with discord_id in one query
+            contacts_with_discord = Contact.objects.exclude(discord_id="")
+            contacts_by_discord_id = {c.discord_id: c for c in contacts_with_discord}
 
-        # Sync tags for all contacts with discord_id
-        for contact in Contact.objects.exclude(discord_id=""):
-            is_member = contact.discord_id in member_ids
-            has_tag = TagAssignments.objects.filter(contact=contact, tag=tag).exists()
+            # Fetch all existing tag assignments for this tag in one query
+            existing_assignments = set(
+                TagAssignments.objects.filter(
+                    tag=tag,
+                    contact__in=contacts_with_discord
+                ).values_list("contact_id", flat=True)
+            )
 
-            if is_member and not has_tag:
-                TagAssignments.objects.create(contact=contact, tag=tag)
-                added += 1
-            elif not is_member and has_tag:
-                TagAssignments.objects.filter(contact=contact, tag=tag).delete()
-                removed += 1
+            # Determine which contacts need tags added/removed
+            to_add = []
+            to_remove_contact_ids = []
+
+            for discord_id, contact in contacts_by_discord_id.items():
+                is_member = discord_id in member_ids
+                has_tag = contact.id in existing_assignments
+
+                if is_member and not has_tag:
+                    to_add.append(TagAssignments(contact=contact, tag=tag))
+                elif not is_member and has_tag:
+                    to_remove_contact_ids.append(contact.id)
+
+            # Bulk create new assignments
+            TagAssignments.objects.bulk_create(to_add, ignore_conflicts=True)
+            added = len(to_add)
+
+            # Bulk delete removed assignments
+            removed, _ = TagAssignments.objects.filter(
+                tag=tag,
+                contact_id__in=to_remove_contact_ids
+            ).delete()
 
         logger.info(f"Sync complete: added={added}, removed={removed}")
 

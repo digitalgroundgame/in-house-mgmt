@@ -4,39 +4,29 @@ from aioresponses import aioresponses
 from dggcrm.discord.client import DiscordClient, DISCORD_API_BASE
 
 
-# Mock data matching Discord API response structure
-MOCK_MEMBERS_PAGE_1 = [
-    {"user": {"id": "100000000000000001"}, "roles": [], "joined_at": "2024-01-01T00:00:00+00:00"},
-    {"user": {"id": "100000000000000002"}, "roles": [], "joined_at": "2024-01-02T00:00:00+00:00"},
-    {"user": {"id": "100000000000000003"}, "roles": [], "joined_at": "2024-01-03T00:00:00+00:00"},
-]
-
-MOCK_MEMBERS_PAGE_2 = [
-    {"user": {"id": "100000000000000004"}, "roles": [], "joined_at": "2024-01-04T00:00:00+00:00"},
-    {"user": {"id": "100000000000000005"}, "roles": [], "joined_at": "2024-01-05T00:00:00+00:00"},
-]
-
-
 class TestDiscordClient:
     """Tests for DiscordClient.fetch_all_member_ids()"""
 
-    def test_fetch_members_single_page(self):
+    def test_fetch_members_single_page(self, mock_discord_members):
         """Fetches all members when response fits in one page."""
         client = DiscordClient(token="test-token", guild_id=123456789)
+        mock_members = mock_discord_members(count=3)
 
         with aioresponses() as mocked:
             mocked.get(
                 f"{DISCORD_API_BASE}/guilds/123456789/members?limit=1000",
-                payload=MOCK_MEMBERS_PAGE_1,
+                payload=mock_members,
             )
 
             result = client.fetch_all_member_ids()
 
-        assert result == {"100000000000000001", "100000000000000002", "100000000000000003"}
+        expected_ids = {m["user"]["id"] for m in mock_members}
+        assert result == expected_ids
 
-    def test_fetch_members_pagination(self):
+    def test_fetch_members_pagination(self, mock_discord_members):
         """Paginates through multiple pages using 'after' parameter."""
         client = DiscordClient(token="test-token", guild_id=123456789)
+        page_2_members = mock_discord_members(count=2, start_id=100000000000000004)
 
         with aioresponses() as mocked:
             # First page (1000 members triggers pagination)
@@ -47,7 +37,7 @@ class TestDiscordClient:
             # Second page (less than 1000 = last page)
             mocked.get(
                 f"{DISCORD_API_BASE}/guilds/123456789/members?limit=1000&after=999",
-                payload=MOCK_MEMBERS_PAGE_2,
+                payload=page_2_members,
             )
 
             result = client.fetch_all_member_ids()
