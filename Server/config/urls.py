@@ -35,6 +35,7 @@ urlpatterns = [
     path('api/', include('dggcrm.events.urls')),
     path('api/', include('dggcrm.tickets.urls')),
     path('api/', include('dggcrm.accounts.urls')),
+    path('api/discord/', include('dggcrm.discord.urls')),
 
     # API auth
     # path("api/auth/", include("dj_rest_auth.urls")),

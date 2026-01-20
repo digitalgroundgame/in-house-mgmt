@@ -65,6 +65,7 @@ LOCAL_APPS = [
     "dggcrm.tickets",
     "dggcrm.events",
     "dggcrm.accounts",
+    "dggcrm.discord",
 
     # For local mock only
     "dggcrm.authmock.apps.AuthMockConfig",

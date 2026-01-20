@@ -1,0 +1,7 @@
+# Discord Bot Configuration
+# Disabled by default for local development
+# TODO: Production requires proper secrets management for DISCORD_BOT_TOKEN
+DISCORD_BOT_ENABLED=false
+DISCORD_BOT_TOKEN=
+DISCORD_GUILD_ID=
+DISCORD_MEMBERSHIP_TAG=DGG_Discord
