@@ -16,8 +16,6 @@ class Contact(models.Model):
 
     note = models.TextField(blank=True)
 
-    server_member = models.BooleanField(default=False)
-
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
 

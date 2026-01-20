@@ -59,7 +59,12 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=15, num_tickets=30
     c = conn.cursor()
 
     # Insert tags
-    tags = ["Dev-Software", "Dev-Art", "Community Building", "Attendance"]
+    tags = [
+        # Skills/Roles
+        "Dev-Software", "Dev-Art", "Community Building", "Attendance",
+        # Membership
+        "DGG Discord"
+    ]
     for tag in tags:
         color = random.choice(['#b98141', '#803e3e', '#f647a2', '#1854f5'])
         now = datetime.now()
