@@ -228,11 +228,10 @@ interface TicketTimelineProps {
 }
 
 function ResolvedName({ field, id }: { field: string; id: string }) {
-  const [name, setName] = useState<string>(id);
+  const [name, setName] = useState<string>(() => (!id || id === 'None') ? 'None' : id);
 
   useEffect(() => {
     if (!id || id === 'None') {
-      setName('None');
       return;
     }
 
@@ -342,7 +341,6 @@ function Actions({ ticketId }: { ticketId: number }) {
       .then(res => res.json())
       .then(data => setAskStatuses(data))
       .catch(console.error)
-    console.log(askStatuses)
   }, [])
 
   const handleAction = (status: string) => {
