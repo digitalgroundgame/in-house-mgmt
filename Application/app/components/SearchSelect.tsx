@@ -12,7 +12,7 @@ import {
   Group,
   ThemeIcon,
 } from '@mantine/core';
-import { IconX, IconCheck } from '@tabler/icons-react';
+import { IconX, IconCheck, IconSelector } from '@tabler/icons-react';
 import { useDebouncedValue, useClickOutside } from '@mantine/hooks';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -40,7 +40,7 @@ export function SearchSelect<T = unknown>({
   limit = 5,
   value,
   onChange,
-  clearable = true,
+  clearable = false,
   mapResult,
 }: SearchSelectProps<T>) {
   const [query, setQuery] = useState('');
@@ -91,8 +91,8 @@ export function SearchSelect<T = unknown>({
           loading ? (
             <Loader size="xs" />
           ) : (
-            value &&
-            clearable && (
+            (
+              value && clearable) && (
               <ActionIcon
                 size="sm"
                 variant="subtle"
@@ -104,6 +104,10 @@ export function SearchSelect<T = unknown>({
               >
                 <IconX size={14} />
               </ActionIcon>
+            ) || (
+              <IconSelector stroke={1} onClick={() => {
+                setOpened(true);
+              }} style={{ cursor: "pointer" }}/>
             )
           )
         }
@@ -125,6 +129,9 @@ export function SearchSelect<T = unknown>({
                   }}
                 >
                   <Group gap="xs">
+                    {selected && (
+                    <IconCheck stroke={1}/>
+                    )}
                     <Text size="sm" fw={selected ? 700 : 400}>
                       {option.label}
                     </Text>

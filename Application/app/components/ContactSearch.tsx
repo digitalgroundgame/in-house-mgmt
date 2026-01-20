@@ -14,7 +14,8 @@ import {
 import { useState, useEffect } from 'react';
 import { IconSearch } from '@tabler/icons-react';
 
-interface Contact {
+// TODO: Move to its own file
+export interface Contact {
   id: number;
   discord_id: string;
   full_name: string;

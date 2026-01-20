@@ -7,6 +7,10 @@ import { useRouter } from "next/navigation"
 import { getStatusColor, getPriorityColor } from "./TicketTable"
 import TicketDescription from "./TicketDescription";
 import { Ticket } from "./ticket-utils"
+import ContactSearch, { Contact } from "./ContactSearch"
+import { Event } from "./EventTable"
+import getCookie from '@/app/utils/cookie';
+import TicketActions from '@/app/components/tickets/TicketActions';
 
 type TimelineShowType = "both" | "request" | "audit";
 
@@ -18,8 +22,7 @@ interface TimelineEntry {
   changes?: Record<string, [string, string]>;
   message?: string;
 }
-import ContactSearch from "./ContactSearch"
-import getCookie from '@/app/utils/cookie';
+
 
 
 interface TicketViewProps {
@@ -30,7 +33,35 @@ interface TicketViewProps {
   onShowTypeChange: (value: TimelineShowType) => void;
 }
 
-export default function TicketView({ ticket, timeline, timelineLoading, showType, onShowTypeChange }: TicketViewProps) {
+export default function TicketView({ ticket, timeline, timelineLoading, showType, onShowTypeChange}: TicketViewProps) 
+{
+  const [contact, setContact] = useState<Contact>(null);
+  const [event, setEvent] = useState<Event>(null);
+
+  useEffect(() => {
+    async function fetchInfo() {
+      try {
+        if (ticket.contact) {
+          const contactRes = await fetch(`/api/contacts/${ticket.contact}`);
+          if (contactRes.ok) {
+            setContact(await contactRes.json());
+          }
+        }
+
+        if (ticket.event) {
+          const eventRes = await fetch(`/api/events/${ticket.event}`);
+          if (eventRes.ok) {
+            setEvent(await eventRes.json());
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch associated contact/event', err);
+      }
+    }
+
+    fetchInfo();
+  }, [ticket.contact, ticket.event]);
+
   return <Container size="xl" py="xl">
     <Grid>
       <Grid.Col span={{ base: 12, md: 8 }}>
@@ -50,8 +81,7 @@ export default function TicketView({ ticket, timeline, timelineLoading, showType
       <Grid.Col span={{base: 12, md: 4}}>
         <Stack gap='md'>
           <TicketMetadataCard ticket={ticket}/>
-          {/* Show call instructions for selected reach */}
-          <Actions ticketId={ticket.id} />
+          <TicketActions ticket={ticket} contact={contact} event={event}/>
 
         </Stack>
       </Grid.Col>

@@ -126,11 +126,6 @@ class TicketComment(models.Model):
         on_delete=models.SET_NULL,
     )
 
-    type = models.CharField(
-        max_length=50,
-        choices=TicketType,
-        default=TicketType.UNKNOWN,
-    )
     message = models.TextField()
 
     created_at = models.DateTimeField(auto_now_add=True)
