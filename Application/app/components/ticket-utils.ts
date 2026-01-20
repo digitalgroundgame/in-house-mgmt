@@ -24,3 +24,13 @@ export interface Ticket {
   created_at: string;
   modified_at: string;
 }
+
+export interface TicketAsk {
+  id: number;
+  status: string;
+}
+
+export interface TicketAskStatus {
+  value: string;
+  label: string;
+}
