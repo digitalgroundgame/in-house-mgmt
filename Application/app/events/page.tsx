@@ -17,7 +17,8 @@ import {
 import { IconPlus, IconSearch, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { useState, useEffect } from 'react';
 import { useForm } from '@mantine/form';
-import EventsTable, { type Event } from '@/app/components/EventsTable';
+import EventsTable from '@/app/components/EventsTable';
+import { type Event } from '../components/event-utils';
 
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
