@@ -28,7 +28,6 @@ export function TicketBulkCreateModal({
   opened,
   onClose,
   contactIds,
-  users,
   onSuccess,
 }: Props) {
   const [ticketType, setTicketType] = useState<SearchSelectOption | null>(null);
@@ -36,7 +35,7 @@ export function TicketBulkCreateModal({
   const [event, setEvent] = useState<SearchSelectOption | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [assignedToId, setAssignedToId] = useState<string | null>(null);
+  const [assignedToId, _setAssignedToId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
