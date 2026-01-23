@@ -29,6 +29,7 @@ export default function TicketPage() {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('all');
   const [priority, setPriority] = useState<string | null>(null);
+  const [ticketType, setTicketType] = useState<string | null>(null);
   const [assignee, setAssignee] = useState('admin');
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [previousUrl, setPreviousUrl] = useState<string | null>(null);
@@ -52,16 +53,17 @@ export default function TicketPage() {
 
   const handleReset = () => {
     setPriority(null);
+    setTicketType(null);
     setStatus('all');
     setSortField(null);
     setSortDirection(null);
-    fetchTicketes(undefined, null, 'all', null, null);
+    fetchTicketes(undefined, null, 'all', null, null, null);
   };
 
   const handleSort = (field: SortField, direction: SortDirection) => {
     setSortField(field);
     setSortDirection(direction);
-    fetchTicketes(undefined, priority, status, field, direction);
+    fetchTicketes(undefined, priority, status, field, direction, ticketType);
   };
 
   const fetchTicketes = async (
@@ -69,7 +71,8 @@ export default function TicketPage() {
     priorityFilter?: string | null,
     statusFilter?: string,
     orderField?: SortField,
-    orderDirection?: SortDirection
+    orderDirection?: SortDirection,
+    typeFilter?: string | null
   ) => {
     try {
       setLoading(true);
@@ -83,6 +86,9 @@ export default function TicketPage() {
         }
         if (statusFilter && statusFilter !== 'all') {
           params.append('status', statusFilter);
+        }
+        if (typeFilter) {
+          params.append('type', typeFilter);
         }
         if (orderField && orderDirection) {
           const orderValue = orderDirection === 'desc' ? `-${orderField}` : orderField;
@@ -171,7 +177,7 @@ export default function TicketPage() {
 
                         onClick={() => {
                           setStatus(s.value);
-                          fetchTicketes(undefined, priority, s.value, sortField, sortDirection);
+                          fetchTicketes(undefined, priority, s.value, sortField, sortDirection, ticketType);
                         }}
                       >
                         {s.label}
@@ -197,6 +203,20 @@ export default function TicketPage() {
                       style={{ flex: 1 }}
                     />
                     <Select
+                      label="Type"
+                      value={ticketType}
+                      onChange={(value) => setTicketType(value)}
+                      placeholder="All types"
+                      clearable
+                      data={[
+                        { value: 'UNKNOWN', label: 'Unknown' },
+                        { value: 'INTRODUCTION', label: 'Introduction' },
+                        { value: 'RECRUIT', label: 'Recruit for event' },
+                        { value: 'CONFIRM', label: 'Confirm participation' },
+                      ]}
+                      style={{ flex: 1 }}
+                    />
+                    <Select
                       label="Assignee"
                       value={assignee}
                       onChange={(value) => setAssignee(value || 'admin')}
@@ -207,7 +227,7 @@ export default function TicketPage() {
                       ]}
                       style={{ flex: 1 }}
                     />
-                    <Button mt="xl" onClick={() => fetchTicketes(undefined, priority, status, sortField, sortDirection)}>Update</Button>
+                    <Button mt="xl" onClick={() => fetchTicketes(undefined, priority, status, sortField, sortDirection, ticketType)}>Update</Button>
                   </Group>
                 <Group gap="sm">
                   <Button variant="outline" onClick={handleReset}>Reset</Button>

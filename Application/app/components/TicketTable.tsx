@@ -72,7 +72,7 @@ export default function TicketTable({
     onSort(newDirection ? field : null, newDirection);
   };
 
-  const SortIcon = ({ field }: { field: SortField }) => {
+  const getSortIcon = (field: SortField) => {
     if (sortField !== field) {
       return <IconSelector size={14} style={{ opacity: 0.5 }} />;
     }
@@ -100,12 +100,12 @@ export default function TicketTable({
             <Table.Tr>
               <Table.Th style={sortableHeaderStyle} onClick={() => handleSort('id')}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  ID <SortIcon field="id" />
+                  ID {getSortIcon('id')}
                 </span>
               </Table.Th>
               <Table.Th style={sortableHeaderStyle} onClick={() => handleSort('title')}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  Title <SortIcon field="title" />
+                  Title {getSortIcon('title')}
                 </span>
               </Table.Th>
               <Table.Th>Type</Table.Th>
@@ -113,12 +113,12 @@ export default function TicketTable({
               <Table.Th>Status</Table.Th>
               <Table.Th style={sortableHeaderStyle} onClick={() => handleSort('assigned_to')}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  Assigned <SortIcon field="assigned_to" />
+                  Assigned {getSortIcon('assigned_to')}
                 </span>
               </Table.Th>
               <Table.Th style={sortableHeaderStyle} onClick={() => handleSort('created_at')}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  Created <SortIcon field="created_at" />
+                  Created {getSortIcon('created_at')}
                 </span>
               </Table.Th>
             </Table.Tr>
