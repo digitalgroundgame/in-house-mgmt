@@ -136,7 +136,7 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=15, num_tickets=30
 
     # Event participation
     for eid in event_ids:
-        num_participants = random.randint(1, min(10, len(contact_ids)))
+        num_participants = random.randint(1, min(5, len(contact_ids)))
         participants = random.sample(contact_ids, num_participants)
         for cid in participants:
             status = random.choice(['UNKNOWN','REJECTED','COMMITTED','MAYBE','ATTENDED','NO_SHOW'])
@@ -155,9 +155,13 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=15, num_tickets=30
 
     # Users in events
     for eid in event_ids:
-        if len(user_ids) < 1:
+        if len(user_ids) < 2:
             break
-        num_users = random.randint(1, len(user_ids))
+        # Greatly prefer no users
+        num_users = random.choices(
+            [0,1,2],
+            weights=[80, 15, 5]
+        )[0]
         users = random.sample(user_ids, num_users)
         for uid in users:
             joined_at = fake.date_time_between(start_date='-1y', end_date='now')
@@ -173,10 +177,14 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=15, num_tickets=30
     ticket_ids = []
     ticket_types = ['UNKNOWN', 'INTRODUCTION', 'RECRUIT', 'CONFIRM']
 
-    # For EVERY contact, create 1-3 tickets per ticket type to ensure bar graphs have data
+    # For contacts, create 1-3 tickets per ticket type to ensure bar graphs have data
+    # Randomly do not create some tickets
     for contact in contact_ids:
+        # 50% chance contact has no tickets
+        if random.random() < 0.5:
+            continue
         for ticket_type in ticket_types:
-            num_tickets_for_type = random.randint(1, 3)
+            num_tickets_for_type = random.randint(0, 3)
             for _ in range(num_tickets_for_type):
                 name = fake.catch_phrase()
                 description = fake.text(max_nb_chars=200)

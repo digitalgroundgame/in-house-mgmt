@@ -13,7 +13,53 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 django.setup()
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group, Permission
 from allauth.account.models import EmailAddress
+
+# Define groups
+
+GROUP_PERMISSIONS = {
+    "ORGANIZER": [
+        "view_contact",
+        "view_all_contacts",
+        "view_event_contacts",
+        "change_contact",
+        "change_all_contacts",
+    ],
+    "HELPER": [
+        "view_contact",
+        "view_event_contacts",
+        "change_contact",
+        "edit_ticket_contacts"
+    ],
+    "TRAINEE": [
+        "view_contact",
+        "view_event_contacts",
+    ],
+}
+
+USER_GROUPS = {
+    "tiny@destiny.gg": "ORGANIZER",
+    "dumb@example.com": "HELPER",
+    "unverified@example.com": "TRAINEE",
+}
+
+groups = {}
+
+for group_name, perms in GROUP_PERMISSIONS.items():
+    group, _ = Group.objects.get_or_create(name=group_name)
+    group.permissions.clear()
+
+    for codename in perms:
+        try:
+            perm = Permission.objects.get(codename=codename)
+            group.permissions.add(perm)
+        except Permission.DoesNotExist:
+            print(f"⚠ Permission not found: {codename}")
+
+    group.save()
+    groups[group_name] = group
+    print(f"Configured group: {group_name}")
 
 User = get_user_model()
 
@@ -82,6 +128,8 @@ for user_data in users_data:
         else:
             print(f"User {email} already up-to-date")
 
+    user.save()
+
     # Mark email as verified
     email_address, created = EmailAddress.objects.get_or_create(
         user=user, email=email, primary=True, verified=user_data.get("email_verified", True)
@@ -89,7 +137,12 @@ for user_data in users_data:
     if created:
         email_address.save()
 
-    user.save()
+    # Add group membership
+    group_name = USER_GROUPS.get(email, None)
+    if group_name:
+        user.groups.clear()
+        user.groups.add(groups[group_name])
+
 
 if created_users:
     print(f"Successfully created {len(created_users)} users: {created_users}")
