@@ -18,7 +18,7 @@ import {
 } from '@mantine/core';
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { useState, useEffect } from 'react';
-import TicketTable from '@/app/components/TicketTable';
+import TicketTable, { type SortField, type SortDirection } from '@/app/components/TicketTable';
 import ContactSearch from '@/app/components/ContactSearch';
 import { type Ticket } from '@/app/components/ticket-utils';
 
@@ -27,14 +27,24 @@ export default function TicketPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState('in-progress');
+  const [status, setStatus] = useState('all');
   const [priority, setPriority] = useState<string | null>(null);
   const [assignee, setAssignee] = useState('admin');
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [previousUrl, setPreviousUrl] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
+  const [sortField, setSortField] = useState<SortField>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
 
-  const statuses = ['all', 'open', 'in-progress', 'blocked', 'completed'];
+  const statuses = [
+    { value: 'all', label: 'All' },
+    { value: 'OPEN', label: 'Open' },
+    { value: 'TODO', label: 'To Do' },
+    { value: 'IN_PROGRESS', label: 'In Progress' },
+    { value: 'BLOCKED', label: 'Blocked' },
+    { value: 'COMPLETED', label: 'Completed' },
+    { value: 'CANCELED', label: 'Canceled' },
+  ];
 
   useEffect(() => {
     fetchTicketes();
@@ -42,26 +52,45 @@ export default function TicketPage() {
 
   const handleReset = () => {
     setPriority(null);
-    fetch('/api/tickets')
-      .then(res => res.json())
-      .then(data => {
-        setTickets(data.results || []);
-        setTotalCount(data.count);
-        setNextUrl(data.next);
-        setPreviousUrl(data.previous);
-      });
+    setStatus('all');
+    setSortField(null);
+    setSortDirection(null);
+    fetchTicketes(undefined, null, 'all', null, null);
   };
 
-  const fetchTicketes = async (url?: string, priorityFilter?: string | null) => {
+  const handleSort = (field: SortField, direction: SortDirection) => {
+    setSortField(field);
+    setSortDirection(direction);
+    fetchTicketes(undefined, priority, status, field, direction);
+  };
+
+  const fetchTicketes = async (
+    url?: string,
+    priorityFilter?: string | null,
+    statusFilter?: string,
+    orderField?: SortField,
+    orderDirection?: SortDirection
+  ) => {
     try {
       setLoading(true);
       let fetchUrl = url || '/api/tickets';
 
-      // Add priority filter if set and not using pagination URL
-      if (!url && priorityFilter !== undefined && priorityFilter !== null) {
+      // Add filters if not using pagination URL
+      if (!url) {
         const params = new URLSearchParams();
-        params.append('priority', priorityFilter);
-        fetchUrl = `/api/tickets?${params.toString()}`;
+        if (priorityFilter !== undefined && priorityFilter !== null) {
+          params.append('priority', priorityFilter);
+        }
+        if (statusFilter && statusFilter !== 'all') {
+          params.append('status', statusFilter);
+        }
+        if (orderField && orderDirection) {
+          const orderValue = orderDirection === 'desc' ? `-${orderField}` : orderField;
+          params.append('ordering', orderValue);
+        }
+        if (params.toString()) {
+          fetchUrl = `/api/tickets?${params.toString()}`;
+        }
       }
 
       const response = await fetch(fetchUrl);
@@ -135,12 +164,15 @@ export default function TicketPage() {
                   <Group gap="xs">
                     {statuses.map((s) => (
                       <Badge
-                        key={s}
-                        variant={status === s ? 'filled' : 'light'}
-                        style={{ cursor: 'pointer', textTransform: 'capitalize' }}
-                        onClick={() => setStatus(s)}
+                        key={s.value}
+                        variant={status === s.value ? 'filled' : 'light'}
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => {
+                          setStatus(s.value);
+                          fetchTicketes(undefined, priority, s.value, sortField, sortDirection);
+                        }}
                       >
-                        {s.replace('-', ' ')}
+                        {s.label}
                       </Badge>
                     ))}
                   </Group>
@@ -173,7 +205,7 @@ export default function TicketPage() {
                       ]}
                       style={{ flex: 1 }}
                     />
-                    <Button mt="xl" onClick={() => fetchTicketes(undefined, priority)}>Update</Button>
+                    <Button mt="xl" onClick={() => fetchTicketes(undefined, priority, status, sortField, sortDirection)}>Update</Button>
                   </Group>
                 <Group gap="sm">
                   <Button variant="outline" onClick={handleReset}>Reset</Button>
@@ -187,7 +219,9 @@ export default function TicketPage() {
                 <TicketTable
                   tickets={tickets}
                   loading={loading}
-                  onRowClick={handleRowClick}
+                  sortField={sortField}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
                 />
 
                 {/* Pagination and count */}
