@@ -165,8 +165,10 @@ export default function TicketPage() {
                     {statuses.map((s) => (
                       <Badge
                         key={s.value}
+                        color={s.value === 'CANCELED' ? 'red' : undefined}
                         variant={status === s.value ? 'filled' : 'light'}
                         style={{ cursor: 'pointer' }}
+
                         onClick={() => {
                           setStatus(s.value);
                           fetchTicketes(undefined, priority, s.value, sortField, sortDirection);
