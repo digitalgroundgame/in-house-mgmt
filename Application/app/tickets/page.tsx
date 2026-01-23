@@ -28,7 +28,7 @@ export default function TicketPage() {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('in-progress');
-  const [priority, setPriority] = useState('p3');
+  const [priority, setPriority] = useState<string | null>(null);
   const [assignee, setAssignee] = useState('admin');
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [previousUrl, setPreviousUrl] = useState<string | null>(null);
@@ -41,13 +41,29 @@ export default function TicketPage() {
   }, []);
 
   const handleReset = () => {
-    fetchTicketes();
+    setPriority(null);
+    fetch('/api/tickets')
+      .then(res => res.json())
+      .then(data => {
+        setTickets(data.results || []);
+        setTotalCount(data.count);
+        setNextUrl(data.next);
+        setPreviousUrl(data.previous);
+      });
   };
 
-  const fetchTicketes = async (url?: string) => {
+  const fetchTicketes = async (url?: string, priorityFilter?: string | null) => {
     try {
       setLoading(true);
-      const fetchUrl = url || '/api/tickets';
+      let fetchUrl = url || '/api/tickets';
+
+      // Add priority filter if set and not using pagination URL
+      if (!url && priorityFilter !== undefined && priorityFilter !== null) {
+        const params = new URLSearchParams();
+        params.append('priority', priorityFilter);
+        fetchUrl = `/api/tickets?${params.toString()}`;
+      }
+
       const response = await fetch(fetchUrl);
       console.log('Fetch response:', response);
       const data = await response.json();
@@ -133,12 +149,16 @@ export default function TicketPage() {
                     <Select
                       label="Priority"
                       value={priority}
-                      onChange={(value) => setPriority(value || 'p3')}
+                      onChange={(value) => setPriority(value)}
+                      placeholder="All priorities"
+                      clearable
                       data={[
-                        { value: 'p1', label: 'P1 - Critical' },
-                        { value: 'p2', label: 'P2 - High' },
-                        { value: 'p3', label: 'P3 - Normal' },
-                        { value: 'p4', label: 'P4 - Low' },
+                        { value: '0', label: 'P0 - Emergency' },
+                        { value: '1', label: 'P1 - Very High' },
+                        { value: '2', label: 'P2 - High' },
+                        { value: '3', label: 'P3 - Normal' },
+                        { value: '4', label: 'P4 - Low' },
+                        { value: '5', label: 'P5 - Very Low' },
                       ]}
                       style={{ flex: 1 }}
                     />
@@ -153,7 +173,7 @@ export default function TicketPage() {
                       ]}
                       style={{ flex: 1 }}
                     />
-                    <Button mt="xl">Update</Button>
+                    <Button mt="xl" onClick={() => fetchTicketes(undefined, priority)}>Update</Button>
                   </Group>
                 <Group gap="sm">
                   <Button variant="outline" onClick={handleReset}>Reset</Button>
