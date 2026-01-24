@@ -109,8 +109,8 @@ def view_contact_permission(db):
 
 
 @pytest.fixture
-def view_event_contacts_permission(db):
-    return Permission.objects.get(codename="view_event_contacts")
+def view_contacts_via_event_permission(db):
+    return Permission.objects.get(codename="view_contacts_via_event")
 
 
 @pytest.fixture
@@ -120,7 +120,7 @@ def change_contact_permission(db):
 
 @pytest.fixture
 def edit_ticket_contact_permission(db):
-    return Permission.objects.get(codename="edit_ticket_contacts")
+    return Permission.objects.get(codename="change_contacts_via_ticket")
 
 
 @pytest.fixture
