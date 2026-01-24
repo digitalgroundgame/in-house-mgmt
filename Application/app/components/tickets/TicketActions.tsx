@@ -101,33 +101,28 @@ export default function TicketActions({
   /* =============================
    * Upsert EventParticipation
    * ============================= */
-  useEffect(() => {
-    if (!participation?.raw?.value || !event || !contact) return;
+  async function upsertParticipation(participation) {
+    try {
+      const res = await fetch('/api/participants', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken')!,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          event: event.id,
+          contact: contact.id,
+          status: participation.raw.value,
+        }),
+      });
+      setParticipation(participation)
 
-    async function upsertParticipation() {
-      try {
-        const res = await fetch('/api/participants', {
-          method: 'POST',
-          headers: {
-            'X-CSRFToken': getCookie('csrftoken')!,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            event: event.id,
-            contact: contact.id,
-            status: participation.raw.value,
-          }),
-        });
-
-        if (!res.ok) throw new Error('Failed to upsert participation');
-      } catch (err) {
-        console.error(err);
-        alert('Error upserting participation status');
-      }
+      if (!res.ok) throw new Error('Failed to upsert participation');
+    } catch (err) {
+      console.error(err);
+      alert('Error upserting participation status');
     }
-
-    upsertParticipation();
-  }, [participation, event, contact]);
+  }
 
   /* =============================
    * Load TicketAsks
@@ -209,7 +204,7 @@ export default function TicketActions({
               placeholder="Select commitment status"
               limit={10}
               value={participation}
-              onChange={setParticipation}
+              onChange={upsertParticipation}
               mapResult={(type) => ({
                 id: type.value,
                 label: type.label,
