@@ -160,7 +160,7 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=15, num_tickets=30
         # Greatly prefer no users
         num_users = random.choices(
             [0,1,2],
-            weights=[80, 15, 5]
+            weights=[50, 45, 5]
         )[0]
         users = random.sample(user_ids, num_users)
         for uid in users:
