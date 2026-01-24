@@ -42,6 +42,12 @@ class Event(models.Model):
 
     class Meta:
         db_table = 'events'
+        permissions = [
+            ("view_all_events", "Can view all events"),
+            ("view_any_assigned_event", "Can view assigned events regardless of status"),
+            ("change_all_events", "Can edit all events"),
+            ("change_assigned_event", "Can edit assigned events"),
+        ]
 
     def __str__(self):
         return f"{self.name}"
@@ -89,6 +95,13 @@ class EventParticipation(models.Model):
             models.Index(fields=["status"]),
         ]
 
+        permissions = [
+            ("view_all_participations", "Can view all participations"),
+            ("change_participation_via_ticket", "Change participation via assigned ticket"),
+            ("change_participation_via_event", "Change participation for joined events"),
+            ("change_all_participations", "Change participation for all events"),
+        ]
+
     def __str__(self):
         return f"{self.contact} -> {self.event} ({self.get_status_display()})"
 
@@ -122,6 +135,13 @@ class UsersInEvent(models.Model):
             models.Index(fields=["user"]),
             models.Index(fields=["event"]),
         ]
+        permissions = [
+            ("view_all_usersinevents", "Can view all members in any event"),
+            ("view_usersinevent_via_event", "Can view all members in joined event"),
+            ("change_all_usersinevents", "Modify participations for joined events"),
+            ("change_usersinevent_via_event", "Can add/remove users for assigned events"),
+        ]
+
 
     def __str__(self):
         return f"{self.user} -> {self.event}"

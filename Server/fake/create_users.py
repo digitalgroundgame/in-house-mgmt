@@ -25,12 +25,22 @@ GROUP_PERMISSIONS = {
         "view_contacts_via_event",
         "change_contact",
         "change_all_contacts",
+        "view_all_events",
+        "change_assigned_event",
+        "view_all_participations",
+        "change_all_participations",
+        "change_all_event_users",
+        "view_all_usersinevents",
+        "change_all_usersinevents",
     ],
     "HELPER": [
         "view_contact",
         "view_contacts_via_event",
         "change_contact",
-        "change_contacts_via_ticket"
+        "change_participation_via_ticket",
+        "change_participation_via_event",
+        "view_any_assigned_event",
+        "view_usersinevent_via_event"
     ],
     "TRAINEE": [
         "view_contact",
