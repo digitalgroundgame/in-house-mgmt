@@ -48,17 +48,17 @@ class TestGetContactVisibilityFilter:
         # The user is assigned to a ticket for this contact
         assert Contact.objects.filter(filters).first() == contact
 
-    def test_event_closed_no_visibility(self, regular_user, contact, participation, user_in_event2, view_event_contacts_permission):
+    def test_event_closed_no_visibility(self, regular_user, contact, participation, user_in_event2, view_contacts_via_event_permission):
         # Can always view contacts associated with user joined events
-        regular_user.user_permissions.add(view_event_contacts_permission)
+        regular_user.user_permissions.add(view_contacts_via_event_permission)
 
         filters = get_contact_visibility_filter(regular_user)
         qs = Contact.objects.filter(filters)
         assert contact not in qs
 
-    def test_event_scoped_visibility(self, regular_user, contact, participation, user_in_event, view_event_contacts_permission):
+    def test_event_scoped_visibility(self, regular_user, contact, participation, user_in_event, view_contacts_via_event_permission):
         # Can always view contacts associated with user joined events
-        regular_user.user_permissions.add(view_event_contacts_permission)
+        regular_user.user_permissions.add(view_contacts_via_event_permission)
 
         filters = get_contact_visibility_filter(regular_user)
         qs = Contact.objects.filter(filters)
@@ -167,27 +167,27 @@ class TestContactObjectPermission:
         request.user = regular_user
         assert perm.has_object_permission(request, None, contact) is True
 
-    def test_closed_event_no_permission(self, regular_user, contact, participation, user_in_event2, view_contact_permission, view_event_contacts_permission):
+    def test_closed_event_no_permission(self, regular_user, contact, participation, user_in_event2, view_contact_permission, view_contacts_via_event_permission):
         # Closed events do not grant permission
-        regular_user.user_permissions.add(view_contact_permission, view_event_contacts_permission)
+        regular_user.user_permissions.add(view_contact_permission, view_contacts_via_event_permission)
 
         perm = ContactObjectPermission()
         request = Request(factory.get("/"))
         request.user = regular_user
         assert perm.has_object_permission(request, None, contact) is False
 
-    def test_read_event_scoped_permission(self, regular_user, contact, participation, user_in_event, view_contact_permission, view_event_contacts_permission):
+    def test_read_event_scoped_permission(self, regular_user, contact, participation, user_in_event, view_contact_permission, view_contacts_via_event_permission):
         # Give event-scoped permission
-        regular_user.user_permissions.add(view_contact_permission, view_event_contacts_permission)
+        regular_user.user_permissions.add(view_contact_permission, view_contacts_via_event_permission)
 
         perm = ContactObjectPermission()
         request = Request(factory.get("/"))
         request.user = regular_user
         assert perm.has_object_permission(request, None, contact) is True
 
-    def test_edit_event_scoped_denied(self, regular_user, contact, participation, user_in_event, view_contact_permission, view_event_contacts_permission):
+    def test_edit_event_scoped_denied(self, regular_user, contact, participation, user_in_event, view_contact_permission, view_contacts_via_event_permission):
         # Give event-scoped permission
-        regular_user.user_permissions.add(view_contact_permission, view_event_contacts_permission)
+        regular_user.user_permissions.add(view_contact_permission, view_contacts_via_event_permission)
 
         perm = ContactObjectPermission()
         request = Request(factory.put("/"))

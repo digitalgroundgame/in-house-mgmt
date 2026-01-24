@@ -12,6 +12,6 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AlterModelOptions(
             name='contact',
-            options={'permissions': [('view_all_contacts', 'Can view all contacts'), ('view_event_contacts', 'Can view contacts for events they are in'), ('edit_ticket_contacts', 'Can edit assigned ticket\'s contact'), ('change_all_contacts', 'Can edit all contacts')]},
+            options={'permissions': [('view_all_contacts', 'Can view all contacts'), ('view_contacts_via_event', 'Can view contacts for events they are in'), ('change_contacts_via_ticket', 'Can edit assigned ticket\'s contact'), ('change_all_contacts', 'Can edit all contacts')]},
         ),
     ]

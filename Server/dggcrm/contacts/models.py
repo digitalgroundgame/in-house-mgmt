@@ -24,8 +24,8 @@ class Contact(models.Model):
 
         permissions = [
             ("view_all_contacts", "Can view all contacts"),
-            ("view_event_contacts", "Can view event's contacts"),
-            ("edit_ticket_contacts", "Can edit assigned ticket's contact"),
+            ("view_contacts_via_event", "Can view event's contacts"),
+            ("change_contacts_via_ticket", "Can edit assigned ticket's contact"),
             ("change_all_contacts", "Can edit all contacts"),
         ]
 

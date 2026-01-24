@@ -12,7 +12,7 @@ def get_contact_visibility_filter(user):
     q = Q()
 
     # Contacts that participated in events the user is assigned to
-    if user.has_perm("contacts.view_event_contacts"):
+    if user.has_perm("contacts.view_contacts_via_event"):
         q |= Q(
             event_participations__event__users__user=user,
             event_participations__event__event_status=EventStatus.SCHEDULED,
@@ -55,7 +55,7 @@ class ContactObjectPermission(BasePermission):
 
             # Event-scoped read access
             if (
-                user.has_perm("contacts.view_event_contacts")
+                user.has_perm("contacts.view_contacts_via_event")
                 and contact.event_participations.filter(
                     event__users__user=user,
                     event__event_status=EventStatus.SCHEDULED,
@@ -78,7 +78,7 @@ class ContactObjectPermission(BasePermission):
             return True
 
         # Ticket-scoped edit access
-        if user.has_perm("contacts.edit_ticket_contacts"):
+        if user.has_perm("contacts.change_contacts_via_ticket"):
             return contact.tickets.filter(
                 assigned_to=user,
                 ticket_status=TicketStatus.INPROGRESS,
