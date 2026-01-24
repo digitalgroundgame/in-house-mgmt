@@ -99,35 +99,35 @@ export default function TicketActions({
   }, [event, contact]);
 
   /* =============================
-   * Upsert EventParticipation
+   * Update EventParticipation status
    * ============================= */
-  useEffect(() => {
-    if (!participation?.raw?.value || !event || !contact) return;
+  async function handleParticipationChange(
+    option: SearchSelectOption<CommitmentStatus> | null
+  ) {
+    if (!option?.raw?.value || !event || !contact) return;
 
-    async function upsertParticipation() {
-      try {
-        const res = await fetch('/api/participants', {
-          method: 'POST',
-          headers: {
-            'X-CSRFToken': getCookie('csrftoken')!,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            event: event.id,
-            contact: contact.id,
-            status: participation.raw.value,
-          }),
-        });
+    setParticipation(option);
 
-        if (!res.ok) throw new Error('Failed to upsert participation');
-      } catch (err) {
-        console.error(err);
-        alert('Error upserting participation status');
-      }
+    try {
+      const res = await fetch('/api/participants', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken')!,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          event: event.id,
+          contact: contact.id,
+          status: option.raw.value,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to update participation');
+    } catch (err) {
+      console.error(err);
+      alert('Error updating participation status');
     }
-
-    upsertParticipation();
-  }, [participation, event, contact]);
+  }
 
   /* =============================
    * Load TicketAsks
@@ -209,7 +209,7 @@ export default function TicketActions({
               placeholder="Select commitment status"
               limit={10}
               value={participation}
-              onChange={setParticipation}
+              onChange={handleParticipationChange}
               mapResult={(type) => ({
                 id: type.value,
                 label: type.label,
