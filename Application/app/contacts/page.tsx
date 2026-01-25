@@ -17,7 +17,7 @@ import {
 } from '@mantine/core';
 import { DateInput } from '@mantine/dates'
 import { IconPlus, IconFileUpload, IconSearch, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Component } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from '@mantine/form';
 import { TicketBulkCreateModal } from '@/app/components/TicketBulkCreateModal';
@@ -276,62 +276,44 @@ export default function ContactsPage() {
               />
             </Group>
             <Group>
-              <NumberInput
-                label="Minimum Events Attended"
-                placeholder="0"
-                value={minEvents}
-                onChange={
-                  num => {
-                    setMinEvents(typeof num === "number" ? num : 0)
-                  }
-                }
-                style={{flex: 1}}
-              />
-              <NumberInput
-                label="Maximum Events Attended" 
-                placeholder="0"
-                value={maxEvents}
-                onChange={
-                  num => {
-                    setMaxEvents(typeof num === "number" ? num : 0)
-                  }
-                }
-                style={{flex: 1}}
-              />
-              <NumberInput
-                label="Minimum Closed Tickets"
-                placeholder="0"
-                value={minTickets}
-                onChange={
-                  num => {
-                    setMinTickets(typeof num === "number" ? num : 0)
-                  }
-                }
-                style={{flex: 1}}
-              />
-              <NumberInput
-                label="Maximum Closed Tickets"
-                placeholder="0"
-                value={maxTickets}
-                onChange={
-                  num => {
-                    setMaxTickets(typeof num === "number" ? num : 0)
-                  }
-                }
-                style={{flex: 1}}
-              />
-              <DateInput 
-                label="Search Start Time"
-                value={startDate}
-                onChange={setStartDate}
-                placeholder="Date input"
-              />
-              <DateInput 
-                label="Search End Time"
-                onChange={setEndDate}
-                value={endDate}
-                placeholder="Date input"
-              />
+              <>
+                <ContactNumberInput 
+                  label="Minimum Events Attended"
+                  value={minEvents}
+                  setValue={setMinEvents}
+                  placeholder='Min Events...'
+                />
+                <ContactNumberInput
+                  label="Maximum Events Attended" 
+                  value={maxEvents}
+                  setValue={setMaxEvents}
+                  placeholder='Max Events...'
+                />
+                <ContactNumberInput
+                  label="Minimum Closed Tickets"
+                  value={minTickets}
+                  setValue={setMinTickets}
+                  placeholder='Min Tickets...'
+                />
+                <ContactNumberInput
+                  label='Maximum Closed Tickets'  
+                  value={maxTickets}
+                  setValue={setMaxTickets}
+                  placeholder='Max Tickets...'
+                />
+                <DateInput 
+                  label="Search Start Time"
+                  value={startDate}
+                  onChange={setStartDate}
+                  placeholder="Start Date..."
+                />
+                <DateInput 
+                  label="Search End Time"
+                  onChange={setEndDate}
+                  value={endDate}
+                  placeholder="End Date..."
+                />
+              </>
             </Group>
             <Group gap="sm">
               <Button variant="outline" onClick={handleReset}>Reset</Button>
@@ -471,3 +453,21 @@ export default function ContactsPage() {
     </Container>
   );
 }
+
+function ContactNumberInput(
+  {label, value, setValue, placeholder}:
+  {label: string, value: string | number | undefined, setValue: Function, placeholder: string | undefined}
+) {
+  return <NumberInput
+    label={label}
+    placeholder={placeholder}
+    value={value}
+    onChange={
+      num => {
+        setValue(typeof num === "number" ? num : 0);
+      }
+    }
+    allowNegative={false}
+    style={{ flex: 1 }} />;
+}
+
