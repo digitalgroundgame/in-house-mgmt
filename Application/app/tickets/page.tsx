@@ -28,6 +28,7 @@ export default function TicketPage() {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('all');
+  const [priorities, setPriorities] = useState<{ value: string; label: string }[]>([]);
   const [priority, setPriority] = useState<string | null>(null);
   const [ticketType, setTicketType] = useState<string | null>(null);
   const [assignee, setAssignee] = useState('admin');
@@ -49,7 +50,23 @@ export default function TicketPage() {
 
   useEffect(() => {
     fetchTicketes();
+    fetchPriorities();
   }, []);
+
+  const fetchPriorities = async () => {
+    try {
+      const response = await fetch('/api/ticket-priorities');
+      const data = await response.json();
+      // API returns [{value: number, label: string}, ...] - convert value to string for Select
+      const priorityOptions = data.map((p: { value: number; label: string }) => ({
+        value: String(p.value),
+        label: p.label,
+      }));
+      setPriorities(priorityOptions);
+    } catch (error) {
+      console.error('Error fetching priorities:', error);
+    }
+  };
 
   const handleReset = () => {
     setPriority(null);
@@ -192,14 +209,7 @@ export default function TicketPage() {
                       onChange={(value) => setPriority(value)}
                       placeholder="All priorities"
                       clearable
-                      data={[
-                        { value: '0', label: 'P0 - Emergency' },
-                        { value: '1', label: 'P1 - Very High' },
-                        { value: '2', label: 'P2 - High' },
-                        { value: '3', label: 'P3 - Normal' },
-                        { value: '4', label: 'P4 - Low' },
-                        { value: '5', label: 'P5 - Very Low' },
-                      ]}
+                      data={priorities}
                       style={{ flex: 1 }}
                     />
                     <Select
