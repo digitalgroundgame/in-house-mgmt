@@ -456,7 +456,11 @@ export default function ContactsPage() {
 
 function ContactNumberInput(
   {label, value, setValue, placeholder}:
-  {label: string, value: string | number | undefined, setValue: Function, placeholder: string | undefined}
+  {label: string,
+    value: string | number | undefined,
+    setValue: (a: string | number | undefined) => void,
+    placeholder: string | undefined
+  }
 ) {
   return <NumberInput
     label={label}
