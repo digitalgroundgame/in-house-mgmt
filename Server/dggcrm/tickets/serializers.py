@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from dggcrm.contacts.models import Contact
 from dggcrm.events.models import Event
 
-from .models import Ticket, TicketStatus, TicketComment, TicketType
+from .models import Ticket, TicketStatus, TicketComment, TicketType, TicketAsks
 
 User = get_user_model()
 
@@ -138,3 +138,20 @@ class BulkTicketCreateSerializer(serializers.Serializer):
 class TicketTypeSerializer(serializers.Serializer):
     value = serializers.CharField()
     label = serializers.CharField()
+
+class TicketAskStatusSerializer(serializers.Serializer):
+    value = serializers.CharField()
+    label = serializers.CharField()
+
+class TicketAskSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TicketAsks
+        fields = [
+            "id",
+            "ticket",
+            "contact",
+            "status",
+            "created_at",
+            "edited_at",
+        ]
+        read_only_fields = ["id", "contact", "ticket", "created_at", "edited_at"]

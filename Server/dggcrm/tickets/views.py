@@ -3,14 +3,15 @@ from rest_framework.exceptions import APIException
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
-from auditlog.models import LogEntry
+from auditlog.models import LogEntry    
 
+from django.shortcuts import get_object_or_404
 from django.http import HttpResponseBadRequest
 from django.db.models import Count, Q, F
 from django.contrib.contenttypes.models import ContentType
 
-from .models import Ticket, TicketStatus, TicketType, TicketComment, TicketAskStatus
-from .serializers import TicketSerializer, BulkTicketCreateSerializer, TicketClaimSerializer, TicketCommentSerializer, TicketTimelineSerializer
+from .models import Ticket, TicketStatus, TicketType, TicketComment, TicketAskStatus, TicketAsks
+from .serializers import TicketSerializer, BulkTicketCreateSerializer, TicketClaimSerializer, TicketCommentSerializer, TicketTimelineSerializer, TicketAskSerializer
 
 # TODO: Handle permissions for views in file
 class TicketViewSet(viewsets.ModelViewSet):
@@ -18,7 +19,7 @@ class TicketViewSet(viewsets.ModelViewSet):
     serializer_class = TicketSerializer
     filter_backends = [filters.OrderingFilter, filters.SearchFilter]
     search_fields = ['id', 'title']
-    ordering_fields = ['priority', 'created_at', 'modified_at', 'ticket_status', 'ticket_type', ]
+    ordering_fields = ['id', 'title', 'assigned_to', 'priority', 'created_at', 'modified_at', 'ticket_status', 'ticket_type', ]
     ordering = ['priority', '-created_at']
 
     def get_queryset(self):
@@ -160,12 +161,50 @@ class TicketViewSet(viewsets.ModelViewSet):
         )
 
         return Response(TicketCommentSerializer(comment, context={'request': request}).data, status=status.HTTP_201_CREATED)
-    @action(detail=False, methods=["get"])
-    def get_ask_statuses(self, request):
-        return Response([
-            {"value": value, "label": label}
-            for value, label in TicketAskStatus.choices
-        ])
+
+
+    @action(
+        detail=True,
+        methods=["get", "patch"],
+        url_path=r"asks(?:/(?P<ask_id>[^/.]+))?",
+        serializer_class=TicketAskSerializer,
+    )
+    def asks(self, request, pk=None, ask_id=None):
+        """
+        GET   /tickets/{ticket_id}/asks/
+        PATCH /tickets/{ticket_id}/asks/{ask_id}/
+        """
+        ticket = self.get_object()
+
+        # ---- LIST ----
+        if request.method == "GET":
+            asks = ticket.audit_logs.all()
+            serializer = self.get_serializer(asks, many=True)
+            return Response(serializer.data)
+
+        # ---- UPDATE ----
+        if not ask_id:
+            return Response(
+                {"detail": "ask_id is required for PATCH."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        ask = get_object_or_404(
+            TicketAsks,
+            id=ask_id,
+            ticket=ticket,
+        )
+
+        serializer = self.get_serializer(
+            ask,
+            data=request.data,
+            partial=True,
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data)
+
 
     @action(detail=True, methods=["get"])
     def timeline(self, request, pk=None):
@@ -229,4 +268,14 @@ class TicketViewSet(viewsets.ModelViewSet):
 class TicketTypeViewSet(viewsets.ViewSet):
     def list(self, request):
         types = [{'value': t.value, 'label': t.label} for t in TicketType]
+        return Response(types)
+
+class TicketAskStatusesViewSet(viewsets.ViewSet):
+    def list(self, request):
+        types = [{'value': t.value, 'label': t.label} for t in TicketAskStatus]
+        return Response(types)
+
+class TicketPrioritiesViewSet(viewsets.ViewSet):
+    def list(self, request):
+        types = [{'value': t.value, 'label': t.label} for t in Ticket.Priority]
         return Response(types)

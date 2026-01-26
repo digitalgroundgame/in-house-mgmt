@@ -1,5 +1,5 @@
 from rest_framework import viewsets, filters
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, DjangoModelPermissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Q, Count
@@ -13,6 +13,11 @@ from .serializers import (
     TagAssignmentSerializer,
 )
 from dggcrm.tickets.models import TicketAsks, TicketAskStatus, TicketType
+from .permissions import (
+    ContactObjectPermission,
+    CanModifyTagAssignment,
+    get_contact_visibility_filter,
+)
 
 # TODO: Add permission_classes to these views
 class ContactViewSet(viewsets.ModelViewSet):
@@ -22,6 +27,11 @@ class ContactViewSet(viewsets.ModelViewSet):
         .prefetch_related("taggings__tag")
     )
     serializer_class = ContactSerializer
+    permission_classes = [
+        IsAuthenticated,
+        DjangoModelPermissions,
+        ContactObjectPermission
+    ]
 
     filter_backends = [
         filters.SearchFilter,
@@ -45,8 +55,6 @@ class ContactViewSet(viewsets.ModelViewSet):
 
     ordering = ["-created_at"]
 
-    # TODO: Update search api to properly handle permissions,
-    #   access, and search all fields
     def get_queryset(self):
         queryset = super().get_queryset()
 
@@ -95,8 +103,9 @@ class ContactViewSet(viewsets.ModelViewSet):
                 max_events = int(max_events)
                 queryset = queryset.filter(num_events_in_range__lte=max_events)
 
-
-        return queryset
+        return queryset.filter(
+            get_contact_visibility_filter(self.request.user)
+        ).distinct()
 
     @action(detail=True, methods=["get"], url_path="acceptance-rate")
     def acceptance_rate(self, request, pk=None):
@@ -130,17 +139,21 @@ class ContactViewSet(viewsets.ModelViewSet):
 
         return Response(response_data)
 
+
 class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+    permission_classes = [
+        IsAuthenticated,
+        DjangoModelPermissions,
+    ]
+
 
 class TagAssignmentViewSet(viewsets.ModelViewSet):
+    permission_classes = [
+        IsAuthenticated,
+        DjangoModelPermissions,
+        CanModifyTagAssignment,
+    ]
     serializer_class = TagAssignmentSerializer
     queryset = TagAssignments.objects.all()
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        contact_id = self.request.query_params.get("contact")
-        if contact_id:
-            queryset = queryset.filter(contact_id=contact_id)
-        return queryset

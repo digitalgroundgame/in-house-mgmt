@@ -1,15 +1,28 @@
-from rest_framework import viewsets, filters
+from rest_framework import viewsets, filters, status as rest_status
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated, DjangoModelPermissions
 from rest_framework.response import Response
 from django.db.models import Count, Q, F
 
 from .models import Event, EventParticipation, UsersInEvent, CommitmentStatus
 from .serializers import EventSerializer, EventParticipationSerializer, UsersInEventSerializer
-
+from .permissions import (
+    get_event_visibility_filter,
+    get_participation_visibility_filter,
+    get_event_membership_visibility_filter,
+    EventObjectPermission,
+    ParticipationObjectPermission,
+    EventMembershipObjectPermission,
+)
 
 class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all().order_by('-created_at')
     serializer_class = EventSerializer
+    permission_classes = [
+        IsAuthenticated,
+        DjangoModelPermissions,
+        EventObjectPermission
+    ]
     filter_backends = [filters.OrderingFilter, filters.SearchFilter]
     search_fields = ['name', 'description', 'location_name', 'location_address']
     ordering_fields = ['created_at', 'modified_at', 'event_status']
@@ -31,7 +44,7 @@ class EventViewSet(viewsets.ModelViewSet):
         if status:
             queryset = queryset.filter(event_status=status)
 
-        return queryset
+        return queryset.filter(get_event_visibility_filter(self.request.user))
 
 
 class EventParticipationViewSet(viewsets.ModelViewSet):
@@ -41,6 +54,11 @@ class EventParticipationViewSet(viewsets.ModelViewSet):
         .order_by("-created_at")
     )
     serializer_class = EventParticipationSerializer
+    permission_classes = [
+        IsAuthenticated,
+        DjangoModelPermissions,
+        ParticipationObjectPermission
+    ]
 
     filter_backends = [
         filters.SearchFilter,
@@ -77,7 +95,8 @@ class EventParticipationViewSet(viewsets.ModelViewSet):
         if status:
             queryset = queryset.filter(status=status)
 
-        return queryset
+        return queryset.filter(get_participation_visibility_filter(self.request.user))
+
 
     # TODO: Limit this API to organizer role or above
     @action(detail=False, methods=["get"])
@@ -88,7 +107,7 @@ class EventParticipationViewSet(viewsets.ModelViewSet):
         max_events = request.query_params.get("max_events")
         status = request.query_params.get("status", CommitmentStatus.ATTENDED)
 
-        qs = EventParticipation.objects.filter(
+        qs = self.get_queryset().filter(
             status=status,
         )
 
@@ -121,6 +140,38 @@ class EventParticipationViewSet(viewsets.ModelViewSet):
 
         return Response(qs)
 
+    def create(self, request, *args, **kwargs):
+        """
+        Upsert: If a participation exists for event+contact, update it.
+        Otherwise, create a new participation.
+        """
+        event_id = request.data.get("event")
+        contact_id = request.data.get("contact")
+        status_value = request.data.get("status")
+
+        if not event_id or not contact_id:
+            return Response(
+                {"detail": "event and contact are required"},
+                status=rest_status.HTTP_400_BAD_REQUEST,
+            )
+
+        participation, created = EventParticipation.objects.update_or_create(
+            event_id=event_id,
+            contact_id=contact_id,
+            defaults={"status": status_value},
+        )
+
+        serializer = self.get_serializer(participation)
+
+        return Response(serializer.data, status=rest_status.HTTP_201_CREATED if created else rest_status.HTTP_200_OK)
+
+
+# Readonly view set that returns all committment statuses
+class CommitmentStatusViewSet(viewsets.ViewSet):
+    def list(self, request):
+        types = [{'value': t.value, 'label': t.label} for t in CommitmentStatus]
+        return Response(types)
+
 
 class UsersInEventViewSet(viewsets.ModelViewSet):
     queryset = UsersInEvent.objects.select_related(
@@ -128,6 +179,11 @@ class UsersInEventViewSet(viewsets.ModelViewSet):
         "event",
     )
     serializer_class = UsersInEventSerializer
+    permission_classes = [
+        IsAuthenticated,
+        DjangoModelPermissions,
+        EventMembershipObjectPermission
+    ]
 
     filter_backends = [
         filters.SearchFilter,
@@ -162,5 +218,4 @@ class UsersInEventViewSet(viewsets.ModelViewSet):
         if user_id:
             qs = qs.filter(user_id=user_id)
 
-        return qs
-
+        return qs.filter(get_event_membership_visibility_filter(self.request.user))

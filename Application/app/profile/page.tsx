@@ -22,6 +22,7 @@ type User = {
   email: string;
   first_name?: string;
   last_name?: string;
+  groups?: string[];
   email_addresses?: {
     email: string;
     primary: boolean;
@@ -101,6 +102,22 @@ export default function ProfilePage() {
             </Group>
           ))}
         </Stack>
+
+        {/* Groups */}
+        <Divider label="Auth Groups" />
+        <Group spacing="xs">
+          {user?.groups?.length ? (
+            user.groups.map((group) => (
+              <Badge key={group} color={group === "ADMIN"? "red": "blue"} variant="light">
+                {group}
+              </Badge>
+            ))
+          ) : (
+            <Text color="dimmed" size="sm">
+              No group memberships
+            </Text>
+          )}
+        </Group>
 
         {/* OAuth connections */}
         <Divider label="Connected accounts / OAuth" />

@@ -9,10 +9,30 @@ User = get_user_model()
 class UserDetailsSerializer(serializers.ModelSerializer):
     email_addresses = serializers.SerializerMethodField()
     social_accounts = serializers.SerializerMethodField()
+    groups = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ["id", "username", "email", "first_name", "last_name", "email_addresses", "social_accounts"]
+        fields = [
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "groups",
+            "email_addresses",
+            "social_accounts",
+        ]
+
+    def get_groups(self, user):
+        groups = list(
+            user.groups.values_list("name", flat=True)
+        )
+
+        if user.is_superuser:
+            groups += ["ADMIN"]
+
+        return groups
 
     def get_email_addresses(self, user):
         return list(

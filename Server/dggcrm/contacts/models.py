@@ -22,6 +22,14 @@ class Contact(models.Model):
     class Meta:
         db_table = 'contacts'
 
+        permissions = [
+            ("view_all_contacts", "Can view all contacts"),
+            ("view_contacts_via_event", "Can view event's contacts"),
+            ("change_contacts_via_ticket", "Can edit assigned ticket's contact"),
+            ("change_all_contacts", "Can edit all contacts"),
+        ]
+
+
     def __str__(self):
         if self.full_name:
             return self.full_name

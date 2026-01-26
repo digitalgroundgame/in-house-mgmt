@@ -2,16 +2,66 @@
 import Link from 'next/link';
 
 import { useState, useEffect } from "react"
-import { Grid, Stack, Group, Title, Button, Paper, Box, Badge, Divider, Text, Timeline, Container } from "@mantine/core"
+import { Grid, Stack, Group, Title, Button, Paper, Box, Badge, Divider, Text, Timeline, Container, SegmentedControl, Loader, Center } from "@mantine/core"
 import { useRouter } from "next/navigation"
 import { getStatusColor, getPriorityColor } from "./TicketTable"
 import TicketDescription from "./TicketDescription";
 import { Ticket } from "./ticket-utils"
-import ContactSearch from "./ContactSearch"
+import ContactSearch, { Contact } from "./ContactSearch"
+import { Event } from "./EventTable"
 import getCookie from '@/app/utils/cookie';
+import TicketActions from '@/app/components/tickets/TicketActions';
+
+type TimelineShowType = "both" | "request" | "audit";
+
+interface TimelineEntry {
+  type: "audit" | "comment";
+  created_at: string;
+  actor_display: string | null;
+  actor_id: number | null;
+  changes?: Record<string, [string, string]>;
+  message?: string;
+}
 
 
-export default function TicketView({ticket} : { ticket: Ticket}) {
+
+interface TicketViewProps {
+  ticket: Ticket;
+  timeline: TimelineEntry[];
+  timelineLoading: boolean;
+  showType: TimelineShowType;
+  onShowTypeChange: (value: TimelineShowType) => void;
+}
+
+export default function TicketView({ ticket, timeline, timelineLoading, showType, onShowTypeChange}: TicketViewProps) 
+{
+  const [contact, setContact] = useState<Contact>(null);
+  const [event, setEvent] = useState<Event>(null);
+
+  useEffect(() => {
+    async function fetchInfo() {
+      try {
+        if (ticket.contact) {
+          const contactRes = await fetch(`/api/contacts/${ticket.contact}`);
+          if (contactRes.ok) {
+            setContact(await contactRes.json());
+          }
+        }
+
+        if (ticket.event) {
+          const eventRes = await fetch(`/api/events/${ticket.event}`);
+          if (eventRes.ok) {
+            setEvent(await eventRes.json());
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch associated contact/event', err);
+      }
+    }
+
+    fetchInfo();
+  }, [ticket.contact, ticket.event]);
+
   return <Container size="xl" py="xl">
     <Grid>
       <Grid.Col span={{ base: 12, md: 8 }}>
@@ -19,15 +69,19 @@ export default function TicketView({ticket} : { ticket: Ticket}) {
           <TitleCard ticket={ticket}/>
           {/* Status Info */}
           <TicketDescription description={ticket.description}/>
-          <ActivityCard />
+          <TicketTimeline
+            timeline={timeline}
+            loading={timelineLoading}
+            showType={showType}
+            onShowTypeChange={onShowTypeChange}
+          />
 
         </Stack>
       </Grid.Col>
       <Grid.Col span={{base: 12, md: 4}}>
         <Stack gap='md'>
           <TicketMetadataCard ticket={ticket}/>
-          {/* Show call instructions for selected reach */}
-          <Actions ticketId={ticket.id} />
+          <TicketActions ticket={ticket} contact={contact} event={event}/>
 
         </Stack>
       </Grid.Col>
@@ -196,24 +250,117 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
 }
 
 
-function ActivityCard() {
-  return <Paper p="md" withBorder>
-    <Title order={4} mb="md">Activity (Dummy)</Title>
-    <Timeline active={2} bulletSize={24} lineWidth={2}>
-      <Timeline.Item title="Ticket updated">
-        <Text c="dimmed" size="sm">admin (admin@test.com)</Text>
-        <Text size="xs" mt={4}>Dec 31, 16:29</Text>
-      </Timeline.Item>
-      <Timeline.Item title="Status updated to In Progress">
-        <Text c="dimmed" size="sm">admin (admin@test.com)</Text>
-        <Text size="xs" mt={4}>Dec 31, 16:27</Text>
-      </Timeline.Item>
-      <Timeline.Item title="Ticket assigned">
-        <Text c="dimmed" size="sm">System</Text>
-        <Text size="xs" mt={4}>Dec 31, 16:05</Text>
-      </Timeline.Item>
-    </Timeline>
-  </Paper>
+interface TicketTimelineProps {
+  timeline: TimelineEntry[];
+  loading: boolean;
+  showType: TimelineShowType;
+  onShowTypeChange: (value: TimelineShowType) => void;
+}
+
+function ResolvedName({ field, id }: { field: string; id: string }) {
+  const [name, setName] = useState<string>(() => (!id || id === 'None') ? 'None' : id);
+
+  useEffect(() => {
+    if (!id || id === 'None') {
+      return;
+    }
+
+    let endpoint: string;
+    if (field === 'contact') {
+      endpoint = `/api/contacts/${id}`;
+    } else if (field === 'event') {
+      endpoint = `/api/events/${id}`;
+    } else if (field === 'user') {
+      endpoint = `/api/users/${id}/`;
+    } else {
+      return;
+    }
+
+    fetch(endpoint, { credentials: 'include' })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data) {
+          if (field === 'contact') setName(data.full_name);
+          else if (field === 'event') setName(data.name);
+          else if (field === 'user') setName(data.username);
+        }
+      })
+      .catch(() => setName(id));
+  }, [field, id]);
+
+  return <>{name}</>;
+}
+
+function TicketTimeline({ timeline, loading, showType, onShowTypeChange }: TicketTimelineProps) {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const getEntryTitle = (entry: TimelineEntry) => {
+    if (entry.type === "audit") {
+      return "Ticket updated";
+    }
+    return "Comment added";
+  };
+
+  const renderChangeValue = (field: string, value: string) => {
+    if ((field === 'contact' || field === 'event') && value && value !== 'None') {
+      return <ResolvedName field={field} id={value} />;
+    }
+    return value || 'None';
+  };
+
+  return (
+    <Paper p="md" withBorder>
+      <Group justify="space-between" mb="md">
+        <Title order={4}>Activity</Title>
+        <SegmentedControl
+          size="xs"
+          value={showType}
+          onChange={(value) => onShowTypeChange(value as TimelineShowType)}
+          data={[
+            { label: 'All', value: 'both' },
+            { label: 'Comments', value: 'comment' },
+            { label: 'Audit', value: 'audit' },
+          ]}
+        />
+      </Group>
+      {loading ? (
+        <Center h={100}>
+          <Loader size="sm" />
+        </Center>
+      ) : timeline.length === 0 ? (
+        <Text c="dimmed" size="sm">No activity yet</Text>
+      ) : (
+        <Timeline active={timeline.length - 1} bulletSize={24} lineWidth={2}>
+          {timeline.map((entry, index) => (
+            <Timeline.Item key={index} title={getEntryTitle(entry)}>
+              {entry.type === "comment" && entry.message && (
+                <Text size="sm" mb={4}>{entry.message}</Text>
+              )}
+              {entry.type === "audit" && entry.changes && typeof entry.changes === 'object' && (
+                <Stack gap={2} mb={4}>
+                  {Object.entries(entry.changes).map(([field, [oldVal, newVal]]) => (
+                    <Text key={field} size="sm" c="dimmed">
+                      <Text span fw={500}>{field}:</Text> {renderChangeValue(field, oldVal)} → {renderChangeValue(field, newVal)}
+                    </Text>
+                  ))}
+                </Stack>
+              )}
+              <Text c="dimmed" size="sm">{entry.actor_display ?? 'System'}</Text>
+              <Text size="xs" mt={4}>{formatDate(entry.created_at)}</Text>
+            </Timeline.Item>
+          ))}
+        </Timeline>
+      )}
+    </Paper>
+  );
 }
 
 function Actions({ ticketId }: { ticketId: number }) {
@@ -224,7 +371,6 @@ function Actions({ ticketId }: { ticketId: number }) {
       .then(res => res.json())
       .then(data => setAskStatuses(data))
       .catch(console.error)
-    console.log(askStatuses)
   }, [])
 
   const handleAction = (status: string) => {
