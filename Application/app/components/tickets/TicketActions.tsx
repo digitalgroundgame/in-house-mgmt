@@ -220,29 +220,7 @@ export default function TicketActions({
          * ------------------------- */}
         {loadingAsks && <Loader size="sm" />}
 
-        {!loadingAsks &&
-          asks.map((ask) => (
-            <Group key={ask.id} align="flex-end">
-              <SearchSelect<TicketAskStatus>
-                endpoint="/api/ticket-ask-statuses"
-                label={`Action ${ask.id} (WIP name)`}
-                placeholder="Select status"
-                limit={10}
-                value={{
-                  id: ask.status,
-                  label: ask.status,
-                  raw: { value: ask.status, label: ask.status },
-                }}
-                onChange={(opt) => updateAskStatus(ask.id, opt)}
-                mapResult={(status) => ({
-                  id: status.value,
-                  label: status.label,
-                  raw: status,
-                })}
-                disabled={updatingAskId === ask.id}
-              />
-            </Group>
-          ))}
+
       </Stack>
     </Paper>
   );
