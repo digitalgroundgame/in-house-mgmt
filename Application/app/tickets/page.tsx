@@ -18,7 +18,7 @@ import {
 } from '@mantine/core';
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { useState, useEffect } from 'react';
-import TicketTable from '@/app/components/TicketTable';
+import TicketTable, { type SortField, type SortDirection } from '@/app/components/TicketTable';
 import ContactSearch from '@/app/components/ContactSearch';
 import { type Ticket } from '@/app/components/ticket-utils';
 
@@ -27,27 +27,95 @@ export default function TicketPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState('in-progress');
-  const [priority, setPriority] = useState('p3');
+  const [status, setStatus] = useState('all');
+  const [priorities, setPriorities] = useState<{ value: string; label: string }[]>([]);
+  const [priority, setPriority] = useState<string | null>(null);
+  const [ticketType, setTicketType] = useState<string | null>(null);
   const [assignee, setAssignee] = useState('admin');
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [previousUrl, setPreviousUrl] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
+  const [sortField, setSortField] = useState<SortField>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
 
-  const statuses = ['all', 'open', 'in-progress', 'blocked', 'completed'];
+  const statuses = [
+    { value: 'all', label: 'All' },
+    { value: 'OPEN', label: 'Open' },
+    { value: 'TODO', label: 'To Do' },
+    { value: 'IN_PROGRESS', label: 'In Progress' },
+    { value: 'BLOCKED', label: 'Blocked' },
+    { value: 'COMPLETED', label: 'Completed' },
+    { value: 'CANCELED', label: 'Canceled' },
+  ];
 
   useEffect(() => {
     fetchTicketes();
+    fetchPriorities();
   }, []);
 
-  const handleReset = () => {
-    fetchTicketes();
+  const fetchPriorities = async () => {
+    try {
+      const response = await fetch('/api/ticket-priorities');
+      const data = await response.json();
+      // API returns [{value: number, label: string}, ...] - convert value to string for Select
+      const priorityOptions = data.map((p: { value: number; label: string }) => ({
+        value: String(p.value),
+        label: p.label,
+      }));
+      setPriorities(priorityOptions);
+    } catch (error) {
+      console.error('Error fetching priorities:', error);
+    }
   };
 
-  const fetchTicketes = async (url?: string) => {
+  const handleReset = () => {
+    setPriority(null);
+    setTicketType(null);
+    setStatus('all');
+    setSortField(null);
+    setSortDirection(null);
+    fetchTicketes(undefined, null, 'all', null, null, null);
+  };
+
+  const handleSort = (field: SortField, direction: SortDirection) => {
+    setSortField(field);
+    setSortDirection(direction);
+    fetchTicketes(undefined, priority, status, field, direction, ticketType);
+  };
+
+  const fetchTicketes = async (
+    url?: string,
+    priorityFilter?: string | null,
+    statusFilter?: string,
+    orderField?: SortField,
+    orderDirection?: SortDirection,
+    typeFilter?: string | null
+  ) => {
     try {
       setLoading(true);
-      const fetchUrl = url || '/api/tickets';
+      let fetchUrl = url || '/api/tickets';
+
+      // Add filters if not using pagination URL
+      if (!url) {
+        const params = new URLSearchParams();
+        if (priorityFilter !== undefined && priorityFilter !== null) {
+          params.append('priority', priorityFilter);
+        }
+        if (statusFilter && statusFilter !== 'all') {
+          params.append('status', statusFilter);
+        }
+        if (typeFilter) {
+          params.append('type', typeFilter);
+        }
+        if (orderField && orderDirection) {
+          const orderValue = orderDirection === 'desc' ? `-${orderField}` : orderField;
+          params.append('ordering', orderValue);
+        }
+        if (params.toString()) {
+          fetchUrl = `/api/tickets?${params.toString()}`;
+        }
+      }
+
       const response = await fetch(fetchUrl);
       console.log('Fetch response:', response);
       const data = await response.json();
@@ -119,12 +187,17 @@ export default function TicketPage() {
                   <Group gap="xs">
                     {statuses.map((s) => (
                       <Badge
-                        key={s}
-                        variant={status === s ? 'filled' : 'light'}
-                        style={{ cursor: 'pointer', textTransform: 'capitalize' }}
-                        onClick={() => setStatus(s)}
+                        key={s.value}
+                        color={s.value === 'CANCELED' ? 'red' : undefined}
+                        variant={status === s.value ? 'filled' : 'light'}
+                        style={{ cursor: 'pointer' }}
+
+                        onClick={() => {
+                          setStatus(s.value);
+                          fetchTicketes(undefined, priority, s.value, sortField, sortDirection, ticketType);
+                        }}
                       >
-                        {s.replace('-', ' ')}
+                        {s.label}
                       </Badge>
                     ))}
                   </Group>
@@ -133,12 +206,23 @@ export default function TicketPage() {
                     <Select
                       label="Priority"
                       value={priority}
-                      onChange={(value) => setPriority(value || 'p3')}
+                      onChange={(value) => setPriority(value)}
+                      placeholder="All priorities"
+                      clearable
+                      data={priorities}
+                      style={{ flex: 1 }}
+                    />
+                    <Select
+                      label="Type"
+                      value={ticketType}
+                      onChange={(value) => setTicketType(value)}
+                      placeholder="All types"
+                      clearable
                       data={[
-                        { value: 'p1', label: 'P1 - Critical' },
-                        { value: 'p2', label: 'P2 - High' },
-                        { value: 'p3', label: 'P3 - Normal' },
-                        { value: 'p4', label: 'P4 - Low' },
+                        { value: 'UNKNOWN', label: 'Unknown' },
+                        { value: 'INTRODUCTION', label: 'Introduction' },
+                        { value: 'RECRUIT', label: 'Recruit for event' },
+                        { value: 'CONFIRM', label: 'Confirm participation' },
                       ]}
                       style={{ flex: 1 }}
                     />
@@ -153,7 +237,7 @@ export default function TicketPage() {
                       ]}
                       style={{ flex: 1 }}
                     />
-                    <Button mt="xl">Update</Button>
+                    <Button mt="xl" onClick={() => fetchTicketes(undefined, priority, status, sortField, sortDirection, ticketType)}>Update</Button>
                   </Group>
                 <Group gap="sm">
                   <Button variant="outline" onClick={handleReset}>Reset</Button>
@@ -167,7 +251,9 @@ export default function TicketPage() {
                 <TicketTable
                   tickets={tickets}
                   loading={loading}
-                  onRowClick={handleRowClick}
+                  sortField={sortField}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
                 />
 
                 {/* Pagination and count */}
