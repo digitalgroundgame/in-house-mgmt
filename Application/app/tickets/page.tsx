@@ -28,6 +28,8 @@ export default function TicketPage() {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('all');
+  const [showCanceled, setShowCanceled] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(false);
   const [priorities, setPriorities] = useState<{ value: string; label: string }[]>([]);
   const [priority, setPriority] = useState<string | null>(null);
   const [ticketType, setTicketType] = useState<string | null>(null);
@@ -38,18 +40,17 @@ export default function TicketPage() {
   const [sortField, setSortField] = useState<SortField>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
 
-  const statuses = [
+  const openStatuses = [
     { value: 'all', label: 'All' },
     { value: 'OPEN', label: 'Open' },
     { value: 'TODO', label: 'To Do' },
     { value: 'IN_PROGRESS', label: 'In Progress' },
     { value: 'BLOCKED', label: 'Blocked' },
-    { value: 'COMPLETED', label: 'Completed' },
-    { value: 'CANCELED', label: 'Canceled' },
   ];
 
+
   useEffect(() => {
-    fetchTicketes();
+    fetchTicketes(undefined, null, 'all', null, null, null, showCanceled, showCompleted);
     fetchPriorities();
   }, []);
 
@@ -72,15 +73,17 @@ export default function TicketPage() {
     setPriority(null);
     setTicketType(null);
     setStatus('all');
+    setShowCanceled(false);
+    setShowCompleted(false);
     setSortField(null);
     setSortDirection(null);
-    fetchTicketes(undefined, null, 'all', null, null, null);
+    fetchTicketes(undefined, null, 'all', null, null, null, false, false);
   };
 
   const handleSort = (field: SortField, direction: SortDirection) => {
     setSortField(field);
     setSortDirection(direction);
-    fetchTicketes(undefined, priority, status, field, direction, ticketType);
+    fetchTicketes(undefined, priority, status, field, direction, ticketType, showCanceled, showCompleted);
   };
 
   const fetchTicketes = async (
@@ -89,7 +92,9 @@ export default function TicketPage() {
     statusFilter?: string,
     orderField?: SortField,
     orderDirection?: SortDirection,
-    typeFilter?: string | null
+    typeFilter?: string | null,
+    includeCanceled?: boolean,
+    includeCompleted?: boolean
   ) => {
     try {
       setLoading(true);
@@ -110,6 +115,17 @@ export default function TicketPage() {
         if (orderField && orderDirection) {
           const orderValue = orderDirection === 'desc' ? `-${orderField}` : orderField;
           params.append('ordering', orderValue);
+        }
+        // Exclude closed statuses by default unless explicitly included or filtering by them
+        const excludeStatuses: string[] = [];
+        if (!includeCanceled && statusFilter !== 'CANCELED') {
+          excludeStatuses.push('CANCELED');
+        }
+        if (!includeCompleted && statusFilter !== 'COMPLETED') {
+          excludeStatuses.push('COMPLETED');
+        }
+        if (excludeStatuses.length > 0) {
+          params.append('exclude_status', excludeStatuses.join(','));
         }
         if (params.toString()) {
           fetchUrl = `/api/tickets?${params.toString()}`;
@@ -185,21 +201,42 @@ export default function TicketPage() {
               <Paper p="md" withBorder>
                 <Stack gap="md">
                   <Group gap="xs">
-                    {statuses.map((s) => (
+                    {openStatuses.map((s) => (
                       <Badge
                         key={s.value}
-                        color={s.value === 'CANCELED' ? 'red' : undefined}
                         variant={status === s.value ? 'filled' : 'light'}
                         style={{ cursor: 'pointer' }}
-
                         onClick={() => {
                           setStatus(s.value);
-                          fetchTicketes(undefined, priority, s.value, sortField, sortDirection, ticketType);
+                          fetchTicketes(undefined, priority, s.value, sortField, sortDirection, ticketType, showCanceled, showCompleted);
                         }}
                       >
                         {s.label}
                       </Badge>
                     ))}
+                    <Text c="dimmed">|</Text>
+                    <Badge
+                      color="gray"
+                      variant={showCompleted ? 'filled' : 'outline'}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => {
+                        setShowCompleted(!showCompleted);
+                        fetchTicketes(undefined, priority, status, sortField, sortDirection, ticketType, showCanceled, !showCompleted);
+                      }}
+                    >
+                      Completed
+                    </Badge>
+                    <Badge
+                      color="red"
+                      variant={showCanceled ? 'filled' : 'outline'}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => {
+                        setShowCanceled(!showCanceled);
+                        fetchTicketes(undefined, priority, status, sortField, sortDirection, ticketType, !showCanceled, showCompleted);
+                      }}
+                    >
+                      Canceled
+                    </Badge>
                   </Group>
 
                   <Group gap="md">
@@ -237,7 +274,7 @@ export default function TicketPage() {
                       ]}
                       style={{ flex: 1 }}
                     />
-                    <Button mt="xl" onClick={() => fetchTicketes(undefined, priority, status, sortField, sortDirection, ticketType)}>Update</Button>
+                    <Button mt="xl" onClick={() => fetchTicketes(undefined, priority, status, sortField, sortDirection, ticketType, showCanceled, showCompleted)}>Update</Button>
                   </Group>
                 <Group gap="sm">
                   <Button variant="outline" onClick={handleReset}>Reset</Button>
@@ -254,6 +291,26 @@ export default function TicketPage() {
                   sortField={sortField}
                   sortDirection={sortDirection}
                   onSort={handleSort}
+                  onStatusToggle={() => {
+                    // Cycle: open -> closed -> all -> open
+                    if (!showCanceled && !showCompleted) {
+                      // Currently open, switch to closed only
+                      setShowCanceled(true);
+                      setShowCompleted(true);
+                      setStatus('COMPLETED');
+                      fetchTicketes(undefined, priority, 'COMPLETED', sortField, sortDirection, ticketType, true, true);
+                    } else if (status === 'COMPLETED' || status === 'CANCELED') {
+                      // Currently closed, switch to all
+                      setStatus('all');
+                      fetchTicketes(undefined, priority, 'all', sortField, sortDirection, ticketType, true, true);
+                    } else {
+                      // Currently all, switch to open
+                      setShowCanceled(false);
+                      setShowCompleted(false);
+                      setStatus('all');
+                      fetchTicketes(undefined, priority, 'all', sortField, sortDirection, ticketType, false, false);
+                    }
+                  }}
                 />
 
                 {/* Pagination and count */}

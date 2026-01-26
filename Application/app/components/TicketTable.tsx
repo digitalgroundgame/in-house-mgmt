@@ -19,6 +19,7 @@ interface TicketTableProps {
   sortField?: SortField;
   sortDirection?: SortDirection;
   onSort?: (field: SortField, direction: SortDirection) => void;
+  onStatusToggle?: () => void;
 }
 
 export const getPriorityColor = (priority: number) => {
@@ -48,6 +49,7 @@ export default function TicketTable({
   sortField = null,
   sortDirection = null,
   onSort,
+  onStatusToggle,
 }: TicketTableProps) {
   const router = useRouter()
 
@@ -110,7 +112,24 @@ export default function TicketTable({
               </Table.Th>
               <Table.Th>Type</Table.Th>
               <Table.Th>Priority</Table.Th>
-              <Table.Th>Status</Table.Th>
+              <Table.Th>
+                <Tooltip
+                  label="Click to toggle: Open → Closed → All"
+                  position="top"
+                  withArrow
+                  transitionProps={{ transition: 'pop', duration: 200 }}
+                >
+                  <span
+                    style={{
+                      cursor: onStatusToggle ? 'pointer' : 'default',
+                      transition: 'color 0.15s ease',
+                    }}
+                    onClick={onStatusToggle}
+                  >
+                    Status
+                  </span>
+                </Tooltip>
+              </Table.Th>
               <Table.Th style={sortableHeaderStyle} onClick={() => handleSort('assigned_to')}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   Assigned {getSortIcon('assigned_to')}

@@ -36,6 +36,10 @@ class TicketViewSet(viewsets.ModelViewSet):
         if ticket_status is not None:
             queryset = queryset.filter(ticket_status=ticket_status)
 
+        exclude_status = self.request.query_params.get('exclude_status')
+        if exclude_status is not None:
+            queryset = queryset.exclude(ticket_status__in=exclude_status.split(','))
+
         if ticket_type is not None:
             queryset = queryset.filter(ticket_type=ticket_type)
 
