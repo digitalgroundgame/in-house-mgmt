@@ -11,3 +11,11 @@ django-allauth==65.13.1
 djangorestframework-simplejwt
 psycopg[c]==3.3.2
 argparse
+
+# Testing
+pytest>=8.0.0
+pytest-django>=4.5.0
+responses>=0.25.0
+
+# Task runner (like npm scripts)
+taskipy>=1.12.0

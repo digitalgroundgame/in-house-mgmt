@@ -1,0 +1,14 @@
+[project]
+name = "dggcrm"
+version = "0.1.0"
+requires-python = ">=3.13"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["dggcrm"]
+DJANGO_SETTINGS_MODULE = "config.settings"
+addopts = "-p no:asyncio"
+
+[tool.taskipy.tasks]
+test = "python -m pytest"
+test_v = "python -m pytest -v"
