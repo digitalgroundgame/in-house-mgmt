@@ -30,6 +30,7 @@ export default function TicketPage() {
   const [status, setStatus] = useState('all');
   const [showCanceled, setShowCanceled] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [closedOnly, setClosedOnly] = useState(false);
   const [priorities, setPriorities] = useState<{ value: string; label: string }[]>([]);
   const [priority, setPriority] = useState<string | null>(null);
   const [ticketType, setTicketType] = useState<string | null>(null);
@@ -75,6 +76,7 @@ export default function TicketPage() {
     setStatus('all');
     setShowCanceled(false);
     setShowCompleted(false);
+    setClosedOnly(false);
     setSortField(null);
     setSortDirection(null);
     fetchTicketes(undefined, null, 'all', null, null, null, false, false);
@@ -94,7 +96,8 @@ export default function TicketPage() {
     orderDirection?: SortDirection,
     typeFilter?: string | null,
     includeCanceled?: boolean,
-    includeCompleted?: boolean
+    includeCompleted?: boolean,
+    closedOnly?: boolean
   ) => {
     try {
       setLoading(true);
@@ -116,8 +119,11 @@ export default function TicketPage() {
           const orderValue = orderDirection === 'desc' ? `-${orderField}` : orderField;
           params.append('ordering', orderValue);
         }
-        // Exclude closed statuses by default unless explicitly included or filtering by them
+        // Exclude statuses based on view mode
         const excludeStatuses: string[] = [];
+        if (closedOnly) {
+          excludeStatuses.push('OPEN', 'TODO', 'IN_PROGRESS', 'BLOCKED');
+        }
         if (!includeCanceled && statusFilter !== 'CANCELED') {
           excludeStatuses.push('CANCELED');
         }
@@ -204,10 +210,11 @@ export default function TicketPage() {
                     {openStatuses.map((s) => (
                       <Badge
                         key={s.value}
-                        variant={status === s.value ? 'filled' : 'light'}
+                        variant={status === s.value && !closedOnly ? 'filled' : 'light'}
                         style={{ cursor: 'pointer' }}
                         onClick={() => {
                           setStatus(s.value);
+                          setClosedOnly(false);
                           fetchTicketes(undefined, priority, s.value, sortField, sortDirection, ticketType, showCanceled, showCompleted);
                         }}
                       >
@@ -221,7 +228,7 @@ export default function TicketPage() {
                       style={{ cursor: 'pointer' }}
                       onClick={() => {
                         setShowCompleted(!showCompleted);
-                        fetchTicketes(undefined, priority, status, sortField, sortDirection, ticketType, showCanceled, !showCompleted);
+                        fetchTicketes(undefined, priority, status, sortField, sortDirection, ticketType, showCanceled, !showCompleted, closedOnly);
                       }}
                     >
                       Completed
@@ -232,7 +239,7 @@ export default function TicketPage() {
                       style={{ cursor: 'pointer' }}
                       onClick={() => {
                         setShowCanceled(!showCanceled);
-                        fetchTicketes(undefined, priority, status, sortField, sortDirection, ticketType, !showCanceled, showCompleted);
+                        fetchTicketes(undefined, priority, status, sortField, sortDirection, ticketType, !showCanceled, showCompleted, closedOnly);
                       }}
                     >
                       Canceled
@@ -294,19 +301,22 @@ export default function TicketPage() {
                   onStatusToggle={() => {
                     // Cycle: open -> closed -> all -> open
                     if (!showCanceled && !showCompleted) {
-                      // Currently open, switch to closed only
+                      // Currently open, switch to closed (both completed + canceled)
                       setShowCanceled(true);
                       setShowCompleted(true);
-                      setStatus('COMPLETED');
-                      fetchTicketes(undefined, priority, 'COMPLETED', sortField, sortDirection, ticketType, true, true);
-                    } else if (status === 'COMPLETED' || status === 'CANCELED') {
+                      setClosedOnly(true);
+                      setStatus('all');
+                      fetchTicketes(undefined, priority, 'all', sortField, sortDirection, ticketType, true, true, true);
+                    } else if (closedOnly) {
                       // Currently closed, switch to all
+                      setClosedOnly(false);
                       setStatus('all');
                       fetchTicketes(undefined, priority, 'all', sortField, sortDirection, ticketType, true, true);
                     } else {
                       // Currently all, switch to open
                       setShowCanceled(false);
                       setShowCompleted(false);
+                      setClosedOnly(false);
                       setStatus('all');
                       fetchTicketes(undefined, priority, 'all', sortField, sortDirection, ticketType, false, false);
                     }
