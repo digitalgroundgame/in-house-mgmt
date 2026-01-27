@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from auditlog.models import AuditlogHistoryField
 
 class EventStatus(models.TextChoices):
     DRAFT = "draft", "Draft"
@@ -84,6 +85,7 @@ class EventParticipation(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
+    history = AuditlogHistoryField()
 
     class Meta:
         db_table = "event_participations"

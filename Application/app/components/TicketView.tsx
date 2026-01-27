@@ -1,21 +1,21 @@
 'use client'
 import Link from 'next/link';
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, JSX } from "react"
 import { Grid, Stack, Group, Title, Button, Paper, Box, Badge, Divider, Text, Timeline, Container, SegmentedControl, Loader, Center } from "@mantine/core"
 import { useRouter } from "next/navigation"
 import { getStatusColor, getPriorityColor } from "./TicketTable"
 import TicketDescription from "./TicketDescription";
 import { Ticket } from "./ticket-utils"
 import ContactSearch, { Contact } from "./ContactSearch"
-import { Event } from "./EventTable"
+import { Event } from "@/app/components/event-utils"
 import getCookie from '@/app/utils/cookie';
 import TicketActions from '@/app/components/tickets/TicketActions';
 
-type TimelineShowType = "both" | "request" | "audit";
+export type TimelineShowType = "all" | "request" | "audit" | "event_participation";
 
 interface TimelineEntry {
-  type: "audit" | "comment";
+  type: "audit" | "comment" | "event_participation";
   created_at: string;
   actor_display: string | null;
   actor_id: number | null;
@@ -303,10 +303,11 @@ function TicketTimeline({ timeline, loading, showType, onShowTypeChange }: Ticke
   };
 
   const getEntryTitle = (entry: TimelineEntry) => {
-    if (entry.type === "audit") {
-      return "Ticket updated";
+    switch (entry.type) {
+      case "audit": return "Ticket updated"
+      case "event_participation": return "Event Participation Changed"
+      default: return "Commend added"
     }
-    return "Comment added";
   };
 
   const renderChangeValue = (field: string, value: string) => {
@@ -325,9 +326,10 @@ function TicketTimeline({ timeline, loading, showType, onShowTypeChange }: Ticke
           value={showType}
           onChange={(value) => onShowTypeChange(value as TimelineShowType)}
           data={[
-            { label: 'All', value: 'both' },
+            { label: 'All', value: 'all' },
             { label: 'Comments', value: 'comment' },
             { label: 'Audit', value: 'audit' },
+            { label: 'Event Participation', value: 'event_participation'}
           ]}
         />
       </Group>
@@ -345,13 +347,10 @@ function TicketTimeline({ timeline, loading, showType, onShowTypeChange }: Ticke
                 <Text size="sm" mb={4}>{entry.message}</Text>
               )}
               {entry.type === "audit" && entry.changes && typeof entry.changes === 'object' && (
-                <Stack gap={2} mb={4}>
-                  {Object.entries(entry.changes).map(([field, [oldVal, newVal]]) => (
-                    <Text key={field} size="sm" c="dimmed">
-                      <Text span fw={500}>{field}:</Text> {renderChangeValue(field, oldVal)} → {renderChangeValue(field, newVal)}
-                    </Text>
-                  ))}
-                </Stack>
+                <AuditLogTimelineItem entry={entry} renderChangeValue={renderChangeValue}/>
+              )}
+              {entry.type === "event_participation" && entry.changes && typeof entry.changes === 'object' && (
+                <AuditLogTimelineItem entry={entry} renderChangeValue={renderChangeValue}/>
               )}
               <Text c="dimmed" size="sm">{entry.actor_display ?? 'System'}</Text>
               <Text size="xs" mt={4}>{formatDate(entry.created_at)}</Text>
@@ -361,6 +360,20 @@ function TicketTimeline({ timeline, loading, showType, onShowTypeChange }: Ticke
       )}
     </Paper>
   );
+}
+
+function AuditLogTimelineItem(
+  {entry, renderChangeValue}: {
+    entry: TimelineEntry,
+    renderChangeValue: (field: string, old: string) => string | JSX.Element
+  }) {
+  return <Stack gap={2} mb={4}>
+    {Object.entries(entry.changes!).map(([field, [oldVal, newVal]]) => (
+      <Text key={field} size="sm" c="dimmed">
+        <Text span fw={500}>{field}:</Text> {renderChangeValue(field, oldVal)} → {renderChangeValue(field, newVal)}
+      </Text>
+    ))}
+  </Stack>;
 }
 
 function Actions({ ticketId }: { ticketId: number }) {

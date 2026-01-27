@@ -10,6 +10,7 @@ from django.http import HttpResponseBadRequest
 from django.db.models import Count, Q, F
 from django.contrib.contenttypes.models import ContentType
 
+from ..events.models import EventParticipation
 from .models import Ticket, TicketStatus, TicketType, TicketComment, TicketAskStatus, TicketAsks
 from .serializers import TicketSerializer, BulkTicketCreateSerializer, TicketClaimSerializer, TicketCommentSerializer, TicketTimelineSerializer, TicketAskSerializer
 
@@ -209,25 +210,32 @@ class TicketViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["get"])
     def timeline(self, request, pk=None):
         ticket = self.get_object()
-        show_type = self.request.query_params.get("show", "both").lower()
+        show_type = self.request.query_params.get("show", "all").lower()
 
-        print("show_type", show_type)
-
-        audit_entries = []
+        ticket_audit_entries = []
         comments = []
+        event_participation_audit_entries = []
 
-        if show_type in ["audit", "both"]:
-            audit_entries = LogEntry.objects.filter(
+        if show_type in ["audit", "all"]:
+            ticket_audit_entries = LogEntry.objects.filter(
                 content_type=ContentType.objects.get_for_model(Ticket),
                 object_pk=ticket.pk,
             )
 
-        if show_type in ["comment", "both"]:
+        if show_type in ["comment", "all"]:
             comments = ticket.comments.all()
+        
+        if show_type in ["event_participation", "all"]:
+            try:
+                event_participation = EventParticipation.objects.get(event=ticket.event, contact=ticket.contact)
+                event_participation_audit_entries = event_participation.history.all()
+            except:
+                print(f"No event participations for {ticket.contact.full_name}", flush=True)
+                pass
 
         combined_entries = []
 
-        for log in audit_entries:
+        for log in ticket_audit_entries:
             combined_entries.append({
                 "type": "audit",
                 "created_at": log.timestamp,
@@ -243,6 +251,15 @@ class TicketViewSet(viewsets.ModelViewSet):
                 "actor_display": comment.author.username if comment.author else None,
                 "actor_id": comment.author.id if comment.author else None,
                 "message": comment.message,
+            })
+        for event_participation in event_participation_audit_entries:
+            print(event_participation, flush=True)
+            combined_entries.append({
+                "type": "event_participation",
+                "created_at": event_participation.timestamp,
+                "actor_display": event_participation.actor.username if event_participation.actor else None,
+                "actor_id": event_participation.actor.id if event_participation.actor else None,
+                "changes": event_participation.changes or log.object_repr,
             })
 
         # Sort newest first
