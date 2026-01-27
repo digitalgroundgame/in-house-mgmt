@@ -2,7 +2,7 @@ from rest_framework.permissions import BasePermission, SAFE_METHODS
 from django.db.models import Q
 
 from dggcrm.tickets.models import TicketStatus
-from dggcrm.events.models import EventStatus
+from dggcrm.events.models import EventStatus, Event
 
 # Filters out contacts a user is not permitted to see
 def get_contact_visibility_filter(user):
@@ -90,7 +90,7 @@ class ContactObjectPermission(BasePermission):
 class CanModifyTagAssignment(BasePermission):
     def has_object_permission(self, request, view, obj):
         user = request.user
-        if not user.is_authenticated:
+        if not user or not user.is_authenticated:
             return False
 
         # Admin bypass
@@ -114,5 +114,6 @@ class CanModifyTagAssignment(BasePermission):
         # Assigned tickets allow updating of tags
         return contact.tickets.filter(
             assigned_to=user,
+            contact=contact,
             ticket_status=TicketStatus.INPROGRESS,
         ).exists()

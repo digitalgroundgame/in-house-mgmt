@@ -5,6 +5,7 @@ from dggcrm.contacts.models import Contact
 from dggcrm.events.models import Event
 
 from .models import Ticket, TicketStatus, TicketComment, TicketType, TicketAsks
+from .permissions import can_assign_ticket, can_change_ticket_status
 
 User = get_user_model()
 
@@ -37,6 +38,8 @@ class TicketSerializer(serializers.ModelSerializer):
         source='get_priority_display',
         read_only=True
     )
+    # Only fields that are editable by the user
+    editable_fields = serializers.SerializerMethodField()
 
     class Meta:
         model = Ticket
@@ -47,6 +50,70 @@ class TicketSerializer(serializers.ModelSerializer):
             'modified_at',
             'reported_by'
         ]
+
+    def update(self, instance, validated_data):
+        request = self.context["request"]
+        user = request.user
+
+        # Field-change detection
+        assigning = "assigned_to" in validated_data and (
+            validated_data["assigned_to"] != instance.assigned_to
+        )
+
+        changing_status = "status" in validated_data and (
+            validated_data["status"] != instance.status
+        )
+
+        # ---- ASSIGN PERMISSION ----
+        if assigning:
+            if not can_assign_ticket(request.user):
+                raise serializers.ValidationError(
+                    {"assigned_to": "You do not have permission to assign tickets."}
+                )
+
+        # ---- CHANGE STATUS PERMISSION ----
+        if changing_status:
+            if not can_change_ticket_status(user, instance):
+                raise serializers.ValidationError(
+                    {"status": "You may only change the status of tickets assigned to you."}
+                )
+
+        return super().update(instance, validated_data)
+
+    def get_editable_fields(self, ticket):
+        request = self.context.get("request")
+        user = request.user if request else None
+
+        if not user or not user.is_authenticated:
+            return []
+
+        fields = set()
+
+        # Base rule: model-level change permission
+        if user.has_perm("tickets.change_ticket"):
+            fields.update({
+                f.name
+                for f in ticket._meta.fields
+                if f.name not in {
+                    "id",
+                    "created_at",
+                    "modified_at",
+                    "reported_by",
+                }
+            })
+
+        # Field-level overrides
+        if not user.has_perm("tickets.assign_ticket"):
+            fields.discard("assigned_to")
+        else:
+            fields.add("assigned_to")
+
+        if not can_change_ticket_status(user, ticket):
+            fields.discard("status")
+        else:
+            fields.add("status")
+
+        return sorted(fields)
 
 
 class TicketClaimSerializer(serializers.Serializer):

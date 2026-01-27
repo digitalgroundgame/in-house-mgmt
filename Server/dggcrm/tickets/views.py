@@ -2,6 +2,7 @@ from rest_framework import viewsets, filters
 from rest_framework.exceptions import APIException
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated, DjangoModelPermissions
 from rest_framework import status
 from auditlog.models import LogEntry    
 
@@ -13,11 +14,22 @@ from django.contrib.contenttypes.models import ContentType
 from ..events.models import EventParticipation
 from .models import Ticket, TicketStatus, TicketType, TicketComment, TicketAskStatus, TicketAsks
 from .serializers import TicketSerializer, BulkTicketCreateSerializer, TicketClaimSerializer, TicketCommentSerializer, TicketTimelineSerializer, TicketAskSerializer
+from .permissions import (
+    get_ticket_visibility_filter,
+    TicketObjectPermission,
+    TicketClaimPermission,
+    CanCommentOnTicketPermission,
+)
 
 # TODO: Handle permissions for views in file
 class TicketViewSet(viewsets.ModelViewSet):
     queryset = Ticket.objects.all().order_by('-created_at')
     serializer_class = TicketSerializer
+    permission_classes = [
+        IsAuthenticated,
+        DjangoModelPermissions,
+        TicketObjectPermission
+    ]
     filter_backends = [filters.OrderingFilter, filters.SearchFilter]
     search_fields = ['id', 'title']
     ordering_fields = ['id', 'title', 'assigned_to', 'priority', 'created_at', 'modified_at', 'ticket_status', 'ticket_type', ]
@@ -59,7 +71,9 @@ class TicketViewSet(viewsets.ModelViewSet):
         if contact_id is not None:
             queryset = queryset.filter(contact=contact_id)
 
-        return queryset
+        return queryset.filter(
+            get_ticket_visibility_filter(self.request.user)
+        ).distinct()
 
     # TODO: Limit this API to organizer role or above
     @action(detail=False, methods=["post"], url_path="bulk", serializer_class=BulkTicketCreateSerializer)
@@ -122,53 +136,65 @@ class TicketViewSet(viewsets.ModelViewSet):
 
         return Response(qs)
 
-
-    @action(detail=True, methods=['post', 'delete'], url_path='claim', serializer_class=TicketClaimSerializer,)
+    @action(
+        detail=True,
+        methods=["post", "delete"],
+        url_path="claim",
+        serializer_class=TicketClaimSerializer,
+        permission_classes=[
+            IsAuthenticated, TicketObjectPermission, TicketClaimPermission
+        ],
+    )
     def claim(self, request, pk=None):
-        # POST will claim the ticket, DELETE will unclaim
         ticket = self.get_object()
+        user = request.user
 
-        if not request.user.is_authenticated:
-            return HttpResponseBadRequest("Error: must be logged in to claim/unclaim ticket")
+        if request.method == "POST":
+            ticket.assigned_to = user
+            ticket.ticket_status = TicketStatus.TODO
+            ticket.save(update_fields=["assigned_to", "ticket_status"])
 
-        if request.method == "DELETE":
-            # Verify that unclaiming is permitted
-            if ticket.assigned_to != request.user:
-                return HttpResponseBadRequest("Error: cannot unclaim ticket you are not assigned to")
-
+        elif request.method == "DELETE":
             ticket.assigned_to = None
-            ticket.save(update_fields=["assigned_to"])
-        elif request.method == "POST":
-            # TODO: limit claiming of already claimed tickets
-            ticket.assigned_to = request.user
-            ticket.save(update_fields=["assigned_to"])
+            ticket.ticket_status = TicketStatus.OPEN
+            ticket.save(update_fields=["assigned_to", "ticket_status"])
 
         serializer = TicketSerializer(ticket, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=['post'], url_path='comment', serializer_class=TicketCommentSerializer)
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="comment",
+        serializer_class=TicketCommentSerializer,
+        permission_classes=[
+            IsAuthenticated, DjangoModelPermissions, TicketObjectPermission, CanCommentOnTicketPermission
+        ],
+    )
     def comment(self, request, pk=None):
-        """
-        POST /tickets/<ticket_id>/comment/
-        Creates a new comment audit log.
-        """
         ticket = self.get_object()
+
+        if not can_comment_on_ticket(request.user, ticket):
+            return HttpResponseBadRequest("Error: cannot comment on this ticket")
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         comment = serializer.save(
             ticket=ticket,
-            author=request.user if request.user.is_authenticated else None,
+            author=request.user,
         )
 
-        return Response(TicketCommentSerializer(comment, context={'request': request}).data, status=status.HTTP_201_CREATED)
-
+        return Response(
+            TicketCommentSerializer(comment, context={"request": request}).data,
+            status=status.HTTP_201_CREATED,
+        )
 
     @action(
         detail=True,
         methods=["get", "patch"],
         url_path=r"asks(?:/(?P<ask_id>[^/.]+))?",
-        serializer_class=TicketAskSerializer,
+        serializer_class=TicketAskSerializer
     )
     def asks(self, request, pk=None, ask_id=None):
         """
@@ -207,7 +233,13 @@ class TicketViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-    @action(detail=True, methods=["get"])
+    @action(
+        detail=True,
+        methods=["get"],
+        permission_classes=[
+            IsAuthenticated, DjangoModelPermissions, TicketObjectPermission,
+        ],
+    )
     def timeline(self, request, pk=None):
         ticket = self.get_object()
         show_type = self.request.query_params.get("show", "all").lower()
@@ -283,16 +315,25 @@ class TicketViewSet(viewsets.ModelViewSet):
         serializer.save(reported_by=user if user and user.is_authenticated else None)
 
 class TicketTypeViewSet(viewsets.ViewSet):
+    permission_classes = [
+        IsAuthenticated,
+    ]
     def list(self, request):
         types = [{'value': t.value, 'label': t.label} for t in TicketType]
         return Response(types)
 
 class TicketAskStatusesViewSet(viewsets.ViewSet):
+    permission_classes = [
+        IsAuthenticated,
+    ]
     def list(self, request):
         types = [{'value': t.value, 'label': t.label} for t in TicketAskStatus]
         return Response(types)
 
 class TicketPrioritiesViewSet(viewsets.ViewSet):
+    permission_classes = [
+        IsAuthenticated,
+    ]
     def list(self, request):
         types = [{'value': t.value, 'label': t.label} for t in Ticket.Priority]
         return Response(types)

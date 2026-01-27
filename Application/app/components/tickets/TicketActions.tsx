@@ -120,6 +120,7 @@ export default function TicketActions({
     }
   }
 
+
   /* =============================
    * Render
    * ============================= */
@@ -145,7 +146,8 @@ export default function TicketActions({
                 label: type.label,
                 raw: type,
               })}
-              disabled={loadingParticipation || !!ticket.assigned_to}
+              // TODO: Check that ticket is assigned to you
+              disabled={loadingParticipation || (ticket.ticket_status !== "IN_PROGRESS")}
             />
           </Tooltip>
         )}
