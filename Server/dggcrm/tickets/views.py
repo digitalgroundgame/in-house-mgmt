@@ -33,10 +33,11 @@ class TicketViewSet(viewsets.ModelViewSet):
         event_id = self.request.query_params.get('event')
         contact_id = self.request.query_params.get('contact')
 
+        exclude_status = self.request.query_params.get('exclude_status')
+
         if ticket_status is not None:
             queryset = queryset.filter(ticket_status=ticket_status)
 
-        exclude_status = self.request.query_params.get('exclude_status')
         if exclude_status is not None:
             queryset = queryset.exclude(ticket_status__in=exclude_status.split(','))
 
