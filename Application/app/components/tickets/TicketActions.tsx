@@ -15,6 +15,7 @@ import { type Event } from '@/app/components/EventTable';
 import { type Contact } from '@/app/components/ContactTable';
 import { SearchSelect, SearchSelectOption } from '@/app/components/SearchSelect';
 import getCookie from '@/app/utils/cookie';
+import { useUser } from '@/app/components/provider/UserContext';
 
 // TODO: Move to another file
 export interface EventParticipation {
@@ -40,20 +41,11 @@ export default function TicketActions({
   event,
   contact,
 }: TicketActionsProps) {
-  /* -----------------------------
-   * EventParticipation state
-   * ----------------------------- */
   const [participation, setParticipation] =
     useState<SearchSelectOption | null>(null);
-
-  /* -----------------------------
-   * TicketAsk state
-   * ----------------------------- */
   const [loadingParticipation, setLoadingParticipation] = useState(false);
+  const { user } = useUser();
 
-  /* =============================
-   * Load EventParticipation
-   * ============================= */
   useEffect(() => {
     if (!event || !contact) return;
 
@@ -146,13 +138,12 @@ export default function TicketActions({
                 label: type.label,
                 raw: type,
               })}
-              // TODO: Check that ticket is assigned to you
-              disabled={loadingParticipation || (ticket.ticket_status !== "IN_PROGRESS")}
+              disabled={
+                loadingParticipation || (user && ticket.assigned_to !== user.id) || (ticket.ticket_status !== "IN_PROGRESS")
+              }
             />
           </Tooltip>
         )}
-
-
       </Stack>
     </Paper>
   );

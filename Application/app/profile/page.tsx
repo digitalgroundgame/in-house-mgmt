@@ -16,48 +16,27 @@ import {
 import { useEffect, useState } from "react";
 import getCookie from '@/app/utils/cookie'
 import { loginWithProvider } from '@/app/utils/oauth';
-
-type User = {
-  username: string;
-  email: string;
-  first_name?: string;
-  last_name?: string;
-  groups?: string[];
-  email_addresses?: {
-    email: string;
-    primary: boolean;
-    verified: boolean;
-  }[];
-  socialaccounts?: {
-    provider: string;
-    uid: string;
-  }[];
-};
+import { useUser } from '@/app/components/provider/UserContext';
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading, refresh } = useUser();
   const [error, setError] = useState<string | null>(null);
 
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
 
   useEffect(() => {
-    fetch("/api/auth/user", { credentials: "include" })
-      .then((res) => res.json())
-      .then((data) => {
-        setUser(data);
-        setFirstName(data.first_name || "");
-        setLastName(data.last_name || "");
-      })
-      .catch(() => setError("Failed to load profile"))
-      .finally(() => setLoading(false));
-  }, []);
+    if (user) {
+      setFirstName(user.first_name || '');
+      setLastName(user.last_name || '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const updateProfile = async () => {
     setError(null);
     const res = await fetch("/api/auth/user", {
-      method: "PUT",
+      method: "PATCH",
       headers: {
         "Content-Type": "application/json",
         "X-CSRFToken": getCookie('csrftoken'),
@@ -66,6 +45,8 @@ export default function ProfilePage() {
       body: JSON.stringify({ first_name: firstName, last_name: lastName }),
     });
     if (!res.ok) setError("Failed to update profile");
+
+    refresh()
   };
 
   return (
@@ -87,7 +68,12 @@ export default function ProfilePage() {
           value={lastName}
           onChange={(e) => setLastName(e.currentTarget.value)}
         />
-        <Button onClick={updateProfile}>Save profile</Button>
+        <Button
+          onClick={updateProfile}
+          disabled={!user || firstName === user.first_name && lastName === user.last_name}
+        >
+          Save profile
+        </Button>
 
         {/* Emails */}
         <Divider label="Emails" />

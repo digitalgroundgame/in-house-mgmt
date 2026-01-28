@@ -4,6 +4,7 @@ import '@mantine/charts/styles.css';
 import '@mantine/dates/styles.css';
 import { Geist, Geist_Mono } from "next/font/google";
 import NavbarSimple from './components/Navbar/Navbar';
+import { UserProvider } from './components/provider/UserContext';
 import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from '@mantine/core';
 import { theme } from './lib/theme';
 
@@ -29,19 +30,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" {...mantineHtmlProps}>
-          <head>
-            <ColorSchemeScript />
-          </head>
+      <head>
+        <ColorSchemeScript />
+      </head>
 
-          <body>
-            <MantineProvider theme={theme}>
+      <body>
+        <UserProvider>
+          <MantineProvider theme={theme}>
             <div style={{ display: 'flex' }}>
               <NavbarSimple />
               <main style={{ flex: 1, padding: '20px' }}>
                 {children}
               </main>
             </div>
-        </MantineProvider>
+          </MantineProvider>
+        </UserProvider>
       </body>
 
     </html>

@@ -25,7 +25,7 @@ export default function TicketInfoPage() {
 
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
   const [timelineLoading, setTimelineLoading] = useState(false);
-  const [showType, setShowType] = useState<TimelineShowType>("all");
+  const [showType, setShowType] = useState<TimelineShowType>("comment");
 
   useEffect(() => {
     if (!id) return;

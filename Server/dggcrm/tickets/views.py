@@ -337,3 +337,8 @@ class TicketPrioritiesViewSet(viewsets.ViewSet):
     def list(self, request):
         types = [{'value': t.value, 'label': t.label} for t in Ticket.Priority]
         return Response(types)
+
+class TicketStatusesViewSet(viewsets.ViewSet):
+    def list(self, request):
+        types = [{'value': t.value, 'label': t.label} for t in TicketStatus]
+        return Response(types)
