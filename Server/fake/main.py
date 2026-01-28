@@ -16,7 +16,6 @@ def get_db_conn(dsn: str):
     raise ValueError(f"Unsupported DB scheme: {parsed.scheme}")
 
 def generate_ticket_description(fake):
-    ticket_number = random.randint(100, 999)
     title = " ".join(fake.words(2)).title()
     inline_code = "`send message`"
     block_code = f"""```\n{' '.join(fake.words(8))}\n{' '.join(fake.words(3))}\n```"""
@@ -27,7 +26,7 @@ def generate_ticket_description(fake):
     )
     
     markdown = f"""
-# Ticket #{ticket_number}: {title}
+# {title}
 
 This is a fake ticket
 
@@ -192,11 +191,15 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=15, num_tickets=30
             num_tickets_for_type = random.randint(0, 3)
             for _ in range(num_tickets_for_type):
                 name = fake.catch_phrase()
-                description = fake.text(max_nb_chars=200)
+                description = generate_ticket_description(fake)
                 event = random.choice(event_ids + [None])
-                ticket_status = random.choice(['OPEN','TODO','IN_PROGRESS','BLOCKED','COMPLETED','CANCELED'])
                 priority = random.choice([i for i in range(6)])
-                assigned_to = random.choice(user_ids + [None])
+                # 50% chance unassigned
+                assigned_to = random.choice(user_ids + [None]*len(user_ids))
+                if assigned_to == None:
+                    ticket_status = "OPEN"
+                else:
+                    ticket_status = random.choice(['TODO','IN_PROGRESS','BLOCKED','COMPLETED','CANCELED'])
                 reported_by = random.choice(user_ids) if len(user_ids) > 0 else None
                 created_at = fake.date_time_between(start_date='-1y', end_date='now')
                 modified_at = created_at + timedelta(days=random.randint(0,5))

@@ -87,12 +87,10 @@ def completed_participation(db, completed_event, contact):
 
 @pytest.fixture
 def assigned_scheduled_event(regular_user, scheduled_event):
-    a = UsersInEvent.objects.create(
+    return UsersInEvent.objects.create(
         user=regular_user,
         event=scheduled_event,
     )
-    print(a.event, a.event.users)
-    return a
 
 
 @pytest.fixture

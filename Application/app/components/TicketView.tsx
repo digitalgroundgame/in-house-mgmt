@@ -45,6 +45,11 @@ export default function TicketView({ ticket, timeline, timelineLoading, showType
           const contactRes = await fetch(`/api/contacts/${ticket.contact}`);
           if (contactRes.ok) {
             setContact(await contactRes.json());
+          } else if (contactRes.status === 404) {
+            setContact({
+              id: ticket.contact,
+              name: "UNKNOWN",
+            });
           }
         }
 
@@ -52,6 +57,11 @@ export default function TicketView({ ticket, timeline, timelineLoading, showType
           const eventRes = await fetch(`/api/events/${ticket.event}`);
           if (eventRes.ok) {
             setEvent(await eventRes.json());
+          } else if (eventRes.status === 404) {
+            setEvent({
+              id: ticket.event,
+              name: "UNKNOWN",
+            })
           }
         }
       } catch (err) {

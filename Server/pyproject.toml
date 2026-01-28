@@ -12,3 +12,4 @@ addopts = "-p no:asyncio"
 [tool.taskipy.tasks]
 test = "python -m pytest"
 test_v = "python -m pytest -v"
+cov = "pytest --cov=dggcrm --cov-report=html"

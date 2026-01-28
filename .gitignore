@@ -16,3 +16,7 @@ node_modules/
 
 # Local environment overrides
 .envs/.dev/local/
+
+# Test Coverage
+.coverage
+htmlcov/ 

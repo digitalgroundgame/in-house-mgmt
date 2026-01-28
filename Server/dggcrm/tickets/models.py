@@ -105,6 +105,15 @@ class Ticket(models.Model):
 
     class Meta:
         db_table = 'tickets'
+        permissions = [
+            ("view_all_tickets", "Can view any ticket"),
+            ("view_tickets_via_event", "Can view any ticket associated to an event"),
+            ("claim_ticket", "Can claim an open ticket"),
+            ("unclaim_ticket", "Can unclaim a ticket"),
+            ("assign_ticket", "Can assign a ticket to any user"),
+            ("change_status", "Can update ticket status"),
+            ("change_all_statuses", "Can update any ticket's status"),
+        ]
 
     def __str__(self):
         return f"{self.id} ({self.get_ticket_status_display()})"
@@ -134,6 +143,9 @@ class TicketComment(models.Model):
     class Meta:
         db_table = 'ticket_comments'
         ordering = ["created_at"]
+        permissions = [
+            ("add_any_comment", "Can comment on any ticket"),
+        ]
 
     def __str__(self):
         return f"Comment on {self.ticket_id}"
