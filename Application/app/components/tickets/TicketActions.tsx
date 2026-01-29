@@ -15,6 +15,7 @@ import { type Event } from '@/app/components/EventTable';
 import { type Contact } from '@/app/components/ContactTable';
 import { SearchSelect, SearchSelectOption } from '@/app/components/SearchSelect';
 import getCookie from '@/app/utils/cookie';
+import { useUser } from '@/app/components/provider/UserContext';
 
 // TODO: Move to another file
 export interface EventParticipation {
@@ -40,24 +41,11 @@ export default function TicketActions({
   event,
   contact,
 }: TicketActionsProps) {
-  /* -----------------------------
-   * EventParticipation state
-   * ----------------------------- */
   const [participation, setParticipation] =
     useState<SearchSelectOption | null>(null);
-
-  /* -----------------------------
-   * TicketAsk state
-   * ----------------------------- */
-  const [asks, setAsks] = useState<TicketAsk[]>([]);
-  const [loadingAsks, setLoadingAsks] = useState(false);
-  const [updatingAskId, setUpdatingAskId] = useState<number | null>(null);
-
   const [loadingParticipation, setLoadingParticipation] = useState(false);
+  const { user } = useUser();
 
-  /* =============================
-   * Load EventParticipation
-   * ============================= */
   useEffect(() => {
     if (!event || !contact) return;
 
@@ -124,66 +112,6 @@ export default function TicketActions({
     }
   }
 
-  /* =============================
-   * Load TicketAsks
-   * ============================= */
-  useEffect(() => {
-    async function fetchAsks() {
-      setLoadingAsks(true);
-      try {
-        const res = await fetch(`/api/tickets/${ticket.id}/asks/`);
-        if (!res.ok) throw new Error('Failed to load ticket asks');
-
-        const data = await res.json();
-        setAsks(data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoadingAsks(false);
-      }
-    }
-
-    fetchAsks();
-  }, [ticket.id]);
-
-  /* =============================
-   * Update TicketAsk status
-   * ============================= */
-  async function updateAskStatus(
-    askId: number,
-    option: SearchSelectOption<TicketAskStatus> | null
-  ) {
-    if (!option?.raw?.value) return;
-
-    setUpdatingAskId(askId);
-    try {
-      const res = await fetch(
-        `/api/tickets/${ticket.id}/asks/${askId}/`,
-        {
-          method: 'PATCH',
-          headers: {
-            'X-CSRFToken': getCookie('csrftoken')!,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            status: option.raw.value,
-          }),
-        }
-      );
-
-      if (!res.ok) throw new Error('Failed to update ask');
-
-      const updated = await res.json();
-      setAsks((prev) =>
-        prev.map((a) => (a.id === askId ? updated : a))
-      );
-    } catch (err) {
-      console.error(err);
-      alert('Error updating action status');
-    } finally {
-      setUpdatingAskId(null);
-    }
-  }
 
   /* =============================
    * Render
@@ -210,39 +138,12 @@ export default function TicketActions({
                 label: type.label,
                 raw: type,
               })}
-              disabled={loadingParticipation || !!ticket.assigned_to}
+              disabled={
+                loadingParticipation || (user && ticket.assigned_to !== user.id) || (ticket.ticket_status !== "IN_PROGRESS")
+              }
             />
           </Tooltip>
         )}
-
-        {/* -------------------------
-         * Ticket Asks
-         * ------------------------- */}
-        {loadingAsks && <Loader size="sm" />}
-
-        {!loadingAsks &&
-          asks.map((ask) => (
-            <Group key={ask.id} align="flex-end">
-              <SearchSelect<TicketAskStatus>
-                endpoint="/api/ticket-ask-statuses"
-                label={`Action ${ask.id} (WIP name)`}
-                placeholder="Select status"
-                limit={10}
-                value={{
-                  id: ask.status,
-                  label: ask.status,
-                  raw: { value: ask.status, label: ask.status },
-                }}
-                onChange={(opt) => updateAskStatus(ask.id, opt)}
-                mapResult={(status) => ({
-                  id: status.value,
-                  label: status.label,
-                  raw: status,
-                })}
-                disabled={updatingAskId === ask.id}
-              />
-            </Group>
-          ))}
       </Stack>
     </Paper>
   );

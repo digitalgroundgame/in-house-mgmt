@@ -7,7 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  frontend:
+    name: Frontend Tests
     runs-on: ubuntu-latest
 
     defaults:
@@ -34,5 +35,48 @@ jobs:
       - name: Run tests
         run: npm run test:run
 
-      - name: Verify test infrastructure
-        run: echo "Test infrastructure installed successfully"
+  backend:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./Server
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+          cache-dependency-path: './Server/requirements.txt'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
+          DJANGO_SETTINGS_MODULE: config.settings
+          SECRET_KEY: test-secret-key-for-ci
+        run: python -m pytest -v

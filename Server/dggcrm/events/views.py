@@ -155,11 +155,26 @@ class EventParticipationViewSet(viewsets.ModelViewSet):
                 status=rest_status.HTTP_400_BAD_REQUEST,
             )
 
-        participation, created = EventParticipation.objects.update_or_create(
-            event_id=event_id,
-            contact_id=contact_id,
-            defaults={"status": status_value},
+        # Try to fetch existing participation
+        participation = (
+            EventParticipation.objects
+            .filter(event_id=event_id, contact_id=contact_id)
+            .first()
         )
+
+        if participation:
+            self.check_object_permissions(request, participation)
+
+            participation.status = status_value
+            participation.save()
+            created = False
+        else:
+            participation = EventParticipation.objects.create(
+                event_id=event_id,
+                contact_id=contact_id,
+                status=status_value,
+            )
+            created = True
 
         serializer = self.get_serializer(participation)
 

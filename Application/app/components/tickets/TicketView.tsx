@@ -1,21 +1,24 @@
 'use client'
 import Link from 'next/link';
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, JSX } from "react"
 import { Grid, Stack, Group, Title, Button, Paper, Box, Badge, Divider, Text, Timeline, Container, SegmentedControl, Loader, Center } from "@mantine/core"
 import { useRouter } from "next/navigation"
 import { getStatusColor, getPriorityColor } from "./TicketTable"
 import TicketDescription from "./TicketDescription";
 import { Ticket } from "./ticket-utils"
 import ContactSearch, { Contact } from "./ContactSearch"
-import { Event } from "./EventTable"
+import { SearchSelect, SearchSelectOption } from '@/app/components/SearchSelect';
+import { EnumSelect, EnumSelectOption } from '@/app/components/EnumSelect';
+import { useUser } from '@/app/components/provider/UserContext';
+import { Event } from "@/app/components/event-utils"
 import getCookie from '@/app/utils/cookie';
 import TicketActions from '@/app/components/tickets/TicketActions';
 
-type TimelineShowType = "both" | "request" | "audit";
+export type TimelineShowType = "all" | "comments" | "audit" | "event_participation";
 
 interface TimelineEntry {
-  type: "audit" | "comment";
+  type: "audit" | "comment" | "event_participation";
   created_at: string;
   actor_display: string | null;
   actor_id: number | null;
@@ -23,6 +26,10 @@ interface TimelineEntry {
   message?: string;
 }
 
+interface TicketStatus {
+  value: string;
+  label: string;
+}
 
 
 interface TicketViewProps {
@@ -45,6 +52,11 @@ export default function TicketView({ ticket, timeline, timelineLoading, showType
           const contactRes = await fetch(`/api/contacts/${ticket.contact}`);
           if (contactRes.ok) {
             setContact(await contactRes.json());
+          } else if (contactRes.status === 404) {
+            setContact({
+              id: ticket.contact,
+              name: "UNKNOWN",
+            });
           }
         }
 
@@ -52,6 +64,11 @@ export default function TicketView({ ticket, timeline, timelineLoading, showType
           const eventRes = await fetch(`/api/events/${ticket.event}`);
           if (eventRes.ok) {
             setEvent(await eventRes.json());
+          } else if (eventRes.status === 404) {
+            setEvent({
+              id: ticket.event,
+              name: "UNKNOWN",
+            })
           }
         }
       } catch (err) {
@@ -131,6 +148,13 @@ function CallInstructionsCard({ticket}: {ticket: Ticket}) {
 function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
   const [loading, setLoading] = useState(false);
   const isClaimed = Boolean(ticket.assigned_to);
+  const { user } = useUser();
+
+  const [ticketStatus, setTicketStatus] = useState<EnumSelectOption>({
+    id: ticket.ticket_status,
+    label: ticket?.status_display,
+    color: getStatusColor(ticket.ticket_status),
+  });
 
   const handleClaimToggle = async () => {
     setLoading(true);
@@ -147,13 +171,38 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
         throw new Error('Failed to update claim status');
       }
 
-      // simplest option: reload page data
       window.location.reload();
     } catch (err) {
       console.error(err);
       alert('Failed to update ticket claim status');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const upsertTicketStatus = async (status) => {
+    console.log("status", status);
+    try {
+      const res = await fetch(`/api/tickets/${ticket.id}`, {
+        method: 'PATCH',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken')!,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ticket_status: status.id,
+        }),
+      });
+      if (res.ok) {
+        setTicketStatus(status)
+      } else {
+        throw new Error('Failed to upsert ticket status');
+      }
+
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      alert('Error upserting ticket status');
     }
   };
 
@@ -175,9 +224,18 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
 
         <Box>
           <Text size="sm" c="dimmed">Status</Text>
-          <Badge variant="filled" color={getStatusColor(ticket.ticket_status)} mt={4}>
-            {ticket.status_display}
-          </Badge>
+          <EnumSelect<TicketStatus>
+            endpoint="/api/ticket-statuses"
+            value={ticketStatus}
+            onChange={upsertTicketStatus}
+            mapResult={(status) => ({
+              id: status.value,
+              label: status.label,
+              hidden: status.value === "OPEN", // HIDE opened option in UI
+              color: getStatusColor(status.value),
+            })}
+            disabled={user && ticket.assigned_to !== user.id}
+          />
         </Box>
 
         <Divider />
@@ -194,7 +252,16 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
         <Box>
           <Text size="sm" c="dimmed">Claimed By</Text>
           {ticket.assigned_to_username ? (
-            <Text size="sm" mt={4}>{ticket.assigned_to_username}</Text>
+            <Text
+              size="sm"
+              mt={4}
+              fw={ticket.assigned_to === user?.id ? 600 : undefined}
+              c={!ticket.assigned_to ? 'dimmed' : undefined}
+            >
+              {ticket.assigned_to_username ??
+                ticket.assigned_to ??
+                'None'}
+            </Text>
           ) : (
             <Text size="sm" c="dimmed" mt={4}>None</Text>
           )}
@@ -303,10 +370,12 @@ function TicketTimeline({ timeline, loading, showType, onShowTypeChange }: Ticke
   };
 
   const getEntryTitle = (entry: TimelineEntry) => {
-    if (entry.type === "audit") {
-      return "Ticket updated";
+    switch (entry.type) {
+      case "audit": return "Ticket updated"
+      case "event_participation": return "Event Participation Changed"
+      case "comment": return `${entry.actor_display} left a comment`
+      default: return `Comment added`
     }
-    return "Comment added";
   };
 
   const renderChangeValue = (field: string, value: string) => {
@@ -325,9 +394,10 @@ function TicketTimeline({ timeline, loading, showType, onShowTypeChange }: Ticke
           value={showType}
           onChange={(value) => onShowTypeChange(value as TimelineShowType)}
           data={[
-            { label: 'All', value: 'both' },
+            { label: 'All', value: 'all' },
             { label: 'Comments', value: 'comment' },
             { label: 'Audit', value: 'audit' },
+            { label: 'Event Participation', value: 'event_participation'}
           ]}
         />
       </Group>
@@ -345,13 +415,10 @@ function TicketTimeline({ timeline, loading, showType, onShowTypeChange }: Ticke
                 <Text size="sm" mb={4}>{entry.message}</Text>
               )}
               {entry.type === "audit" && entry.changes && typeof entry.changes === 'object' && (
-                <Stack gap={2} mb={4}>
-                  {Object.entries(entry.changes).map(([field, [oldVal, newVal]]) => (
-                    <Text key={field} size="sm" c="dimmed">
-                      <Text span fw={500}>{field}:</Text> {renderChangeValue(field, oldVal)} → {renderChangeValue(field, newVal)}
-                    </Text>
-                  ))}
-                </Stack>
+                <AuditLogTimelineItem entry={entry} renderChangeValue={renderChangeValue}/>
+              )}
+              {entry.type === "event_participation" && entry.changes && typeof entry.changes === 'object' && (
+                <AuditLogTimelineItem entry={entry} renderChangeValue={renderChangeValue}/>
               )}
               <Text c="dimmed" size="sm">{entry.actor_display ?? 'System'}</Text>
               <Text size="xs" mt={4}>{formatDate(entry.created_at)}</Text>
@@ -363,37 +430,16 @@ function TicketTimeline({ timeline, loading, showType, onShowTypeChange }: Ticke
   );
 }
 
-function Actions({ ticketId }: { ticketId: number }) {
-  const [askStatuses, setAskStatuses] = useState<{ value: string; label: string }[]>([])
-
-  useEffect(() => {
-    fetch(`/api/tickets/get_ask_statuses/`)
-      .then(res => res.json())
-      .then(data => setAskStatuses(data))
-      .catch(console.error)
-  }, [])
-
-  const handleAction = (status: string) => {
-    // TODO: Implement API call to record ask status for ticket
-    console.log(`Recording ask status: ${status} for ticket ${ticketId}`)
-  }
-
-  return <Paper p="md" withBorder>
-    <Title order={5} mb="md">Actions</Title>
-    <Stack gap="xs">
-      {askStatuses
-        .filter(s => s.value !== 'UNKNOWN')
-        .map(status => (
-          <Button
-            key={status.value}
-            fullWidth
-            variant="light"
-            color="gray"
-            onClick={() => handleAction(status.value)}
-          >
-            {status.label}
-          </Button>
-        ))}
-    </Stack>
-  </Paper>
+function AuditLogTimelineItem(
+  {entry, renderChangeValue}: {
+    entry: TimelineEntry,
+    renderChangeValue: (field: string, old: string) => string | JSX.Element
+  }) {
+  return <Stack gap={2} mb={4}>
+    {Object.entries(entry.changes!).map(([field, [oldVal, newVal]]) => (
+      <Text key={field} size="sm" c="dimmed">
+        <Text span fw={500}>{field}:</Text> {renderChangeValue(field, oldVal)} → {renderChangeValue(field, newVal)}
+      </Text>
+    ))}
+  </Stack>;
 }

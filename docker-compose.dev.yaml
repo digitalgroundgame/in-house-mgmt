@@ -34,6 +34,7 @@ services:
       - CREATE_SUPER_USER=true
     env_file:
       - ./.envs/.dev/.postgres
+      - ./.envs/.dev/.discord
     ports:
       - '8080:8080'
     command: /start

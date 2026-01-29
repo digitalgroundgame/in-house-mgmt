@@ -10,7 +10,6 @@ import {
   Box,
   ActionIcon,
   Group,
-  ThemeIcon,
 } from '@mantine/core';
 import { IconX, IconCheck, IconSelector } from '@tabler/icons-react';
 import { useDebouncedValue, useClickOutside } from '@mantine/hooks';
@@ -31,6 +30,7 @@ interface SearchSelectProps<T = unknown> {
   onChange: (value: SearchSelectOption<T> | null) => void;
   clearable?: boolean;
   mapResult: (item: T) => SearchSelectOption<T>;
+  disabled?: boolean;
 }
 
 export function SearchSelect<T = unknown>({
@@ -41,6 +41,7 @@ export function SearchSelect<T = unknown>({
   value,
   onChange,
   clearable = false,
+  disabled = false,
   mapResult,
 }: SearchSelectProps<T>) {
   const [query, setQuery] = useState('');
@@ -78,6 +79,7 @@ export function SearchSelect<T = unknown>({
       <TextInput
         label={label}
         placeholder={placeholder}
+        disabled={disabled}
         value={opened ? query : value?.label || query}
         onFocus={() => {
           setOpened(true);
@@ -97,6 +99,9 @@ export function SearchSelect<T = unknown>({
                 size="sm"
                 variant="subtle"
                 onClick={() => {
+                  if (disabled) {
+                    return;
+                  }
                   onChange(null);
                   setQuery('');
                   setOpened(false);
@@ -106,8 +111,13 @@ export function SearchSelect<T = unknown>({
               </ActionIcon>
             ) || (
               <IconSelector stroke={1} onClick={() => {
-                setOpened(true);
-              }} style={{ cursor: "pointer" }}/>
+                  if (disabled) {
+                    return;
+                  }
+                  setOpened(true);
+                }}
+                style={{ cursor: `${disabled ? "not-allowed" : "pointer"}` }}
+              />
             )
           )
         }
@@ -123,6 +133,9 @@ export function SearchSelect<T = unknown>({
                 <UnstyledButton
                   key={option.id}
                   onClick={() => {
+                    if (disabled) {
+                      return;
+                    }
                     onChange(option);
                     setOpened(false);
                     setQuery('');
