@@ -42,26 +42,14 @@ interface Contact {
     tags: Tag[];
 }
 
+const STATUS_KEYS = ['UNKNOWN', 'REJECTED', 'AGREED', 'DELIVERED', 'FAILED', 'GHOSTED'] as const;
+type StatusCounts = Record<typeof STATUS_KEYS[number], number>;
+
 interface AcceptanceRateData {
-    [ticketType: string]: {
-        UNKNOWN: number;
-        REJECTED: number;
-        AGREED: number;
-        DELIVERED: number;
-        FAILED: number;
-        GHOSTED: number;
-    };
+    [ticketType: string]: StatusCounts;
 }
 
-interface ChartData {
-    ticketType: string;
-    UNKNOWN: number;
-    REJECTED: number;
-    AGREED: number;
-    DELIVERED: number;
-    FAILED: number;
-    GHOSTED: number;
-}
+type ChartData = StatusCounts & { ticketType: string };
 
 interface EventData {
     id: number;
@@ -88,6 +76,53 @@ interface FilterState {
 interface StatusOption {
     value: string;
     label: string;
+}
+
+function ContactField({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+    return (
+        <Group gap="sm">
+            {icon}
+            <div>
+                <Text size="xs" c="dimmed" tt="uppercase" fw={600}>{label}</Text>
+                <Text>{value}</Text>
+            </div>
+        </Group>
+    );
+}
+
+function FilterBadgeGroup({ label, options, filter, onToggle }: {
+    label: string;
+    options: StatusOption[];
+    filter: FilterState | null;
+    onToggle: (value: string) => void;
+}) {
+    return (
+        <Stack gap={4}>
+            <Text size="xs" c="dimmed" fw={600}>{label}</Text>
+            <Group gap={4}>
+                {options.map((s) => {
+                    const active = filter?.value === s.value;
+                    const excluding = active && filter?.mode === 'exclude';
+                    return (
+                        <Tooltip
+                            key={s.value}
+                            label={active ? (excluding ? 'Excluding this — click to clear' : 'Filtering by this — click to exclude') : 'Click to filter'}
+                        >
+                            <Badge
+                                size="sm"
+                                variant={active ? (excluding ? 'outline' : 'filled') : 'light'}
+                                color={excluding ? 'red' : 'gray'}
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => onToggle(s.value)}
+                            >
+                                {excluding && '✕ '}{s.label}
+                            </Badge>
+                        </Tooltip>
+                    );
+                })}
+            </Group>
+        </Stack>
+    );
 }
 
 export default function ContactDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -137,12 +172,7 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
 
             const transformed: ChartData[] = Object.entries(data).map(([ticketType, statuses]) => ({
                 ticketType: ticketType.charAt(0) + ticketType.slice(1).toLowerCase(),
-                UNKNOWN: statuses.UNKNOWN,
-                REJECTED: statuses.REJECTED,
-                AGREED: statuses.AGREED,
-                DELIVERED: statuses.DELIVERED,
-                FAILED: statuses.FAILED,
-                GHOSTED: statuses.GHOSTED,
+                ...statuses,
             }));
 
             setChartData(transformed);
@@ -281,43 +311,15 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
                     <Paper withBorder p="lg" radius="md" h="100%">
                         <Title order={4} mb="lg">Contact Information</Title>
                         <Stack gap="md">
-                            <Group gap="sm">
-                                <IconBrandDiscord size={20} style={{ color: '#5865F2' }} />
-                                <div>
-                                    <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Discord ID</Text>
-                                    <Text>{contact?.discord_id || '—'}</Text>
-                                </div>
-                            </Group>
-
-                            <Divider />
-
-                            <Group gap="sm">
-                                <IconMail size={20} style={{ color: 'var(--mantine-color-blue-6)' }} />
-                                <div>
-                                    <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Email</Text>
-                                    <Text>{contact?.email || '—'}</Text>
-                                </div>
-                            </Group>
-
-                            <Divider />
-
-                            <Group gap="sm">
-                                <IconPhone size={20} style={{ color: 'var(--mantine-color-green-6)' }} />
-                                <div>
-                                    <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Phone</Text>
-                                    <Text>{contact?.phone || '—'}</Text>
-                                </div>
-                            </Group>
-
-                            <Divider />
-
-                            <Group gap="sm">
-                                <IconCalendar size={20} style={{ color: 'var(--mantine-color-gray-6)' }} />
-                                <div>
-                                    <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Added</Text>
-                                    <Text>{contact?.created_at ? formatDate(contact.created_at) : '—'}</Text>
-                                </div>
-                            </Group>
+                            {[
+                                { icon: <IconBrandDiscord size={20} style={{ color: '#5865F2' }} />, label: 'Discord ID', value: contact?.discord_id },
+                                { icon: <IconMail size={20} style={{ color: 'var(--mantine-color-blue-6)' }} />, label: 'Email', value: contact?.email },
+                                { icon: <IconPhone size={20} style={{ color: 'var(--mantine-color-green-6)' }} />, label: 'Phone', value: contact?.phone },
+                                { icon: <IconCalendar size={20} style={{ color: 'var(--mantine-color-gray-6)' }} />, label: 'Added', value: contact?.created_at ? formatDate(contact.created_at) : undefined },
+                            ].flatMap((field, i, arr) => [
+                                <ContactField key={field.label} icon={field.icon} label={field.label} value={field.value || '—'} />,
+                                ...(i < arr.length - 1 ? [<Divider key={`d-${i}`} />] : []),
+                            ])}
                         </Stack>
                     </Paper>
                 </Grid.Col>
@@ -381,79 +383,19 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
                                     size="xs"
                                 />
 
-                                <Stack gap={4}>
-                                    <Text size="xs" c="dimmed" fw={600}>Event Status</Text>
-                                    <Group gap={4}>
-                                        {eventStatuses.map((s) => (
-                                            <Tooltip
-                                                key={s.value}
-                                                label={
-                                                    statusFilter?.value === s.value
-                                                        ? statusFilter.mode === 'include'
-                                                            ? 'Filtering by this — click to exclude'
-                                                            : 'Excluding this — click to clear'
-                                                        : 'Click to filter'
-                                                }
-                                            >
-                                                <Badge
-                                                    size="sm"
-                                                    variant={
-                                                        statusFilter?.value === s.value
-                                                            ? statusFilter.mode === 'include' ? 'filled' : 'outline'
-                                                            : 'light'
-                                                    }
-                                                    color={
-                                                        statusFilter?.value === s.value && statusFilter.mode === 'exclude'
-                                                            ? 'red'
-                                                            : 'gray'
-                                                    }
-                                                    style={{ cursor: 'pointer' }}
-                                                    onClick={() => toggleFilter(statusFilter, setStatusFilter, s.value)}
-                                                >
-                                                    {statusFilter?.value === s.value && statusFilter.mode === 'exclude' && '✕ '}
-                                                    {s.label}
-                                                </Badge>
-                                            </Tooltip>
-                                        ))}
-                                    </Group>
-                                </Stack>
+                                <FilterBadgeGroup
+                                    label="Event Status"
+                                    options={eventStatuses}
+                                    filter={statusFilter}
+                                    onToggle={(v) => toggleFilter(statusFilter, setStatusFilter, v)}
+                                />
 
-                                <Stack gap={4}>
-                                    <Text size="xs" c="dimmed" fw={600}>Commitment</Text>
-                                    <Group gap={4}>
-                                        {commitmentStatuses.map((s) => (
-                                            <Tooltip
-                                                key={s.value}
-                                                label={
-                                                    typeFilter?.value === s.value
-                                                        ? typeFilter.mode === 'include'
-                                                            ? 'Filtering by this — click to exclude'
-                                                            : 'Excluding this — click to clear'
-                                                        : 'Click to filter'
-                                                }
-                                            >
-                                                <Badge
-                                                    size="sm"
-                                                    variant={
-                                                        typeFilter?.value === s.value
-                                                            ? typeFilter.mode === 'include' ? 'filled' : 'outline'
-                                                            : 'light'
-                                                    }
-                                                    color={
-                                                        typeFilter?.value === s.value && typeFilter.mode === 'exclude'
-                                                            ? 'red'
-                                                            : 'gray'
-                                                    }
-                                                    style={{ cursor: 'pointer' }}
-                                                    onClick={() => toggleFilter(typeFilter, setTypeFilter, s.value)}
-                                                >
-                                                    {typeFilter?.value === s.value && typeFilter.mode === 'exclude' && '✕ '}
-                                                    {s.label}
-                                                </Badge>
-                                            </Tooltip>
-                                        ))}
-                                    </Group>
-                                </Stack>
+                                <FilterBadgeGroup
+                                    label="Commitment"
+                                    options={commitmentStatuses}
+                                    filter={typeFilter}
+                                    onToggle={(v) => toggleFilter(typeFilter, setTypeFilter, v)}
+                                />
 
                                 <Divider />
 
