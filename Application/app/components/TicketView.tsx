@@ -8,11 +8,14 @@ import { getStatusColor, getPriorityColor } from "./TicketTable"
 import TicketDescription from "./TicketDescription";
 import { Ticket } from "./ticket-utils"
 import ContactSearch, { Contact } from "./ContactSearch"
+import { SearchSelect, SearchSelectOption } from '@/app/components/SearchSelect';
+import { EnumSelect, EnumSelectOption } from '@/app/components/EnumSelect';
+import { useUser } from '@/app/components/provider/UserContext';
 import { Event } from "@/app/components/event-utils"
 import getCookie from '@/app/utils/cookie';
 import TicketActions from '@/app/components/tickets/TicketActions';
 
-export type TimelineShowType = "all" | "request" | "audit" | "event_participation";
+export type TimelineShowType = "all" | "comments" | "audit" | "event_participation";
 
 interface TimelineEntry {
   type: "audit" | "comment" | "event_participation";
@@ -23,6 +26,10 @@ interface TimelineEntry {
   message?: string;
 }
 
+interface TicketStatus {
+  value: string;
+  label: string;
+}
 
 
 interface TicketViewProps {
@@ -141,6 +148,13 @@ function CallInstructionsCard({ticket}: {ticket: Ticket}) {
 function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
   const [loading, setLoading] = useState(false);
   const isClaimed = Boolean(ticket.assigned_to);
+  const { user } = useUser();
+
+  const [ticketStatus, setTicketStatus] = useState<EnumSelectOption>({
+    id: ticket.ticket_status,
+    label: ticket?.status_display,
+    color: getStatusColor(ticket.ticket_status),
+  });
 
   const handleClaimToggle = async () => {
     setLoading(true);
@@ -157,13 +171,38 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
         throw new Error('Failed to update claim status');
       }
 
-      // simplest option: reload page data
       window.location.reload();
     } catch (err) {
       console.error(err);
       alert('Failed to update ticket claim status');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const upsertTicketStatus = async (status) => {
+    console.log("status", status);
+    try {
+      const res = await fetch(`/api/tickets/${ticket.id}`, {
+        method: 'PATCH',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken')!,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ticket_status: status.id,
+        }),
+      });
+      if (res.ok) {
+        setTicketStatus(status)
+      } else {
+        throw new Error('Failed to upsert ticket status');
+      }
+
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      alert('Error upserting ticket status');
     }
   };
 
@@ -185,9 +224,18 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
 
         <Box>
           <Text size="sm" c="dimmed">Status</Text>
-          <Badge variant="filled" color={getStatusColor(ticket.ticket_status)} mt={4}>
-            {ticket.status_display}
-          </Badge>
+          <EnumSelect<TicketStatus>
+            endpoint="/api/ticket-statuses"
+            value={ticketStatus}
+            onChange={upsertTicketStatus}
+            mapResult={(status) => ({
+              id: status.value,
+              label: status.label,
+              hidden: status.value === "OPEN", // HIDE opened option in UI
+              color: getStatusColor(status.value),
+            })}
+            disabled={user && ticket.assigned_to !== user.id}
+          />
         </Box>
 
         <Divider />
@@ -316,7 +364,8 @@ function TicketTimeline({ timeline, loading, showType, onShowTypeChange }: Ticke
     switch (entry.type) {
       case "audit": return "Ticket updated"
       case "event_participation": return "Event Participation Changed"
-      default: return "Commend added"
+      case "comment": return `${entry.actor_display} left a comment`
+      default: return `Comment added`
     }
   };
 
@@ -384,39 +433,4 @@ function AuditLogTimelineItem(
       </Text>
     ))}
   </Stack>;
-}
-
-function Actions({ ticketId }: { ticketId: number }) {
-  const [askStatuses, setAskStatuses] = useState<{ value: string; label: string }[]>([])
-
-  useEffect(() => {
-    fetch(`/api/tickets/get_ask_statuses/`)
-      .then(res => res.json())
-      .then(data => setAskStatuses(data))
-      .catch(console.error)
-  }, [])
-
-  const handleAction = (status: string) => {
-    // TODO: Implement API call to record ask status for ticket
-    console.log(`Recording ask status: ${status} for ticket ${ticketId}`)
-  }
-
-  return <Paper p="md" withBorder>
-    <Title order={5} mb="md">Actions</Title>
-    <Stack gap="xs">
-      {askStatuses
-        .filter(s => s.value !== 'UNKNOWN')
-        .map(status => (
-          <Button
-            key={status.value}
-            fullWidth
-            variant="light"
-            color="gray"
-            onClick={() => handleAction(status.value)}
-          >
-            {status.label}
-          </Button>
-        ))}
-    </Stack>
-  </Paper>
 }

@@ -10,7 +10,6 @@ import {
   Box,
   ActionIcon,
   Group,
-  ThemeIcon,
 } from '@mantine/core';
 import { IconX, IconCheck, IconSelector } from '@tabler/icons-react';
 import { useDebouncedValue, useClickOutside } from '@mantine/hooks';

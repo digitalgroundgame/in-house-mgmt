@@ -74,10 +74,10 @@ export default function LoginPage() {
           )}
 
           <Button fullWidth variant="outline" color="gray" onClick={() => loginWithProvider("google", next)}>
-            Sign in with Google
+            Continue with Google
           </Button>
           <Button fullWidth variant="outline" color="gray" onClick={() => loginWithProvider("discord", next)}>
-            Sign in with Discord
+            Continue with Discord
           </Button>
         </Stack>
       </Paper>
