@@ -32,7 +32,7 @@ class TicketViewSet(viewsets.ModelViewSet):
     ]
     filter_backends = [filters.OrderingFilter, filters.SearchFilter]
     search_fields = ['id', 'title']
-    ordering_fields = ['id', 'title', 'assigned_to', 'priority', 'created_at', 'modified_at', 'ticket_status', 'ticket_type', ]
+    ordering_fields = ['id', 'title', 'assigned_to_id', 'priority', 'created_at', 'modified_at', 'ticket_status', 'ticket_type', ]
     ordering = ['priority', '-created_at']
 
     def get_queryset(self):

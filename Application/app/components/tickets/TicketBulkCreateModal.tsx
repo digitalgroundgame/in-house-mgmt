@@ -11,7 +11,7 @@ import {
 import { useState } from "react";
 import getCookie from '@/app/utils/cookie';
 import { type TicketType } from '@/app/components/ticket-utils';
-import { SearchSelect, SearchSelectOption } from './SearchSelect';
+import { SearchSelect, SearchSelectOption } from '@/app/components/SearchSelect';
 
 interface Event { id: number; name: string }
 interface User { id: number; name: string }

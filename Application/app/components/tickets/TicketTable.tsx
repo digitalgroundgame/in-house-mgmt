@@ -3,6 +3,7 @@
 import { Table, Badge, Stack, Title, LoadingOverlay, Paper, Tooltip, Text } from '@mantine/core';
 import { IconChevronUp, IconChevronDown, IconSelector, IconClock } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@/app/components/provider/UserContext';
 import { Ticket } from './ticket-utils';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -10,7 +11,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 dayjs.extend(relativeTime);
 
 export type SortDirection = 'asc' | 'desc' | null;
-export type SortField = 'id' | 'title' | 'assigned_to' | 'created_at' | null;
+export type SortField = 'id' | 'title' | 'assigned_to_id' | 'created_at' | null;
 
 interface TicketTableProps {
   tickets: Ticket[];
@@ -49,7 +50,9 @@ export default function TicketTable({
   sortDirection = null,
   onSort,
 }: TicketTableProps) {
-  const router = useRouter()
+  const router = useRouter();
+  const { user } = useUser();
+
 
   const handleSort = (field: SortField) => {
     if (!onSort) return;
@@ -111,9 +114,9 @@ export default function TicketTable({
               <Table.Th>Type</Table.Th>
               <Table.Th>Priority</Table.Th>
               <Table.Th>Status</Table.Th>
-              <Table.Th style={sortableHeaderStyle} onClick={() => handleSort('assigned_to')}>
+              <Table.Th style={sortableHeaderStyle} onClick={() => handleSort('assigned_to_id')}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  Assigned {getSortIcon('assigned_to')}
+                  Assigned {getSortIcon('assigned_to_id')}
                 </span>
               </Table.Th>
               <Table.Th style={sortableHeaderStyle} onClick={() => handleSort('created_at')}>
@@ -145,7 +148,18 @@ export default function TicketTable({
                     {ticket.status_display}
                   </Badge>
                 </Table.Td>
-                <Table.Td>{ticket.contact || 'Unassigned'}</Table.Td>
+                <Table.Td>
+                  <Text
+                    size="sm"
+                    mt={4}
+                    fw={ticket.assigned_to === user?.id ? 600 : undefined}
+                    c={!ticket.assigned_to ? 'dimmed' : undefined}
+                  >
+                    {ticket.assigned_to_username ??
+                      ticket.assigned_to ??
+                      'None'}
+                  </Text>
+                </Table.Td>
                 <Table.Td>
                   <Tooltip label={dayjs(ticket.created_at).format('ddd, MMM D, YYYY [at] h:mm A')}>
                     <Text size="sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
