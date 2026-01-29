@@ -18,9 +18,9 @@ import {
 } from '@mantine/core';
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { useState, useEffect } from 'react';
-import TicketTable, { type SortField, type SortDirection } from '@/app/components/TicketTable';
+import TicketTable, { type SortField, type SortDirection } from '@/app/components/tickets/TicketTable';
 import ContactSearch from '@/app/components/ContactSearch';
-import { type Ticket } from '@/app/components/ticket-utils';
+import { type Ticket } from '@/app/components/tickets/ticket-utils';
 
 // TODO: /tickets/123 doesn't work, we should make sure the url reflects the current ticket
 export default function TicketPage() {
@@ -117,9 +117,7 @@ export default function TicketPage() {
       }
 
       const response = await fetch(fetchUrl);
-      console.log('Fetch response:', response);
       const data = await response.json();
-      console.log('Fetched tickets data:', data);
       setTickets(data.results || []);
       setTotalCount(data.count);
       setNextUrl(data.next);

@@ -252,7 +252,16 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
         <Box>
           <Text size="sm" c="dimmed">Claimed By</Text>
           {ticket.assigned_to_username ? (
-            <Text size="sm" mt={4}>{ticket.assigned_to_username}</Text>
+            <Text
+              size="sm"
+              mt={4}
+              fw={ticket.assigned_to === user?.id ? 600 : undefined}
+              c={!ticket.assigned_to ? 'dimmed' : undefined}
+            >
+              {ticket.assigned_to_username ??
+                ticket.assigned_to ??
+                'None'}
+            </Text>
           ) : (
             <Text size="sm" c="dimmed" mt={4}>None</Text>
           )}

@@ -20,7 +20,7 @@ import { IconPlus, IconFileUpload, IconSearch, IconChevronLeft, IconChevronRight
 import { useState, useEffect, Component } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from '@mantine/form';
-import { TicketBulkCreateModal } from '@/app/components/TicketBulkCreateModal';
+import { TicketBulkCreateModal } from '@/app/components/tickets/TicketBulkCreateModal';
 import ContactTable, { type Contact, type Group as ContactGroup, type Tag } from '@/app/components/ContactTable';
 import './page.css';
 

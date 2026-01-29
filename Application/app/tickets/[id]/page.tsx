@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import TicketView from "@/app/components/TicketView";
-import { type Ticket } from "@/app/components/ticket-utils";
+import TicketView, { type TimelineShowType } from "@/app/components/tickets/TicketView";
+import { type Ticket } from "@/app/components/tickets/ticket-utils";
 import { Loader, Center, Text } from "@mantine/core";
-import { type TimelineShowType } from "@/app/components/TicketView"
 
 interface TimelineEntry {
   type: "audit" | "comment";
