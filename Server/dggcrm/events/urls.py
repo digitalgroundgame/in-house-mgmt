@@ -1,5 +1,5 @@
 from rest_framework.routers import DefaultRouter
-from .views import EventViewSet, EventParticipationViewSet, UsersInEventViewSet, CommitmentStatusViewSet
+from .views import EventViewSet, EventParticipationViewSet, UsersInEventViewSet, CommitmentStatusViewSet, EventStatusViewSet
 
 router = DefaultRouter()
 router.register("events", EventViewSet, basename="event")
@@ -12,6 +12,11 @@ router.register(
     "commitment-statuses",
     CommitmentStatusViewSet,
     basename="commitment-statuses",
+)
+router.register(
+    "event-statuses",
+    EventStatusViewSet,
+    basename="event-statuses",
 )
 router.register(
     "assignments",

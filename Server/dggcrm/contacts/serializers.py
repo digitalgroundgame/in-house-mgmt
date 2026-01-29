@@ -1,6 +1,8 @@
 from rest_framework import serializers
 
 from .models import Contact, Tag, TagAssignments
+from ..events.models import EventParticipation
+from ..events.serializers import EventSerializer
 
 
 class ContactSerializer(serializers.ModelSerializer):
@@ -26,6 +28,19 @@ class ContactSerializer(serializers.ModelSerializer):
             }
             for at in assigned_tags
         ]
+
+
+class ContactEventParticipationSerializer(serializers.ModelSerializer):
+    event = EventSerializer(read_only=True)
+    status_display = serializers.CharField(
+        source="get_status_display",
+        read_only=True,
+    )
+
+    class Meta:
+        model = EventParticipation
+        fields = ["id", "event", "status", "status_display", "created_at", "modified_at"]
+        read_only_fields = ["id", "created_at", "modified_at", "status_display"]
 
 
 class TagSerializer(serializers.ModelSerializer):

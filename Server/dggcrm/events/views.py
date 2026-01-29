@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated, DjangoModelPermissions
 from rest_framework.response import Response
 from django.db.models import Count, Q, F
 
-from .models import Event, EventParticipation, UsersInEvent, CommitmentStatus
+from .models import Event, EventParticipation, UsersInEvent, CommitmentStatus, EventStatus
 from .serializers import EventSerializer, EventParticipationSerializer, UsersInEventSerializer
 from .permissions import (
     get_event_visibility_filter,
@@ -186,6 +186,13 @@ class CommitmentStatusViewSet(viewsets.ViewSet):
     def list(self, request):
         types = [{'value': t.value, 'label': t.label} for t in CommitmentStatus]
         return Response(types)
+
+
+# Readonly view set that returns all event statuses
+class EventStatusViewSet(viewsets.ViewSet):
+    def list(self, request):
+        statuses = [{'value': s.value, 'label': s.label} for s in EventStatus]
+        return Response(statuses)
 
 
 class UsersInEventViewSet(viewsets.ModelViewSet):

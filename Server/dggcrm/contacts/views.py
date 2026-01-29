@@ -2,13 +2,15 @@ from rest_framework import viewsets, filters
 from rest_framework.permissions import IsAuthenticated, DjangoModelPermissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q, Count
 
 from .models import Contact, Tag, TagAssignments
 from ..tickets.models import TicketStatus
-from ..events.models import CommitmentStatus
+from ..events.models import CommitmentStatus, EventParticipation
 from .serializers import (
     ContactSerializer,
+    ContactEventParticipationSerializer,
     TagSerializer,
     TagAssignmentSerializer,
 )
@@ -138,6 +140,44 @@ class ContactViewSet(viewsets.ModelViewSet):
             response_data[ticket_type][status] = row["count"]
 
         return Response(response_data)
+
+    @action(detail=True, methods=["get"], url_path="events")
+    def events(self, request, pk=None):
+        contact = self.get_object()
+
+        participations = (
+            EventParticipation.objects
+            .filter(contact=contact)
+            .select_related("event")
+            .order_by("-event__starts_at")
+        )
+
+        search = request.query_params.get("search")
+        status = request.query_params.get("status")
+        type_param = request.query_params.get("type")
+        exclude_status = request.query_params.get("exclude_status")
+        exclude_type = request.query_params.get("exclude_type")
+
+        if search:
+            participations = participations.filter(event__name__icontains=search)
+        if status:
+            participations = participations.filter(event__event_status=status)
+        if type_param:
+            participations = participations.filter(status=type_param)
+        if exclude_status:
+            participations = participations.exclude(event__event_status=exclude_status)
+        if exclude_type:
+            participations = participations.exclude(status=exclude_type)
+
+        paginator = PageNumberPagination()
+        paginator.page_size = 5
+        page = paginator.paginate_queryset(participations, request)
+        if page is not None:
+            serializer = ContactEventParticipationSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
+        serializer = ContactEventParticipationSerializer(participations, many=True)
+        return Response(serializer.data)
 
 
 class TagViewSet(viewsets.ModelViewSet):
