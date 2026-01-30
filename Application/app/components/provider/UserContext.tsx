@@ -7,7 +7,7 @@ import React, {
   useEffect,
   useState,
 } from 'react';
-import getCookie from '@/app/utils/cookie';
+import getCookie, { deleteCookie } from '@/app/utils/cookie';
 
 import type { User } from './types'; // or inline if you prefer
 
@@ -34,8 +34,12 @@ export function UserProvider({
         credentials: "include",
       });
 
-      if (!res.ok) {
+      if (!res.ok && res.status === 403) {
         setUser(null);
+
+        // Delete cookie if not online
+        deleteCookie("csrftoken");
+        deleteCookie("sessionid");
 
         // Only redirect if not already on /login
         if (window.location.pathname !== '/login') {

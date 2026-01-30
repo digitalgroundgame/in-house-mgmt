@@ -15,7 +15,10 @@ node_modules/
 *.db
 
 # Local environment overrides
+.env
+.envs/*
 .envs/.dev/local/
+!.envs/.dev/
 
 # Test Coverage
 .coverage

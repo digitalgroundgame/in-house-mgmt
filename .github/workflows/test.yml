@@ -77,6 +77,6 @@ jobs:
       - name: Run tests
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
-          DJANGO_SETTINGS_MODULE: config.settings
+          DJANGO_SETTINGS_MODULE: config.settings.test
           SECRET_KEY: test-secret-key-for-ci
         run: python -m pytest -v
