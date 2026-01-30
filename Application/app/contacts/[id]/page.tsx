@@ -338,34 +338,7 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
                 </Grid.Col>
 
                 {/* Response Rate Chart */}
-                <Grid.Col span={{ base: 12, md: 6 }}>
-                    <Paper withBorder p="lg" radius="md" h="100%">
-                        <Box pos="relative" style={{ minHeight: 350 }}>
-                            <LoadingOverlay visible={chartLoading} />
-                            <Title order={4} mb="lg">Response Rate by Ticket Type</Title>
-                            {chartData.length === 0 && !chartLoading ? (
-                                <Text c="dimmed" size="sm">No response data available for this contact.</Text>
-                            ) : (
-                                <BarChart
-                                    h={300}
-                                    data={chartData}
-                                    dataKey="ticketType"
-                                    type="stacked"
-                                    withLegend
-                                    legendProps={{ verticalAlign: 'bottom' }}
-                                    series={[
-                                        { name: 'AGREED', label: 'Agreed', color: 'indigo.7' },
-                                        { name: 'DELIVERED', label: 'Delivered', color: 'blue.5' },
-                                        { name: 'UNKNOWN', label: 'Unknown', color: 'gray.5' },
-                                        { name: 'REJECTED', label: 'Rejected', color: 'red.7' },
-                                        { name: 'FAILED', label: 'Failed', color: 'orange.6' },
-                                        { name: 'GHOSTED', label: 'Ghosted', color: 'dark.4' },
-                                    ]}
-                                />
-                            )}
-                        </Box>
-                    </Paper>
-                </Grid.Col>
+                {/* This chart has been depreciated. Remove this after the Ticket Asks*/}
 
                 {/* Event History */}
                 <Grid.Col span={{ base: 12, md: 6 }}>
