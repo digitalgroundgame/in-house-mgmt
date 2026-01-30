@@ -514,13 +514,13 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
                     </Paper>
                 </Grid.Col>
 
-                {/* Ticket History */}
+                {/* Opened Tickets */}
                 <Grid.Col span={{ base: 12, md: 6 }}>
                     <Paper withBorder p="lg" radius="md" h="100%">
                         <Box pos="relative" style={{ minHeight: 350 }}>
                             <LoadingOverlay visible={ticketsLoading} />
                             <Stack gap="sm">
-                                <Title order={4}>Ticket History</Title>
+                                <Title order={4}>Opened Tickets</Title>
 
                                 <FilterBadgeGroup
                                     label="Status"
