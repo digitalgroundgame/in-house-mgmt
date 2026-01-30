@@ -35,6 +35,7 @@ services:
     env_file:
       - ./.envs/.dev/.postgres
       - ./.envs/.dev/.discord
+      - ./.envs/.dev/.django
     ports:
       - '8080:8080'
     command: /start

@@ -1,0 +1,3 @@
+DJANGO_SETTINGS_MODULE=config.settings.local
+ALLOWED_HOSTS=inhouse_suite_server,localhost,127.0.0.1
+SECRET_KEY="django-insecure-nkmx+*_4a=#+1^-pk#9l(q-9&0gz=ex#*5xt4$s0dgki@f68x5"

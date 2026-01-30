@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Paper,
@@ -16,36 +16,24 @@ import {
 } from "@mantine/core";
 import getCookie from '@/app/utils/cookie';
 import { loginWithProvider } from '@/app/utils/oauth';
+import { useUser } from '@/app/components/provider/UserContext';
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const { user, loading } = useUser();
 
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "/";
   const socialError = searchParams.get("social_error");
   const errorEmail = searchParams.get("email");
 
-  const login = async () => {
-    setLoading(true);
-    const res = await fetch("/accounts/login/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": getCookie('csrftoken'),
-      },
-      body: JSON.stringify({ email, password }),
-      credentials: "include",
-    });
-    setLoading(false);
-
-    if (res.ok) {
-      window.location.href = next;
-    } else {
-      alert("Login failed");
+  useEffect(() => {
+    // If we are logged in, redirect to the homepage
+    if (!!user) {
+      window.location.href = "/";
     }
-  };
+  }, [user]);
 
   return (
     <div
