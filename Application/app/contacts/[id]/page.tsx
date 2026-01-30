@@ -68,6 +68,16 @@ interface EventParticipation {
     status_display: string;
 }
 
+interface TicketListItem {
+    id: number;
+    title: string;
+    ticket_status: string;
+    status_display: string;
+    type_display: string;
+    priority_display: string;
+    created_at: string;
+}
+
 interface FilterState {
     value: string;
     mode: 'include' | 'exclude';
@@ -145,10 +155,20 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
     const [eventStatuses, setEventStatuses] = useState<StatusOption[]>([]);
     const [commitmentStatuses, setCommitmentStatuses] = useState<StatusOption[]>([]);
 
+    const [tickets, setTickets] = useState<TicketListItem[]>([]);
+    const [ticketsLoading, setTicketsLoading] = useState(true);
+    const [ticketsNext, setTicketsNext] = useState<string | null>(null);
+    const [ticketsPrevious, setTicketsPrevious] = useState<string | null>(null);
+    const [ticketsCount, setTicketsCount] = useState(0);
+    const [ticketsPage, setTicketsPage] = useState(1);
+    const [ticketStatusFilter, setTicketStatusFilter] = useState<FilterState | null>(null);
+    const [ticketStatuses, setTicketStatuses] = useState<StatusOption[]>([]);
+
     useEffect(() => {
         fetchContactDetails();
         fetchAcceptanceRate();
         fetchStatusOptions();
+        fetchTicketStatuses();
     }, [id]);
 
     const fetchContactDetails = async () => {
@@ -195,6 +215,49 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
             console.error('Error fetching status options:', error);
         }
     };
+
+    const fetchTicketStatuses = async () => {
+        try {
+            const response = await fetch('/api/ticket-statuses/');
+            const data: StatusOption[] = await response.json();
+            setTicketStatuses(data.filter((s) => s.value !== 'CANCELED'));
+        } catch (error) {
+            console.error('Error fetching ticket statuses:', error);
+        }
+    };
+
+    const buildTicketsUrl = useCallback((page?: number) => {
+        const params = new URLSearchParams();
+        params.set('contact', id);
+        if (ticketStatusFilter) {
+            if (ticketStatusFilter.mode === 'include') params.set('status', ticketStatusFilter.value);
+        }
+        if (page && page > 1) params.set('page', String(page));
+        const qs = params.toString();
+        return `/api/tickets/${qs ? `?${qs}` : ''}`;
+    }, [id, ticketStatusFilter]);
+
+    const fetchTickets = useCallback(async (url?: string) => {
+        try {
+            setTicketsLoading(true);
+            const response = await fetch(url || buildTicketsUrl());
+            const data = await response.json();
+            const results: TicketListItem[] = data.results || [];
+            setTickets(results.filter((t) => t.ticket_status !== 'CANCELED'));
+            setTicketsNext(data.next);
+            setTicketsPrevious(data.previous);
+            setTicketsCount(data.count || 0);
+        } catch (error) {
+            console.error('Error fetching tickets:', error);
+        } finally {
+            setTicketsLoading(false);
+        }
+    }, [buildTicketsUrl]);
+
+    useEffect(() => {
+        setTicketsPage(1);
+        fetchTickets(buildTicketsUrl(1));
+    }, [ticketStatusFilter]);
 
     const buildEventsUrl = useCallback((page?: number) => {
         const params = new URLSearchParams();
@@ -248,6 +311,7 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
     };
 
     const totalPages = Math.ceil(eventsCount / 5);
+    const totalTicketPages = Math.ceil(ticketsCount / 5);
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-US', {
@@ -438,6 +502,99 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
                                                 if (eventsNext) {
                                                     setEventsPage((p) => p + 1);
                                                     fetchEvents(eventsNext);
+                                                }
+                                            }}
+                                        >
+                                            <IconChevronRight size={16} />
+                                        </ActionIcon>
+                                    </Group>
+                                )}
+                            </Stack>
+                        </Box>
+                    </Paper>
+                </Grid.Col>
+
+                {/* Ticket History */}
+                <Grid.Col span={{ base: 12, md: 6 }}>
+                    <Paper withBorder p="lg" radius="md" h="100%">
+                        <Box pos="relative" style={{ minHeight: 350 }}>
+                            <LoadingOverlay visible={ticketsLoading} />
+                            <Stack gap="sm">
+                                <Title order={4}>Ticket History</Title>
+
+                                <FilterBadgeGroup
+                                    label="Status"
+                                    options={ticketStatuses}
+                                    filter={ticketStatusFilter}
+                                    onToggle={(v) => toggleFilter(ticketStatusFilter, setTicketStatusFilter, v)}
+                                />
+
+                                <Divider />
+
+                                <ScrollArea h={200}>
+                                    <Stack gap="xs">
+                                        {tickets.length === 0 && !ticketsLoading ? (
+                                            <Text c="dimmed" size="sm" ta="center" py="md">
+                                                No tickets found.
+                                            </Text>
+                                        ) : (
+                                            tickets.map((t) => (
+                                                <Paper
+                                                    key={t.id}
+                                                    withBorder
+                                                    p="xs"
+                                                    radius="sm"
+                                                >
+                                                    <Group justify="space-between" wrap="nowrap">
+                                                        <div style={{ minWidth: 0 }}>
+                                                            <Text size="sm" fw={500} truncate="end">
+                                                                {t.title || 'Untitled Ticket'}
+                                                            </Text>
+                                                            <Text size="xs" c="dimmed">
+                                                                {formatDate(t.created_at)}
+                                                            </Text>
+                                                        </div>
+                                                        <Group gap={4} wrap="nowrap">
+                                                            <Badge size="xs" variant="light">
+                                                                {t.status_display}
+                                                            </Badge>
+                                                            <Badge size="xs" variant="dot">
+                                                                {t.type_display}
+                                                            </Badge>
+                                                        </Group>
+                                                    </Group>
+                                                </Paper>
+                                            ))
+                                        )}
+                                    </Stack>
+                                </ScrollArea>
+
+                                {totalTicketPages > 1 && (
+                                    <Group justify="center" gap="xs">
+                                        <ActionIcon
+                                            variant="subtle"
+                                            size="sm"
+                                            disabled={!ticketsPrevious}
+                                            onClick={() => {
+                                                if (ticketsPrevious) {
+                                                    setTicketsPage((p) => p - 1);
+                                                    fetchTickets(ticketsPrevious);
+                                                }
+                                            }}
+                                        >
+                                            <IconChevronLeft size={16} />
+                                        </ActionIcon>
+                                        <Text size="xs" c="dimmed">
+                                            {ticketsPage} / {totalTicketPages}
+                                        </Text>
+                                        <ActionIcon
+                                            variant="subtle"
+                                            size="sm"
+                                            disabled={!ticketsNext}
+                                            onClick={() => {
+                                                if (ticketsNext) {
+                                                    setTicketsPage((p) => p + 1);
+                                                    fetchTickets(ticketsNext);
                                                 }
                                             }}
                                         >
