@@ -5,8 +5,6 @@ import {
     Text,
     Stack,
     Paper,
-    LoadingOverlay,
-    Box,
     Button,
     Group,
     Grid,
@@ -14,15 +12,12 @@ import {
     Divider,
     SimpleGrid,
     Skeleton,
-    TextInput,
-    ActionIcon,
-    ScrollArea,
-    Tooltip,
 } from "@mantine/core";
-import { BarChart } from '@mantine/charts';
-import { useState, useEffect, use, useCallback } from 'react';
-import { IconArrowLeft, IconMail, IconPhone, IconBrandDiscord, IconCalendar, IconNote, IconSearch, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
+import { useState, useEffect, use } from 'react';
+import { IconArrowLeft, IconMail, IconPhone, IconBrandDiscord, IconCalendar, IconNote } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
+import EventHistory from './EventHistory';
+import OpenedTickets from './OpenedTickets';
 
 interface Tag {
     id: number;
@@ -42,52 +37,6 @@ interface Contact {
     tags: Tag[];
 }
 
-const STATUS_KEYS = ['UNKNOWN', 'REJECTED', 'AGREED', 'DELIVERED', 'FAILED', 'GHOSTED'] as const;
-type StatusCounts = Record<typeof STATUS_KEYS[number], number>;
-
-interface AcceptanceRateData {
-    [ticketType: string]: StatusCounts;
-}
-
-type ChartData = StatusCounts & { ticketType: string };
-
-interface EventData {
-    id: number;
-    name: string;
-    event_status: string;
-    status_display: string;
-    starts_at: string;
-    ends_at: string;
-    location_display: string;
-}
-
-interface EventParticipation {
-    id: number;
-    event: EventData;
-    status: string;
-    status_display: string;
-}
-
-interface TicketListItem {
-    id: number;
-    title: string;
-    ticket_status: string;
-    status_display: string;
-    type_display: string;
-    priority_display: string;
-    created_at: string;
-}
-
-interface FilterState {
-    value: string;
-    mode: 'include' | 'exclude';
-}
-
-interface StatusOption {
-    value: string;
-    label: string;
-}
-
 function ContactField({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
     return (
         <Group gap="sm">
@@ -100,75 +49,22 @@ function ContactField({ icon, label, value }: { icon: React.ReactNode; label: st
     );
 }
 
-function FilterBadgeGroup({ label, options, filter, onToggle }: {
-    label: string;
-    options: StatusOption[];
-    filter: FilterState | null;
-    onToggle: (value: string) => void;
-}) {
-    return (
-        <Stack gap={4}>
-            <Text size="xs" c="dimmed" fw={600}>{label}</Text>
-            <Group gap={4}>
-                {options.map((s) => {
-                    const active = filter?.value === s.value;
-                    const excluding = active && filter?.mode === 'exclude';
-                    return (
-                        <Tooltip
-                            key={s.value}
-                            label={active ? (excluding ? 'Excluding this — click to clear' : 'Filtering by this — click to exclude') : 'Click to filter'}
-                        >
-                            <Badge
-                                size="sm"
-                                variant={active ? (excluding ? 'outline' : 'filled') : 'light'}
-                                color={excluding ? 'red' : 'gray'}
-                                style={{ cursor: 'pointer' }}
-                                onClick={() => onToggle(s.value)}
-                            >
-                                {excluding && '✕ '}{s.label}
-                            </Badge>
-                        </Tooltip>
-                    );
-                })}
-            </Group>
-        </Stack>
-    );
-}
+const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+};
 
 export default function ContactDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
     const { id } = use(params);
     const [contact, setContact] = useState<Contact | null>(null);
-    const [chartData, setChartData] = useState<ChartData[]>([]);
     const [loading, setLoading] = useState(true);
-    const [chartLoading, setChartLoading] = useState(true);
-
-    const [participations, setParticipations] = useState<EventParticipation[]>([]);
-    const [eventsLoading, setEventsLoading] = useState(true);
-    const [eventsNext, setEventsNext] = useState<string | null>(null);
-    const [eventsPrevious, setEventsPrevious] = useState<string | null>(null);
-    const [eventsCount, setEventsCount] = useState(0);
-    const [eventsPage, setEventsPage] = useState(1);
-    const [eventSearch, setEventSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState<FilterState | null>(null);
-    const [typeFilter, setTypeFilter] = useState<FilterState | null>(null);
-    const [eventStatuses, setEventStatuses] = useState<StatusOption[]>([]);
-    const [commitmentStatuses, setCommitmentStatuses] = useState<StatusOption[]>([]);
-
-    const [tickets, setTickets] = useState<TicketListItem[]>([]);
-    const [ticketsLoading, setTicketsLoading] = useState(true);
-    const [ticketsNext, setTicketsNext] = useState<string | null>(null);
-    const [ticketsPrevious, setTicketsPrevious] = useState<string | null>(null);
-    const [ticketsCount, setTicketsCount] = useState(0);
-    const [ticketsPage, setTicketsPage] = useState(1);
-    const [ticketStatusFilter, setTicketStatusFilter] = useState<FilterState | null>(null);
-    const [ticketStatuses, setTicketStatuses] = useState<StatusOption[]>([]);
 
     useEffect(() => {
         fetchContactDetails();
-        fetchAcceptanceRate();
-        fetchStatusOptions();
-        fetchTicketStatuses();
     }, [id]);
 
     const fetchContactDetails = async () => {
@@ -182,143 +78,6 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
         } finally {
             setLoading(false);
         }
-    };
-
-    const fetchAcceptanceRate = async () => {
-        try {
-            setChartLoading(true);
-            const response = await fetch(`/api/contacts/${id}/acceptance-rate/`);
-            const data: AcceptanceRateData = await response.json();
-
-            const transformed: ChartData[] = Object.entries(data).map(([ticketType, statuses]) => ({
-                ticketType: ticketType.charAt(0) + ticketType.slice(1).toLowerCase(),
-                ...statuses,
-            }));
-
-            setChartData(transformed);
-        } catch (error) {
-            console.error('Error fetching acceptance rate:', error);
-        } finally {
-            setChartLoading(false);
-        }
-    };
-
-    const fetchStatusOptions = async () => {
-        try {
-            const [eventRes, commitmentRes] = await Promise.all([
-                fetch('/api/event-statuses/'),
-                fetch('/api/commitment-statuses/'),
-            ]);
-            setEventStatuses(await eventRes.json());
-            setCommitmentStatuses(await commitmentRes.json());
-        } catch (error) {
-            console.error('Error fetching status options:', error);
-        }
-    };
-
-    const fetchTicketStatuses = async () => {
-        try {
-            const response = await fetch('/api/ticket-statuses/');
-            const data: StatusOption[] = await response.json();
-            setTicketStatuses(data.filter((s) => s.value !== 'CANCELED'));
-        } catch (error) {
-            console.error('Error fetching ticket statuses:', error);
-        }
-    };
-
-    const buildTicketsUrl = useCallback((page?: number) => {
-        const params = new URLSearchParams();
-        params.set('contact', id);
-        if (ticketStatusFilter) {
-            if (ticketStatusFilter.mode === 'include') params.set('status', ticketStatusFilter.value);
-        }
-        if (page && page > 1) params.set('page', String(page));
-        const qs = params.toString();
-        return `/api/tickets/${qs ? `?${qs}` : ''}`;
-    }, [id, ticketStatusFilter]);
-
-    const fetchTickets = useCallback(async (url?: string) => {
-        try {
-            setTicketsLoading(true);
-            const response = await fetch(url || buildTicketsUrl());
-            const data = await response.json();
-            const results: TicketListItem[] = data.results || [];
-            setTickets(results.filter((t) => t.ticket_status !== 'CANCELED'));
-            setTicketsNext(data.next);
-            setTicketsPrevious(data.previous);
-            setTicketsCount(data.count || 0);
-        } catch (error) {
-            console.error('Error fetching tickets:', error);
-        } finally {
-            setTicketsLoading(false);
-        }
-    }, [buildTicketsUrl]);
-
-    useEffect(() => {
-        setTicketsPage(1);
-        fetchTickets(buildTicketsUrl(1));
-    }, [ticketStatusFilter]);
-
-    const buildEventsUrl = useCallback((page?: number) => {
-        const params = new URLSearchParams();
-        if (eventSearch) params.set('search', eventSearch);
-        if (statusFilter) {
-            if (statusFilter.mode === 'include') params.set('status', statusFilter.value);
-            else params.set('exclude_status', statusFilter.value);
-        }
-        if (typeFilter) {
-            if (typeFilter.mode === 'include') params.set('type', typeFilter.value);
-            else params.set('exclude_type', typeFilter.value);
-        }
-        if (page && page > 1) params.set('page', String(page));
-        const qs = params.toString();
-        return `/api/contacts/${id}/events/${qs ? `?${qs}` : ''}`;
-    }, [id, eventSearch, statusFilter, typeFilter]);
-
-    const fetchEvents = useCallback(async (url?: string) => {
-        try {
-            setEventsLoading(true);
-            const response = await fetch(url || buildEventsUrl());
-            const data = await response.json();
-            setParticipations(data.results || []);
-            setEventsNext(data.next);
-            setEventsPrevious(data.previous);
-            setEventsCount(data.count || 0);
-        } catch (error) {
-            console.error('Error fetching events:', error);
-        } finally {
-            setEventsLoading(false);
-        }
-    }, [buildEventsUrl]);
-
-    useEffect(() => {
-        setEventsPage(1);
-        fetchEvents(buildEventsUrl(1));
-    }, [eventSearch, statusFilter, typeFilter]);
-
-    const toggleFilter = (
-        current: FilterState | null,
-        setter: (f: FilterState | null) => void,
-        value: string
-    ) => {
-        if (!current || current.value !== value) {
-            setter({ value, mode: 'include' });
-        } else if (current.mode === 'include') {
-            setter({ value, mode: 'exclude' });
-        } else {
-            setter(null);
-        }
-    };
-
-    const totalPages = Math.ceil(eventsCount / 5);
-    const totalTicketPages = Math.ceil(ticketsCount / 5);
-
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
     };
 
     if (loading) {
@@ -404,208 +163,8 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
                 {/* Response Rate Chart */}
                 {/* This chart has been depreciated. Remove this after the Ticket Asks*/}
 
-                {/* Event History */}
-                <Grid.Col span={{ base: 12, md: 6 }}>
-                    <Paper withBorder p="lg" radius="md" h="100%">
-                        <Box pos="relative" style={{ minHeight: 350 }}>
-                            <LoadingOverlay visible={eventsLoading} />
-                            <Stack gap="sm">
-                                <Title order={4}>Event History</Title>
-
-                                <TextInput
-                                    placeholder="Search events..."
-                                    leftSection={<IconSearch size={16} />}
-                                    value={eventSearch}
-                                    onChange={(e) => setEventSearch(e.currentTarget.value)}
-                                    size="xs"
-                                />
-
-                                <FilterBadgeGroup
-                                    label="Event Status"
-                                    options={eventStatuses}
-                                    filter={statusFilter}
-                                    onToggle={(v) => toggleFilter(statusFilter, setStatusFilter, v)}
-                                />
-
-                                <FilterBadgeGroup
-                                    label="Commitment"
-                                    options={commitmentStatuses}
-                                    filter={typeFilter}
-                                    onToggle={(v) => toggleFilter(typeFilter, setTypeFilter, v)}
-                                />
-
-                                <Divider />
-
-                                <ScrollArea h={200}>
-                                    <Stack gap="xs">
-                                        {participations.length === 0 && !eventsLoading ? (
-                                            <Text c="dimmed" size="sm" ta="center" py="md">
-                                                No events found.
-                                            </Text>
-                                        ) : (
-                                            participations.map((p) => (
-                                                <Paper
-                                                    key={p.id}
-                                                    withBorder
-                                                    p="xs"
-                                                    radius="sm"
-                                                    style={{ cursor: 'pointer' }}
-                                                    onClick={() => router.push(`/events/${p.event.id}`)}
-                                                >
-                                                    <Group justify="space-between" wrap="nowrap">
-                                                        <div style={{ minWidth: 0 }}>
-                                                            <Text size="sm" fw={500} truncate="end">
-                                                                {p.event.name || 'Unnamed Event'}
-                                                            </Text>
-                                                            <Text size="xs" c="dimmed">
-                                                                {formatDate(p.event.starts_at)}
-                                                            </Text>
-                                                        </div>
-                                                        <Group gap={4} wrap="nowrap">
-                                                            <Badge size="xs" variant="light">
-                                                                {p.event.status_display}
-                                                            </Badge>
-                                                            <Badge size="xs" variant="dot">
-                                                                {p.status_display}
-                                                            </Badge>
-                                                        </Group>
-                                                    </Group>
-                                                </Paper>
-                                            ))
-                                        )}
-                                    </Stack>
-                                </ScrollArea>
-
-                                {totalPages > 1 && (
-                                    <Group justify="center" gap="xs">
-                                        <ActionIcon
-                                            variant="subtle"
-                                            size="sm"
-                                            disabled={!eventsPrevious}
-                                            onClick={() => {
-                                                if (eventsPrevious) {
-                                                    setEventsPage((p) => p - 1);
-                                                    fetchEvents(eventsPrevious);
-                                                }
-                                            }}
-                                        >
-                                            <IconChevronLeft size={16} />
-                                        </ActionIcon>
-                                        <Text size="xs" c="dimmed">
-                                            {eventsPage} / {totalPages}
-                                        </Text>
-                                        <ActionIcon
-                                            variant="subtle"
-                                            size="sm"
-                                            disabled={!eventsNext}
-                                            onClick={() => {
-                                                if (eventsNext) {
-                                                    setEventsPage((p) => p + 1);
-                                                    fetchEvents(eventsNext);
-                                                }
-                                            }}
-                                        >
-                                            <IconChevronRight size={16} />
-                                        </ActionIcon>
-                                    </Group>
-                                )}
-                            </Stack>
-                        </Box>
-                    </Paper>
-                </Grid.Col>
-
-                {/* Opened Tickets */}
-                <Grid.Col span={{ base: 12, md: 6 }}>
-                    <Paper withBorder p="lg" radius="md" h="100%">
-                        <Box pos="relative" style={{ minHeight: 350 }}>
-                            <LoadingOverlay visible={ticketsLoading} />
-                            <Stack gap="sm">
-                                <Title order={4}>Opened Tickets</Title>
-
-                                <FilterBadgeGroup
-                                    label="Status"
-                                    options={ticketStatuses}
-                                    filter={ticketStatusFilter}
-                                    onToggle={(v) => toggleFilter(ticketStatusFilter, setTicketStatusFilter, v)}
-                                />
-
-                                <Divider />
-
-                                <ScrollArea h={200}>
-                                    <Stack gap="xs">
-                                        {tickets.length === 0 && !ticketsLoading ? (
-                                            <Text c="dimmed" size="sm" ta="center" py="md">
-                                                No tickets found.
-                                            </Text>
-                                        ) : (
-                                            tickets.map((t) => (
-                                                <Paper
-                                                    key={t.id}
-                                                    withBorder
-                                                    p="xs"
-                                                    radius="sm"
-                                                >
-                                                    <Group justify="space-between" wrap="nowrap">
-                                                        <div style={{ minWidth: 0 }}>
-                                                            <Text size="sm" fw={500} truncate="end">
-                                                                {t.title || 'Untitled Ticket'}
-                                                            </Text>
-                                                            <Text size="xs" c="dimmed">
-                                                                {formatDate(t.created_at)}
-                                                            </Text>
-                                                        </div>
-                                                        <Group gap={4} wrap="nowrap">
-                                                            <Badge size="xs" variant="light">
-                                                                {t.status_display}
-                                                            </Badge>
-                                                            <Badge size="xs" variant="dot">
-                                                                {t.type_display}
-                                                            </Badge>
-                                                        </Group>
-                                                    </Group>
-                                                </Paper>
-                                            ))
-                                        )}
-                                    </Stack>
-                                </ScrollArea>
-
-                                {totalTicketPages > 1 && (
-                                    <Group justify="center" gap="xs">
-                                        <ActionIcon
-                                            variant="subtle"
-                                            size="sm"
-                                            disabled={!ticketsPrevious}
-                                            onClick={() => {
-                                                if (ticketsPrevious) {
-                                                    setTicketsPage((p) => p - 1);
-                                                    fetchTickets(ticketsPrevious);
-                                                }
-                                            }}
-                                        >
-                                            <IconChevronLeft size={16} />
-                                        </ActionIcon>
-                                        <Text size="xs" c="dimmed">
-                                            {ticketsPage} / {totalTicketPages}
-                                        </Text>
-                                        <ActionIcon
-                                            variant="subtle"
-                                            size="sm"
-                                            disabled={!ticketsNext}
-                                            onClick={() => {
-                                                if (ticketsNext) {
-                                                    setTicketsPage((p) => p + 1);
-                                                    fetchTickets(ticketsNext);
-                                                }
-                                            }}
-                                        >
-                                            <IconChevronRight size={16} />
-                                        </ActionIcon>
-                                    </Group>
-                                )}
-                            </Stack>
-                        </Box>
-                    </Paper>
-                </Grid.Col>
+                <EventHistory contactId={id} />
+                <OpenedTickets contactId={id} />
             </Grid>
         </Stack>
     );
