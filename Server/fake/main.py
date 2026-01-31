@@ -6,6 +6,24 @@ import random
 import argparse
 from datetime import datetime, timedelta
 
+# Test Discord users from dev server for sync endpoint testing
+DISCORD_TEST_USERS = [
+    {"discord_id": "135858410104160258", "username": "gioodiazz"},
+    {"discord_id": "178204461750026241", "username": "tummyy"},
+    {"discord_id": "185814933445804032", "username": "lordgator"},
+    {"discord_id": "191600336333438977", "username": "ishewndagoon"},
+    {"discord_id": "207250631948369920", "username": "cuteasf"},
+    {"discord_id": "233680930202451968", "username": "midlaneriven"},
+    {"discord_id": "239236282297876481", "username": "toastybois"},
+    {"discord_id": "328014703987130369", "username": "dirtyweeb"},
+    {"discord_id": "333408871391559702", "username": ".lorddeimos"},
+    {"discord_id": "380042888047755274", "username": "thunder93123"},
+    {"discord_id": "408724060541943808", "username": "elpresidentecam"},
+    {"discord_id": "696062040195989534", "username": "sneakiwi"},
+    {"discord_id": "711022201062555710", "username": "jo2342342"},
+    {"discord_id": "836964327943831552", "username": "jaykilla_lol"},
+]
+
 # --- DB Connection ---
 def get_db_conn(dsn: str):
     parsed = urlparse(dsn)
@@ -77,6 +95,19 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=25, num_tickets=30
     c.execute("SELECT id, name FROM tags")
     tag_map = {row[1]: row[0] for row in c.fetchall()}
 
+    # Create Discord test users first (for sync endpoint testing)
+    discord_test_contact_ids = []
+    for user in DISCORD_TEST_USERS:
+        full_name = user["username"].replace("_", " ").replace(".", "").title()
+        c.execute(
+            "INSERT INTO contacts (full_name, discord_id, email, phone, note, created_at, modified_at) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id",
+            (full_name, user["discord_id"], f"{user['username']}@test.local", "",
+             "Discord test user for sync endpoint testing", datetime.now(), datetime.now())
+        )
+        discord_test_contact_ids.append(c.fetchone()[0])
+    conn.commit()
+
     # Contacts
     contact_ids = []
     for _ in range(num_contacts):
@@ -92,6 +123,9 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=25, num_tickets=30
         )
         contact_ids.append(c.fetchone()[0])
     conn.commit()
+
+    # Combine Discord test contacts with random contacts
+    contact_ids = discord_test_contact_ids + contact_ids
 
     # Tag assignments
     for cid in contact_ids:
@@ -255,8 +289,9 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=25, num_tickets=30
             ticket_ask_count += 1
     conn.commit()
 
-    print(f"Populated {len(contact_ids)} contacts, {len(tags)} tags, {len(event_ids)} events, {len(ticket_ids)} tickets, {ticket_ask_count} ticket asks.")
+    print(f"Populated {len(contact_ids)} contacts ({len(DISCORD_TEST_USERS)} Discord test users), {len(tags)} tags, {len(event_ids)} events, {len(ticket_ids)} tickets, {ticket_ask_count} ticket asks.")
     print(f"  - All contacts have tickets across all types for acceptance_rate demo")
+    print(f"  - Discord test users have real IDs for sync endpoint testing")
 
 
 def parse_args():

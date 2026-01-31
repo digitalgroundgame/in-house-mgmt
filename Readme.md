@@ -60,3 +60,49 @@ docker compose -f docker-compose.dev.yaml run --rm server python manage.py migra
 ```
 
 Before you merge a PR with DB changes, make sure that you combine your migrations into a single file by deleting the new migration files, and recreating them.
+
+## Discord Bot Setup
+
+The application includes a Discord integration for syncing guild membership data. To enable it locally:
+
+### 1. Create a Discord Application & Bot
+
+1. Go to the [Discord Developer Portal](https://discord.com/developers/applications)
+2. Click **"New Application"** → name it → **"Create"**
+3. Go to the **"Bot"** tab in the left sidebar
+4. Click **"Add Bot"** → confirm
+
+### 2. Get Your Bot Token
+
+1. In the **"Bot"** tab, click **"Reset Token"**
+2. Copy the token immediately (you won't see it again)
+
+### 3. Enable Server Members Intent
+
+1. Still in the **"Bot"** tab, scroll to **"Privileged Gateway Intents"**
+2. Enable **"Server Members Intent"** (required for fetching member lists)
+
+### 4. Add the Bot to Your Server
+
+1. Go to **"OAuth2"** → **"URL Generator"**
+2. Select scope: `bot`
+3. No special permissions needed for member listing
+4. Copy the generated URL → open it → select your server → authorize
+
+### 5. Get Your Guild (Server) ID
+
+1. In Discord, go to **User Settings** → **Advanced** → enable **"Developer Mode"**
+2. Right-click your server icon → **"Copy Server ID"**
+
+### 6. Configure Environment Variables
+
+Add to `.envs/.dev/.discord`:
+
+```bash
+DISCORD_BOT_ENABLED=true
+DISCORD_BOT_TOKEN=your-bot-token-here
+DISCORD_GUILD_ID=your-server-id-here
+DISCORD_MEMBERSHIP_TAG=DGG Discord
+```
+
+The bot token authenticates API requests to Discord. The guild ID specifies which server to fetch members from. The membership tag is the name of the tag that will be applied to contacts who are Discord members.

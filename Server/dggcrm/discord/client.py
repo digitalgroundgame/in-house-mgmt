@@ -92,4 +92,5 @@ class DiscordClient:
                 after = data[-1]["user"]["id"]
 
         logger.info(f"Fetched {len(members)} members from guild {self.guild_id}")
+
         return members
