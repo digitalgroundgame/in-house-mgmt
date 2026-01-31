@@ -1,6 +1,6 @@
-import '@testing-library/jest-dom/vitest';
-import { afterEach, vi } from 'vitest';
-import { cleanup } from '@testing-library/react';
+import "@testing-library/jest-dom/vitest";
+import { afterEach, vi } from "vitest";
+import { cleanup } from "@testing-library/react";
 
 // Cleanup after each test
 afterEach(() => {
@@ -8,7 +8,7 @@ afterEach(() => {
 });
 
 // Mock window.matchMedia (required for Mantine components)
-Object.defineProperty(window, 'matchMedia', {
+Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: vi.fn().mockImplementation((query: string) => ({
     matches: false,
@@ -30,13 +30,13 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
 }));
 
 // Mock Next.js router
-vi.mock('next/navigation', () => ({
+vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: vi.fn(),
     replace: vi.fn(),
     prefetch: vi.fn(),
     back: vi.fn(),
   }),
-  usePathname: () => '/home',
+  usePathname: () => "/home",
   useSearchParams: () => new URLSearchParams(),
 }));

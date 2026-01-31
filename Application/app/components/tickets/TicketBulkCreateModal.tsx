@@ -1,20 +1,17 @@
-import {
-  Modal,
-  Select,
-  TextInput,
-  Textarea,
-  Button,
-  Group,
-  Stack,
-  Text,
-} from "@mantine/core";
+import { Modal, Select, TextInput, Textarea, Button, Group, Stack, Text } from "@mantine/core";
 import { useState } from "react";
-import getCookie from '@/app/utils/cookie';
-import { type TicketType } from '@/app/components/ticket-utils';
-import { SearchSelect, SearchSelectOption } from '@/app/components/SearchSelect';
+import getCookie from "@/app/utils/cookie";
+import { type TicketType } from "@/app/components/ticket-utils";
+import { SearchSelect, SearchSelectOption } from "@/app/components/SearchSelect";
 
-interface Event { id: number; name: string }
-interface User { id: number; name: string }
+interface Event {
+  id: number;
+  name: string;
+}
+interface User {
+  id: number;
+  name: string;
+}
 
 interface Props {
   opened: boolean;
@@ -24,12 +21,7 @@ interface Props {
   onSuccess?: () => void;
 }
 
-export function TicketBulkCreateModal({
-  opened,
-  onClose,
-  contactIds,
-  onSuccess,
-}: Props) {
+export function TicketBulkCreateModal({ opened, onClose, contactIds, onSuccess }: Props) {
   const [ticketType, setTicketType] = useState<SearchSelectOption | null>(null);
   const [priority, setPriority] = useState<string | null>(null);
   const [event, setEvent] = useState<SearchSelectOption | null>(null);
@@ -61,7 +53,7 @@ export function TicketBulkCreateModal({
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          "X-CSRFToken": getCookie('csrftoken')!,
+          "X-CSRFToken": getCookie("csrftoken")!,
         },
         body: JSON.stringify(payload),
       });
@@ -134,9 +126,18 @@ export function TicketBulkCreateModal({
 
         {/* Title / Description */}
         <TextInput label="Title" value={title} onChange={(e) => setTitle(e.currentTarget.value)} />
-        <Textarea label="Description" minRows={3} value={description} onChange={(e) => setDescription(e.currentTarget.value)} />
+        <Textarea
+          label="Description"
+          minRows={3}
+          value={description}
+          onChange={(e) => setDescription(e.currentTarget.value)}
+        />
 
-        {error && <Text c="red" size="sm">{error}</Text>}
+        {error && (
+          <Text c="red" size="sm">
+            {error}
+          </Text>
+        )}
 
         {/* Footer */}
         <Group justify="space-between" mt="md">

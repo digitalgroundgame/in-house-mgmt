@@ -1,0 +1,44 @@
+repos:
+  # Python linting and formatting (Server)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.0
+    hooks:
+      - id: ruff
+        name: ruff lint (Python)
+        args: [--fix]
+        files: ^Server/
+      - id: ruff-format
+        name: ruff format (Python)
+        files: ^Server/
+
+  # JavaScript/TypeScript formatting (Application)
+  - repo: local
+    hooks:
+      - id: prettier
+        name: prettier (TypeScript)
+        entry: bash -c 'cd Application && npx prettier --write .'
+        language: system
+        files: ^Application/.*\.(js|jsx|ts|tsx|json|css|md)$
+        pass_filenames: false
+
+  # JavaScript/TypeScript linting (Application)
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint (TypeScript)
+        entry: bash -c 'cd Application && npx eslint --fix --quiet .'
+        language: system
+        files: ^Application/.*\.(js|jsx|ts|tsx)$
+        pass_filenames: false
+
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^Application/node_modules/
+      - id: end-of-file-fixer
+        exclude: ^Application/node_modules/
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=1000']

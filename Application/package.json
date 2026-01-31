@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage"
@@ -22,8 +24,8 @@
     "next": "16.1.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "recharts": "^3.6.0",
     "react-markdown": "^10.1.0",
+    "recharts": "^3.6.0",
     "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
@@ -38,7 +40,9 @@
     "@vitejs/plugin-react": "^5.1.2",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
+    "eslint-config-prettier": "^10.1.8",
     "jsdom": "^27.0.1",
+    "prettier": "^3.8.1",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vite-tsconfig-paths": "^6.0.4",

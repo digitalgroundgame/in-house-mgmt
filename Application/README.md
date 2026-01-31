@@ -20,11 +20,12 @@ npm run test:coverage
 Test files should be placed next to the code they test with a `.test.ts` or `.test.tsx` extension.
 
 For unit tests:
-```typescript
-import { describe, it, expect } from 'vitest';
 
-describe('myFunction', () => {
-  it('returns expected value', () => {
+```typescript
+import { describe, it, expect } from "vitest";
+
+describe("myFunction", () => {
+  it("returns expected value", () => {
     expect(1 + 1).toBe(2);
   });
 });
@@ -33,13 +34,13 @@ describe('myFunction', () => {
 For component tests, use the custom render from `test-utils/render.tsx` which includes MantineProvider:
 
 ```tsx
-import { render, screen } from '../test-utils/render';
-import MyComponent from './MyComponent';
+import { render, screen } from "../test-utils/render";
+import MyComponent from "./MyComponent";
 
-describe('MyComponent', () => {
-  it('renders correctly', () => {
+describe("MyComponent", () => {
+  it("renders correctly", () => {
     render(<MyComponent />);
-    expect(screen.getByText('Hello')).toBeInTheDocument();
+    expect(screen.getByText("Hello")).toBeInTheDocument();
   });
 });
 ```

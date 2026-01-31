@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   TextInput,
@@ -10,10 +10,10 @@ import {
   Box,
   ActionIcon,
   Group,
-} from '@mantine/core';
-import { IconX, IconCheck, IconSelector } from '@tabler/icons-react';
-import { useDebouncedValue, useClickOutside } from '@mantine/hooks';
-import { useCallback, useEffect, useState } from 'react';
+} from "@mantine/core";
+import { IconX, IconCheck, IconSelector } from "@tabler/icons-react";
+import { useDebouncedValue, useClickOutside } from "@mantine/hooks";
+import { useCallback, useEffect, useState } from "react";
 
 export interface SearchSelectOption<T = unknown> {
   id: number | string;
@@ -36,7 +36,7 @@ interface SearchSelectProps<T = unknown> {
 export function SearchSelect<T = unknown>({
   endpoint,
   label,
-  placeholder = 'Search…',
+  placeholder = "Search…",
   limit = 5,
   value,
   onChange,
@@ -44,7 +44,7 @@ export function SearchSelect<T = unknown>({
   disabled = false,
   mapResult,
 }: SearchSelectProps<T>) {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [debounced] = useDebouncedValue(query, 300);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<SearchSelectOption<T>[]>([]);
@@ -52,23 +52,26 @@ export function SearchSelect<T = unknown>({
 
   const ref = useClickOutside(() => setOpened(false));
 
-  const fetchResults = useCallback((search: string) => {
-    setLoading(true);
+  const fetchResults = useCallback(
+    (search: string) => {
+      setLoading(true);
 
-    fetch(`${endpoint}?search=${encodeURIComponent(search)}&page_size=${limit}`)
-      .then((r) => r.json())
-      .then((data) => {
-        // normalize paginated vs array
-        const items: T[] = Array.isArray(data)
-          ? data
-          : Array.isArray(data.results)
-          ? data.results
-          : [];
+      fetch(`${endpoint}?search=${encodeURIComponent(search)}&page_size=${limit}`)
+        .then((r) => r.json())
+        .then((data) => {
+          // normalize paginated vs array
+          const items: T[] = Array.isArray(data)
+            ? data
+            : Array.isArray(data.results)
+              ? data.results
+              : [];
 
-        setResults(items.slice(0, limit).map(mapResult));
-      })
-      .finally(() => setLoading(false));
-  }, [endpoint, limit, mapResult]);
+          setResults(items.slice(0, limit).map(mapResult));
+        })
+        .finally(() => setLoading(false));
+    },
+    [endpoint, limit, mapResult]
+  );
 
   useEffect(() => {
     if (opened) fetchResults(debounced); // eslint-disable-line react-hooks/set-state-in-effect
@@ -83,7 +86,7 @@ export function SearchSelect<T = unknown>({
         value={opened ? query : value?.label || query}
         onFocus={() => {
           setOpened(true);
-          fetchResults('');
+          fetchResults("");
         }}
         onChange={(e) => {
           setQuery(e.currentTarget.value);
@@ -93,8 +96,7 @@ export function SearchSelect<T = unknown>({
           loading ? (
             <Loader size="xs" />
           ) : (
-            (
-              value && clearable) && (
+            (value && clearable && (
               <ActionIcon
                 size="sm"
                 variant="subtle"
@@ -103,14 +105,16 @@ export function SearchSelect<T = unknown>({
                     return;
                   }
                   onChange(null);
-                  setQuery('');
+                  setQuery("");
                   setOpened(false);
                 }}
               >
                 <IconX size={14} />
               </ActionIcon>
-            ) || (
-              <IconSelector stroke={1} onClick={() => {
+            )) || (
+              <IconSelector
+                stroke={1}
+                onClick={() => {
                   if (disabled) {
                     return;
                   }
@@ -138,13 +142,11 @@ export function SearchSelect<T = unknown>({
                     }
                     onChange(option);
                     setOpened(false);
-                    setQuery('');
+                    setQuery("");
                   }}
                 >
                   <Group gap="xs">
-                    {selected && (
-                    <IconCheck stroke={1}/>
-                    )}
+                    {selected && <IconCheck stroke={1} />}
                     <Text size="sm" fw={selected ? 700 : 400}>
                       {option.label}
                     </Text>

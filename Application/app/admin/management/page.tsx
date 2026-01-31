@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   Container,
@@ -13,16 +13,25 @@ import {
   Text,
   Divider,
   Collapse,
-  ActionIcon
-} from '@mantine/core';
-import { IconPlus, IconBuilding, IconUserCog, IconSettings, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
-import { useState, useEffect } from 'react';
-import { useForm } from '@mantine/form';
-import OrganizationsTable, { type Organization } from '@/app/components/OrganizationsTable';
-import OrganizationMembersTable, { type GroupMember } from '@/app/components/OrganizationMembersTable';
-import RolesTable, { type ContactWithRole } from '@/app/components/RolesTable';
-import PlaceholderSection from '@/app/components/PlaceholderSection';
-import { useAdminHandlers } from './handlers';
+  ActionIcon,
+} from "@mantine/core";
+import {
+  IconPlus,
+  IconBuilding,
+  IconUserCog,
+  IconSettings,
+  IconChevronDown,
+  IconChevronUp,
+} from "@tabler/icons-react";
+import { useState, useEffect } from "react";
+import { useForm } from "@mantine/form";
+import OrganizationsTable, { type Organization } from "@/app/components/OrganizationsTable";
+import OrganizationMembersTable, {
+  type GroupMember,
+} from "@/app/components/OrganizationMembersTable";
+import RolesTable, { type ContactWithRole } from "@/app/components/RolesTable";
+import PlaceholderSection from "@/app/components/PlaceholderSection";
+import { useAdminHandlers } from "./handlers";
 
 interface Contact {
   id: number;
@@ -75,41 +84,41 @@ export default function ManagementConsole() {
   const itemsPerPage = 20;
 
   // Contact dropdown states
-  const [contactSearchTerm, setContactSearchTerm] = useState('');
+  const [contactSearchTerm, setContactSearchTerm] = useState("");
   const [contactLoading, setContactLoading] = useState(false);
   const [contactPage, setContactPage] = useState(1);
   const [hasMoreContacts, setHasMoreContacts] = useState(true);
 
   // Forms
   const addOrgForm = useForm({
-    initialValues: { name: '' },
-    validate: { name: (value) => (!value ? 'Name is required' : null) }
+    initialValues: { name: "" },
+    validate: { name: (value) => (!value ? "Name is required" : null) },
   });
 
   const addMemberForm = useForm({
-    initialValues: { contact: '', access_level: '1' },
+    initialValues: { contact: "", access_level: "1" },
     validate: {
-      contact: (value) => (!value ? 'Contact is required' : null),
-      access_level: (value) => (!value ? 'Access level is required' : null)
-    }
+      contact: (value) => (!value ? "Contact is required" : null),
+      access_level: (value) => (!value ? "Access level is required" : null),
+    },
   });
 
   const editMemberForm = useForm({
-    initialValues: { access_level: '1' },
-    validate: { access_level: (value) => (!value ? 'Access level is required' : null) }
+    initialValues: { access_level: "1" },
+    validate: { access_level: (value) => (!value ? "Access level is required" : null) },
   });
 
   const assignRoleForm = useForm({
-    initialValues: { contact: '', access_level: '1' },
+    initialValues: { contact: "", access_level: "1" },
     validate: {
-      contact: (value) => (!value ? 'Contact is required' : null),
-      access_level: (value) => (!value ? 'Access level is required' : null)
-    }
+      contact: (value) => (!value ? "Contact is required" : null),
+      access_level: (value) => (!value ? "Access level is required" : null),
+    },
   });
 
   const editRoleForm = useForm({
-    initialValues: { access_level: '1' },
-    validate: { access_level: (value) => (!value ? 'Access level is required' : null) }
+    initialValues: { access_level: "1" },
+    validate: { access_level: (value) => (!value ? "Access level is required" : null) },
   });
 
   // Fetch data on mount and when pagination changes
@@ -135,13 +144,12 @@ export default function ManagementConsole() {
 
   // ===== Data Fetching Functions =====
 
-
   const fetchOrganizations = async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
         page: orgCurrentPage.toString(),
-        page_size: itemsPerPage.toString()
+        page_size: itemsPerPage.toString(),
       });
 
       const response = await fetch(`/api/groups/with-counts/?${params}`);
@@ -156,8 +164,8 @@ export default function ManagementConsole() {
         setOrgTotalPages(1);
       }
     } catch (error) {
-      console.error('Error fetching organizations:', error);
-      alert('Failed to fetch organizations');
+      console.error("Error fetching organizations:", error);
+      alert("Failed to fetch organizations");
     } finally {
       setLoading(false);
     }
@@ -170,8 +178,8 @@ export default function ManagementConsole() {
       const data = await response.json();
       setSelectedOrgMembers(data);
     } catch (error) {
-      console.error('Error fetching members:', error);
-      alert('Failed to fetch organization members');
+      console.error("Error fetching members:", error);
+      alert("Failed to fetch organization members");
     } finally {
       setOrgDetailsLoading(false);
     }
@@ -182,12 +190,12 @@ export default function ManagementConsole() {
     try {
       const params = new URLSearchParams({
         page: roleCurrentPage.toString(),
-        page_size: itemsPerPage.toString()
+        page_size: itemsPerPage.toString(),
       });
 
       const [contactsRes, rolesRes] = await Promise.all([
         fetch(`/api/contacts/?${params}`),
-        fetch('/api/general-roles/?page_size=1000') // Fetch all roles to match with current page of contacts
+        fetch("/api/general-roles/?page_size=1000"), // Fetch all roles to match with current page of contacts
       ]);
 
       const contactsData = await contactsRes.json();
@@ -203,26 +211,26 @@ export default function ManagementConsole() {
           discord_id: contact.discord_id,
           full_name: contact.full_name,
           access_level: role?.access_level ?? null,
-          role_id: role?.id
+          role_id: role?.id,
         };
       });
 
       setContacts(contactsWithRoles);
       setRoleTotalPages(contactsData.total_pages || 1);
     } catch (error) {
-      console.error('Error fetching contacts with roles:', error);
-      alert('Failed to fetch roles');
+      console.error("Error fetching contacts with roles:", error);
+      alert("Failed to fetch roles");
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchAllContacts = async (searchTerm: string = '', page: number = 1) => {
+  const fetchAllContacts = async (searchTerm: string = "", page: number = 1) => {
     setContactLoading(true);
     try {
       const params = new URLSearchParams({
         q: searchTerm,
-        page: page.toString()
+        page: page.toString(),
       });
 
       const response = await fetch(`/api/contacts/?${params}`);
@@ -230,18 +238,20 @@ export default function ManagementConsole() {
 
       const results = data.results || [];
 
-      {/* If it's the first page or a new search, replace the list
-      // Otherwise, append to existing list for "load more" functionality */}
+      {
+        /* If it's the first page or a new search, replace the list
+      // Otherwise, append to existing list for "load more" functionality */
+      }
       if (page === 1) {
         setAllContacts(results);
       } else {
-        setAllContacts(prev => [...prev, ...results]);
+        setAllContacts((prev) => [...prev, ...results]);
       }
 
       // Check if there are more pages available
       setHasMoreContacts(!!data.next);
     } catch (error) {
-      console.error('Error fetching contacts:', error);
+      console.error("Error fetching contacts:", error);
       setAllContacts([]);
     } finally {
       setContactLoading(false);
@@ -297,46 +307,46 @@ export default function ManagementConsole() {
 
   const handleOrgPageChange = (page: number) => {
     setOrgCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleRolePageChange = (page: number) => {
     setRoleCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   // ===== Dropdown Options =====
 
   const contactOptions = allContacts.map((c) => ({
     value: c.discord_id,
-    label: `${c.full_name} (${c.discord_id})`
+    label: `${c.full_name} (${c.discord_id})`,
   }));
 
   const accessLevelOptions = [
-    { value: '1', label: 'View' },
-    { value: '2', label: 'Edit' }
+    { value: "1", label: "View" },
+    { value: "2", label: "Edit" },
   ];
 
   const globalAccessLevelOptions = [
-    { value: '0', label: 'Needs Approval' },
-    { value: '1', label: 'Organizer' },
-    { value: '2', label: 'Admin' }
+    { value: "0", label: "Needs Approval" },
+    { value: "1", label: "Organizer" },
+    { value: "2", label: "Admin" },
   ];
 
   // ===== Placeholder Data =====
 
   const callTypes = [
-    { value: 'asset', label: 'Asset' },
-    { value: 'sof_dev', label: 'Software Development' },
-    { value: 'ally-reach', label: 'Ally Reach' }
+    { value: "asset", label: "Asset" },
+    { value: "sof_dev", label: "Software Development" },
+    { value: "ally-reach", label: "Ally Reach" },
   ];
 
   const callStatuses = [
-    { value: '0', label: 'Open' },
-    { value: '1', label: 'To Do' },
-    { value: '2', label: 'In Progress' },
-    { value: '3', label: 'Blocked' },
-    { value: '4', label: 'Completed' }
+    { value: "0", label: "Open" },
+    { value: "1", label: "To Do" },
+    { value: "2", label: "In Progress" },
+    { value: "3", label: "Blocked" },
+    { value: "4", label: "Completed" },
   ];
 
   return (
@@ -356,7 +366,11 @@ export default function ManagementConsole() {
         <Paper p="lg" withBorder>
           <Stack gap="md">
             <Group justify="space-between">
-              <Group gap="xs" style={{ cursor: 'pointer' }} onClick={() => setOrgSectionOpen(!orgSectionOpen)}>
+              <Group
+                gap="xs"
+                style={{ cursor: "pointer" }}
+                onClick={() => setOrgSectionOpen(!orgSectionOpen)}
+              >
                 <IconBuilding size={24} />
                 <Title order={3}>Organization Management</Title>
 
@@ -366,22 +380,16 @@ export default function ManagementConsole() {
               </Group>
 
               <Group gap="sm">
-                <Button
-                  leftSection={<IconPlus size={16} />}
-                  onClick={handleAddOrganization}
-                >
+                <Button leftSection={<IconPlus size={16} />} onClick={handleAddOrganization}>
                   Add Organization
                 </Button>
               </Group>
-
             </Group>
 
-
-
             <Collapse in={orgSectionOpen}>
-            <Text size="sm" c="dimmed" style={{marginTop: '-10px'}}>
-              Press a group to modify who has access to it.
-            </Text>
+              <Text size="sm" c="dimmed" style={{ marginTop: "-10px" }}>
+                Press a group to modify who has access to it.
+              </Text>
 
               <OrganizationsTable
                 organizations={organizations}
@@ -401,7 +409,11 @@ export default function ManagementConsole() {
         <Paper p="lg" withBorder>
           <Stack gap="md">
             <Group justify="space-between">
-              <Group gap="xs" style={{ cursor: 'pointer' }} onClick={() => setRoleSectionOpen(!roleSectionOpen)}>
+              <Group
+                gap="xs"
+                style={{ cursor: "pointer" }}
+                onClick={() => setRoleSectionOpen(!roleSectionOpen)}
+              >
                 <IconUserCog size={24} />
                 <Title order={3}>Role Management</Title>
                 <ActionIcon variant="subtle" size="lg">
@@ -429,7 +441,11 @@ export default function ManagementConsole() {
         {/* Section 3: Call Types & Statuses (Placeholder) */}
         <Paper p="lg" withBorder>
           <Stack gap="md">
-            <Group gap="xs" style={{ cursor: 'pointer' }} onClick={() => setConfigSectionOpen(!configSectionOpen)}>
+            <Group
+              gap="xs"
+              style={{ cursor: "pointer" }}
+              onClick={() => setConfigSectionOpen(!configSectionOpen)}
+            >
               <IconSettings size={24} />
               <Title order={3}>System Configuration</Title>
               <ActionIcon variant="subtle" size="lg">
@@ -439,7 +455,8 @@ export default function ManagementConsole() {
 
             <Collapse in={configSectionOpen}>
               <Text size="sm" c="dimmed">
-                The following settings are currently hardcoded and require further development to become configurable.
+                The following settings are currently hardcoded and require further development to
+                become configurable.
               </Text>
 
               <Stack gap="lg" mt="md">
@@ -466,7 +483,7 @@ export default function ManagementConsole() {
               label="Organization Name"
               placeholder="Enter organization name"
               required
-              {...addOrgForm.getInputProps('name')}
+              {...addOrgForm.getInputProps("name")}
             />
             <Group justify="flex-end" mt="md">
               <Button variant="outline" onClick={() => setAddOrgOpen(false)}>
@@ -484,13 +501,13 @@ export default function ManagementConsole() {
       <Modal
         opened={orgDetailsOpen}
         onClose={() => setOrgDetailsOpen(false)}
-        title={selectedOrg?.name || 'Organization Details'}
+        title={selectedOrg?.name || "Organization Details"}
         size="lg"
       >
         <Stack gap="md">
           <OrganizationMembersTable
             members={selectedOrgMembers}
-            organizationName={selectedOrg?.name || ''}
+            organizationName={selectedOrg?.name || ""}
             loading={orgDetailsLoading}
             onAddMember={handleAddMember}
             onEditMember={handleEditMember}
@@ -500,11 +517,7 @@ export default function ManagementConsole() {
           <Divider />
 
           <Group justify="flex-end">
-            <Button
-              variant="outline"
-              color="red"
-              onClick={() => setDeleteOrgOpen(true)}
-            >
+            <Button variant="outline" color="red" onClick={() => setDeleteOrgOpen(true)}>
               Delete Organization
             </Button>
           </Group>
@@ -516,7 +529,7 @@ export default function ManagementConsole() {
         opened={addMemberOpen}
         onClose={() => {
           setAddMemberOpen(false);
-          setContactSearchTerm(''); // Reset search on close
+          setContactSearchTerm(""); // Reset search on close
           setContactPage(1);
         }}
         title="Add Member to Organization"
@@ -536,7 +549,7 @@ export default function ManagementConsole() {
               }}
               searchValue={contactSearchTerm}
               nothingFoundMessage={contactLoading ? "Loading..." : "No contacts found"}
-              {...addMemberForm.getInputProps('contact')}
+              {...addMemberForm.getInputProps("contact")}
             />
             {hasMoreContacts && !contactLoading && (
               <Text size="xs" c="dimmed">
@@ -553,7 +566,7 @@ export default function ManagementConsole() {
               placeholder="Select access level"
               required
               data={accessLevelOptions}
-              {...addMemberForm.getInputProps('access_level')}
+              {...addMemberForm.getInputProps("access_level")}
             />
             <Group justify="flex-end" mt="md">
               <Button variant="outline" onClick={() => setAddMemberOpen(false)}>
@@ -584,7 +597,7 @@ export default function ManagementConsole() {
               placeholder="Select access level"
               required
               data={accessLevelOptions}
-              {...editMemberForm.getInputProps('access_level')}
+              {...editMemberForm.getInputProps("access_level")}
             />
             <Group justify="flex-end" mt="md">
               <Button variant="outline" onClick={() => setEditMemberOpen(false)}>
@@ -610,9 +623,9 @@ export default function ManagementConsole() {
             Are you sure you want to delete <strong>{selectedOrg?.name}</strong>?
           </Text>
           <Text size="sm" c="red">
-            This action will remove all member associations and cascade to{' '}
-            <strong>{selectedOrg?.event_count || 0}</strong> related events.
-            This action cannot be undone.
+            This action will remove all member associations and cascade to{" "}
+            <strong>{selectedOrg?.event_count || 0}</strong> related events. This action cannot be
+            undone.
           </Text>
           <Group justify="flex-end" mt="md">
             <Button variant="outline" onClick={() => setDeleteOrgOpen(false)}>
@@ -642,7 +655,7 @@ export default function ManagementConsole() {
               placeholder="Select access level"
               required
               data={globalAccessLevelOptions}
-              {...assignRoleForm.getInputProps('access_level')}
+              {...assignRoleForm.getInputProps("access_level")}
             />
             <Group justify="flex-end" mt="md">
               <Button variant="outline" onClick={() => setAssignRoleOpen(false)}>
@@ -673,7 +686,7 @@ export default function ManagementConsole() {
               placeholder="Select access level"
               required
               data={globalAccessLevelOptions}
-              {...editRoleForm.getInputProps('access_level')}
+              {...editRoleForm.getInputProps("access_level")}
             />
             <Group justify="flex-end" mt="md">
               <Button variant="outline" onClick={() => setEditRoleOpen(false)}>

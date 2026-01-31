@@ -9,9 +9,9 @@ import {
   ActionIcon,
   Tooltip,
   Pagination,
-  Center
-} from '@mantine/core';
-import { IconTrash } from '@tabler/icons-react';
+  Center,
+} from "@mantine/core";
+import { IconTrash } from "@tabler/icons-react";
 
 export interface Organization {
   gid: number;
@@ -39,10 +39,10 @@ export default function OrganizationsTable({
   showTitle = true,
   currentPage = 1,
   totalPages = 1,
-  onPageChange
+  onPageChange,
 }: OrganizationsTableProps) {
   return (
-    <Paper p="md" withBorder style={{ position: 'relative', minHeight: '400px' }}>
+    <Paper p="md" withBorder style={{ position: "relative", minHeight: "400px" }}>
       <LoadingOverlay visible={loading} />
       <Stack gap="md">
         {showTitle && <Title order={4}>Organizations ({organizations.length})</Title>}
@@ -53,14 +53,14 @@ export default function OrganizationsTable({
               <Table.Th>Name</Table.Th>
               <Table.Th>Members</Table.Th>
               <Table.Th>Events</Table.Th>
-              <Table.Th style={{ width: '50px' }}>Actions</Table.Th>
+              <Table.Th style={{ width: "50px" }}>Actions</Table.Th>
             </Table.Tr>
           </Table.Thead>
 
           <Table.Tbody>
             {organizations.length === 0 ? (
               <Table.Tr>
-                <Table.Td colSpan={4} style={{ textAlign: 'center' }}>
+                <Table.Td colSpan={4} style={{ textAlign: "center" }}>
                   <Text c="dimmed" py="xl">
                     No organizations found. Add one to get started.
                   </Text>
@@ -71,10 +71,12 @@ export default function OrganizationsTable({
                 <Table.Tr
                   key={org.gid}
                   onClick={() => onRowClick?.(org)}
-                  style={{ cursor: onRowClick ? 'pointer' : 'default' }}
+                  style={{ cursor: onRowClick ? "pointer" : "default" }}
                 >
                   <Table.Td>
-                    <Text size="sm" fw={500}>{org.name}</Text>
+                    <Text size="sm" fw={500}>
+                      {org.name}
+                    </Text>
                   </Table.Td>
                   <Table.Td>
                     <Badge variant="light" size="sm" color="blue">
@@ -107,11 +109,7 @@ export default function OrganizationsTable({
         </Table>
         {totalPages > 1 && onPageChange && (
           <Center mt="md">
-            <Pagination
-              value={currentPage}
-              onChange={onPageChange}
-              total={totalPages}
-            />
+            <Pagination value={currentPage} onChange={onPageChange} total={totalPages} />
           </Center>
         )}
       </Stack>

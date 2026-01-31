@@ -1,4 +1,3 @@
-
 export interface Event {
   id: number;
   event_status: string;
@@ -13,12 +12,17 @@ export interface Event {
 }
 
 export function getStatusColor(status: string) {
-  console.log(status)
+  console.log(status);
   switch (status) {
-    case 'Draft': return 'gray';
-    case 'Scheduled': return 'blue';
-    case 'Completed': return 'green';
-    case 'Canceled': return 'red';
-    default: return 'gray';
+    case "Draft":
+      return "gray";
+    case "Scheduled":
+      return "blue";
+    case "Completed":
+      return "green";
+    case "Canceled":
+      return "red";
+    default:
+      return "gray";
   }
 }

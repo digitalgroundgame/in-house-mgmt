@@ -13,6 +13,24 @@ This will build and deploy the frontend, as well as automatically populate the D
 
 Updating docker-compose.dev.yaml to have `RUN_CREATE_DB=0` will skip the test data DB population.
 
+## Pre-commit Hooks (Recommended)
+
+The project uses pre-commit hooks to automatically lint and format code before each commit.
+
+**Setup:**
+
+```bash
+cd Server
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pre-commit install
+```
+
+Once installed, the hooks will run automatically on `git commit`. If the linter fixes any files, the commit will fail so you can review the changes. Simply `git add` the fixed files and commit again.
+
+**Note:** Even without local hooks, the GitHub Actions CI will run linting checks on all PRs and block merging if they fail.
+
 If you run into build issues, you may need to tear down and rebuild the containers:
 
 ```
@@ -60,3 +78,17 @@ docker compose -f docker-compose.dev.yaml run --rm server python manage.py migra
 ```
 
 Before you merge a PR with DB changes, make sure that you combine your migrations into a single file by deleting the new migration files, and recreating them.
+
+## Testing
+
+Run the backend tests using Docker Compose:
+
+```bash
+docker compose -f docker-compose.dev.yaml run --rm server task test
+```
+
+For verbose output:
+
+```bash
+docker compose -f docker-compose.dev.yaml run --rm server task test_v
+```
