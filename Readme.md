@@ -78,3 +78,17 @@ docker compose -f docker-compose.dev.yaml run --rm server python manage.py migra
 ```
 
 Before you merge a PR with DB changes, make sure that you combine your migrations into a single file by deleting the new migration files, and recreating them.
+
+## Testing
+
+Run the backend tests using Docker Compose:
+
+```bash
+docker compose -f docker-compose.dev.yaml run --rm server task test
+```
+
+For verbose output:
+
+```bash
+docker compose -f docker-compose.dev.yaml run --rm server task test_v
+```
