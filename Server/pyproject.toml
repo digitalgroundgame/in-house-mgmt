@@ -40,6 +40,9 @@ select = [
     "C4",     # flake8-comprehensions
     "UP",     # pyupgrade
     "DJ",     # flake8-django
+    "S",      # security (bandit)
+    "T20",    # no print statements
+    "RUF",    # ruff-specific rules
 ]
 ignore = [
     "E501",   # line too long (handled by formatter)
