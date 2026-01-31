@@ -14,9 +14,9 @@ import {
   Divider,
   Alert,
 } from "@mantine/core";
-import getCookie from '@/app/utils/cookie';
-import { loginWithProvider } from '@/app/utils/oauth';
-import { useUser } from '@/app/components/provider/UserContext';
+import getCookie from "@/app/utils/cookie";
+import { loginWithProvider } from "@/app/utils/oauth";
+import { useUser } from "@/app/components/provider/UserContext";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -48,7 +48,9 @@ export default function LoginPage() {
       <Paper shadow="lg" radius="md" p="xl" withBorder style={{ width: 400 }}>
         <LoadingOverlay visible={loading} blur={2} />
         <Stack spacing="md">
-          <Title order={2} align="center">Sign in</Title>
+          <Title order={2} align="center">
+            Sign in
+          </Title>
 
           {socialError && (
             <Alert color="red">
@@ -61,10 +63,20 @@ export default function LoginPage() {
             </Alert>
           )}
 
-          <Button fullWidth variant="outline" color="gray" onClick={() => loginWithProvider("google", next)}>
+          <Button
+            fullWidth
+            variant="outline"
+            color="gray"
+            onClick={() => loginWithProvider("google", next)}
+          >
             Continue with Google
           </Button>
-          <Button fullWidth variant="outline" color="gray" onClick={() => loginWithProvider("discord", next)}>
+          <Button
+            fullWidth
+            variant="outline"
+            color="gray"
+            onClick={() => loginWithProvider("discord", next)}
+          >
             Continue with Discord
           </Button>
         </Stack>

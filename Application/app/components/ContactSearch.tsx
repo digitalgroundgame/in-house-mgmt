@@ -1,18 +1,8 @@
-'use client';
+"use client";
 
-import {
-  Stack,
-  TextInput,
-  Paper,
-  Text,
-  Group,
-  Button,
-  Badge,
-  Box,
-  Divider
-} from '@mantine/core';
-import { useState, useEffect } from 'react';
-import { IconSearch } from '@tabler/icons-react';
+import { Stack, TextInput, Paper, Text, Group, Button, Badge, Box, Divider } from "@mantine/core";
+import { useState, useEffect } from "react";
+import { IconSearch } from "@tabler/icons-react";
 
 // TODO: Move to its own file
 export interface Contact {
@@ -35,7 +25,7 @@ interface ContactSearchProps {
 }
 
 export default function ContactSearch({ reachId }: ContactSearchProps) {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Contact[]>([]);
   const [responses, setResponses] = useState<Map<string, VolunteerResponse>>(new Map());
   const [loading, setLoading] = useState(false);
@@ -57,7 +47,7 @@ export default function ContactSearch({ reachId }: ContactSearchProps) {
       });
       setResponses(responsesMap);
     } catch (error) {
-      console.error('Error fetching responses:', error);
+      console.error("Error fetching responses:", error);
     }
   };
 
@@ -74,7 +64,7 @@ export default function ContactSearch({ reachId }: ContactSearchProps) {
       const data = await response.json();
       setSearchResults(data.results || []);
     } catch (error) {
-      console.error('Error searching contacts:', error);
+      console.error("Error searching contacts:", error);
     } finally {
       setLoading(false);
     }
@@ -86,21 +76,21 @@ export default function ContactSearch({ reachId }: ContactSearchProps) {
     try {
       if (existingResponse && existingResponse.did && existingResponse.rid === reachId) {
         // Update existing response using composite key
-        const response = await fetch('/api/volunteer-responses/update-by-keys/', {
-          method: 'PATCH',
+        const response = await fetch("/api/volunteer-responses/update-by-keys/", {
+          method: "PATCH",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             rid: reachId,
             did: contact.discord_id,
-            response: responseValue
-          })
+            response: responseValue,
+          }),
         });
         const data = await response.json();
 
         if (!response.ok) {
-          console.error('Failed to update response:', data);
+          console.error("Failed to update response:", data);
           alert(`Error updating: ${JSON.stringify(data)}`);
           return;
         }
@@ -114,23 +104,23 @@ export default function ContactSearch({ reachId }: ContactSearchProps) {
         const payload = {
           rid: reachId,
           did: contact.discord_id,
-          response: responseValue
+          response: responseValue,
         };
-        console.log('Creating response with payload:', payload);
+        console.log("Creating response with payload:", payload);
 
-        const response = await fetch('/api/volunteer-responses/', {
-          method: 'POST',
+        const response = await fetch("/api/volunteer-responses/", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
         });
 
         const data = await response.json();
-        console.log('Response status:', response.status, 'Data:', data);
+        console.log("Response status:", response.status, "Data:", data);
 
         if (!response.ok) {
-          console.error('Failed to create response:', data);
+          console.error("Failed to create response:", data);
           alert(`Error: ${JSON.stringify(data)}`);
           return;
         }
@@ -141,7 +131,7 @@ export default function ContactSearch({ reachId }: ContactSearchProps) {
         setResponses(newResponses);
       }
     } catch (error) {
-      console.error('Error setting response:', error);
+      console.error("Error setting response:", error);
     }
   };
 
@@ -160,7 +150,9 @@ export default function ContactSearch({ reachId }: ContactSearchProps) {
   return (
     <Paper p="md" withBorder>
       <Stack gap="md">
-        <Text size="sm" fw={500}>Contact Responses To Reach</Text>
+        <Text size="sm" fw={500}>
+          Contact Responses To Reach
+        </Text>
 
         <TextInput
           placeholder="Search contacts by name, email, or ID..."
@@ -177,7 +169,9 @@ export default function ContactSearch({ reachId }: ContactSearchProps) {
                 <Paper key={contact.discord_id} p="sm" withBorder bg="gray.0">
                   <Group justify="space-between" wrap="nowrap">
                     <Box style={{ flex: 1, minWidth: 0 }}>
-                      <Text size="sm" fw={500} truncate>{contact.full_name}</Text>
+                      <Text size="sm" fw={500} truncate>
+                        {contact.full_name}
+                      </Text>
                       <Text size="xs" c="dimmed" truncate>
                         {contact.email || contact.discord_id}
                       </Text>
@@ -188,7 +182,7 @@ export default function ContactSearch({ reachId }: ContactSearchProps) {
                       <Button
                         size="xs"
                         color="green"
-                        variant={currentResponse?.response === 1 ? 'filled' : 'light'}
+                        variant={currentResponse?.response === 1 ? "filled" : "light"}
                         onClick={() => handleSetResponse(contact, 1)}
                       >
                         Accept
@@ -196,7 +190,7 @@ export default function ContactSearch({ reachId }: ContactSearchProps) {
                       <Button
                         size="xs"
                         color="red"
-                        variant={currentResponse?.response === 0 ? 'filled' : 'light'}
+                        variant={currentResponse?.response === 0 ? "filled" : "light"}
                         onClick={() => handleSetResponse(contact, 0)}
                       >
                         Reject

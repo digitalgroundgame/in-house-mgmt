@@ -1,23 +1,14 @@
-'use client';
+"use client";
 
-import {
-  Box,
-  Paper,
-  Stack,
-  Text,
-  Group,
-  Badge,
-  Loader,
-  ActionIcon,
-} from '@mantine/core';
-import { IconX, IconCheck, IconSelector } from '@tabler/icons-react';
-import { useClickOutside } from '@mantine/hooks';
-import { useCallback, useEffect, useState } from 'react';
+import { Box, Paper, Stack, Text, Group, Badge, Loader, ActionIcon } from "@mantine/core";
+import { IconX, IconCheck, IconSelector } from "@tabler/icons-react";
+import { useClickOutside } from "@mantine/hooks";
+import { useCallback, useEffect, useState } from "react";
 
 export interface EnumSelectOption<T = unknown> {
   id: number | string;
   label: string;
-  raw?: T,
+  raw?: T;
   hidden: boolean;
   color?: string;
 }
@@ -56,8 +47,8 @@ export function EnumSelect<T = unknown>({
         const items: T[] = Array.isArray(data)
           ? data
           : Array.isArray(data.results)
-          ? data.results
-          : [];
+            ? data.results
+            : [];
 
         setOptions(items.map(mapResult));
       })
@@ -88,18 +79,14 @@ export function EnumSelect<T = unknown>({
         radius="sm"
         onClick={() => !disabled && setOpened((o) => !o)}
         style={{
-          cursor: disabled ? 'not-allowed' : 'pointer',
-          userSelect: 'none',
-          backgroundColor: disabled ? 'var(--mantine-color-gray-1)' : undefined,
+          cursor: disabled ? "not-allowed" : "pointer",
+          userSelect: "none",
+          backgroundColor: disabled ? "var(--mantine-color-gray-1)" : undefined,
         }}
       >
         <Group justify="space-between" wrap="nowrap">
-          <Badge
-            variant="filled"
-            mt={1}
-            color={value?.color ?? 'gray'}
-          >
-            {value?.label ?? 'Select'}
+          <Badge variant="filled" mt={1} color={value?.color ?? "gray"}>
+            {value?.label ?? "Select"}
           </Badge>
 
           <Group gap={4}>
@@ -122,15 +109,7 @@ export function EnumSelect<T = unknown>({
 
       {/* DROPDOWN */}
       {opened && (
-        <Paper
-          shadow="sm"
-          withBorder
-          p="xs"
-          mt={6}
-          pos="absolute"
-          w="100%"
-          style={{ zIndex: 10 }}
-        >
+        <Paper shadow="sm" withBorder p="xs" mt={6} pos="absolute" w="100%" style={{ zIndex: 10 }}>
           {loading ? (
             <Loader size="xs" />
           ) : (
@@ -148,15 +127,13 @@ export function EnumSelect<T = unknown>({
                       setOpened(false);
                     }}
                     style={{
-                      cursor: 'pointer',
-                      backgroundColor: selected
-                        ? 'var(--mantine-color-gray-1)'
-                        : undefined,
+                      cursor: "pointer",
+                      backgroundColor: selected ? "var(--mantine-color-gray-1)" : undefined,
                     }}
                   >
                     <Badge
-                      variant={selected ? 'filled' : 'outline'}
-                      color={option.color ?? 'gray'}
+                      variant={selected ? "filled" : "outline"}
+                      color={option.color ?? "gray"}
                       mt={1}
                     >
                       {option.label}

@@ -14,9 +14,9 @@ import {
   Notification,
 } from "@mantine/core";
 import { useState } from "react";
-import getCookie from '@/app/utils/cookie'
-import { loginWithProvider } from '@/app/utils/oauth';
-import { useUser, User } from '@/app/components/provider/UserContext';
+import getCookie from "@/app/utils/cookie";
+import { loginWithProvider } from "@/app/utils/oauth";
+import { useUser, User } from "@/app/components/provider/UserContext";
 
 interface ProfileFormProps {
   user: User;
@@ -25,8 +25,8 @@ interface ProfileFormProps {
 
 function ProfileForm({ user, refresh }: ProfileFormProps) {
   const [error, setError] = useState<string | null>(null);
-  const [firstName, setFirstName] = useState(user.first_name || '');
-  const [lastName, setLastName] = useState(user.last_name || '');
+  const [firstName, setFirstName] = useState(user.first_name || "");
+  const [lastName, setLastName] = useState(user.last_name || "");
 
   const updateProfile = async () => {
     setError(null);
@@ -34,14 +34,14 @@ function ProfileForm({ user, refresh }: ProfileFormProps) {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        "X-CSRFToken": getCookie('csrftoken'),
+        "X-CSRFToken": getCookie("csrftoken"),
       },
       credentials: "include",
       body: JSON.stringify({ first_name: firstName, last_name: lastName }),
     });
     if (!res.ok) setError("Failed to update profile");
 
-    refresh()
+    refresh();
   };
 
   return (
@@ -76,8 +76,16 @@ function ProfileForm({ user, refresh }: ProfileFormProps) {
             <Group key={email.email} position="apart">
               <Text>
                 {email.email}{" "}
-                {email.primary && <Badge color="green" component="span">Primary</Badge>}{" "}
-                {!email.verified && <Badge color="yellow" component="span">Unverified</Badge>}
+                {email.primary && (
+                  <Badge color="green" component="span">
+                    Primary
+                  </Badge>
+                )}{" "}
+                {!email.verified && (
+                  <Badge color="yellow" component="span">
+                    Unverified
+                  </Badge>
+                )}
               </Text>
             </Group>
           ))}
@@ -88,7 +96,7 @@ function ProfileForm({ user, refresh }: ProfileFormProps) {
         <Group gap="xs">
           {user.groups?.length ? (
             user.groups.map((group) => (
-              <Badge key={group} color={group === "ADMIN"? "red": "blue"} variant="light">
+              <Badge key={group} color={group === "ADMIN" ? "red" : "blue"} variant="light">
                 {group}
               </Badge>
             ))
@@ -112,7 +120,7 @@ function ProfileForm({ user, refresh }: ProfileFormProps) {
                 onClick={async () => {
                   const res = await fetch(`/api/auth/social/connections/${acct.provider}/`, {
                     method: "DELETE",
-                    headers: { "X-CSRFToken": getCookie('csrftoken') },
+                    headers: { "X-CSRFToken": getCookie("csrftoken") },
                     credentials: "include",
                   });
                   if (res.ok) window.location.reload();

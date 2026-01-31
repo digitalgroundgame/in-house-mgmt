@@ -1,7 +1,20 @@
-'use client';
+"use client";
 
-import { Table, Badge, Stack, Title, LoadingOverlay, Paper, Group, Text, Pagination, Center, HoverCard, Checkbox } from '@mantine/core';
-import { useState } from 'react';
+import {
+  Table,
+  Badge,
+  Stack,
+  Title,
+  LoadingOverlay,
+  Paper,
+  Group,
+  Text,
+  Pagination,
+  Center,
+  HoverCard,
+  Checkbox,
+} from "@mantine/core";
+import { useState } from "react";
 
 export interface Contact {
   id: number;
@@ -21,7 +34,7 @@ export interface Group {
 export interface Tag {
   id: number;
   name: string;
-  color: string
+  color: string;
 }
 
 interface ContactTableProps {
@@ -96,12 +109,14 @@ function TagWithStats({ tag }: { tag: Tag }) {
   return (
     <HoverCard width={200} shadow="md">
       <HoverCard.Target>
-        <Badge size="sm" color={tag.color} style={{ cursor: 'pointer' }}>
+        <Badge size="sm" color={tag.color} style={{ cursor: "pointer" }}>
           {tag.name}
         </Badge>
       </HoverCard.Target>
       <HoverCard.Dropdown>
-        <Text size="xs" c="dimmed">Acceptance stats not implemented yet</Text>
+        <Text size="xs" c="dimmed">
+          Acceptance stats not implemented yet
+        </Text>
       </HoverCard.Dropdown>
     </HoverCard>
   );
@@ -117,46 +132,42 @@ export default function ContactTable({
   isSelectable = true,
   selectedIds,
   toggleSelect,
-  onPageChange
+  onPageChange,
 }: ContactTableProps) {
   const formatContactInfo = (email: string | null, phone: string | null) => {
     const parts = [];
     if (email) parts.push(email);
     if (phone) parts.push(phone);
-    return parts.length > 0 ? parts.join(' • ') : 'No contact info';
+    return parts.length > 0 ? parts.join(" • ") : "No contact info";
   };
 
   const allOnPageSelected =
-    isSelectable &&
-    contacts.length > 0 &&
-    contacts.every(c => selectedIds?.has(c.id));
+    isSelectable && contacts.length > 0 && contacts.every((c) => selectedIds?.has(c.id));
 
-  const someOnPageSelected =
-    isSelectable &&
-    contacts.some(c => selectedIds?.has(c.id));
+  const someOnPageSelected = isSelectable && contacts.some((c) => selectedIds?.has(c.id));
 
   const toggleSelectAllOnPage = () => {
     if (!toggleSelect || !selectedIds) return;
 
     if (allOnPageSelected) {
-    // DESELECT all rows on this page
-    contacts.forEach(c => {
-      if (selectedIds.has(c.id)) {
-        toggleSelect(c.id);
-      }
-    });
+      // DESELECT all rows on this page
+      contacts.forEach((c) => {
+        if (selectedIds.has(c.id)) {
+          toggleSelect(c.id);
+        }
+      });
     } else {
-    // SELECT all rows on this page
-    contacts.forEach(c => {
-      if (!selectedIds.has(c.id)) {
-        toggleSelect(c.id);
-      }
-    });
+      // SELECT all rows on this page
+      contacts.forEach((c) => {
+        if (!selectedIds.has(c.id)) {
+          toggleSelect(c.id);
+        }
+      });
     }
   };
 
   return (
-    <Paper p="md" withBorder style={{ position: 'relative', minHeight: '400px' }}>
+    <Paper p="md" withBorder style={{ position: "relative", minHeight: "400px" }}>
       <LoadingOverlay visible={loading} />
       <Stack gap="md">
         {showTitle && <Title order={4}>Contacts ({contacts.length})</Title>}
@@ -181,8 +192,10 @@ export default function ContactTable({
           <Table.Tbody>
             {contacts.length === 0 ? (
               <Table.Tr>
-                <Table.Td colSpan={5} style={{ textAlign: 'center' }}>
-                  <Text c="dimmed" py="xl">No contacts found.</Text>
+                <Table.Td colSpan={5} style={{ textAlign: "center" }}>
+                  <Text c="dimmed" py="xl">
+                    No contacts found.
+                  </Text>
                 </Table.Td>
               </Table.Tr>
             ) : (
@@ -192,8 +205,8 @@ export default function ContactTable({
                 return (
                   <Table.Tr
                     key={contact.discord_id}
-                    bg={selected ? 'var(--mantine-color-blue-light)' : undefined}
-                    style={{ cursor: 'pointer' }}
+                    bg={selected ? "var(--mantine-color-blue-light)" : undefined}
+                    style={{ cursor: "pointer" }}
                     onClick={() => {
                       if (isSelectable && toggleSelect && selectedIds?.size) {
                         // If anything is selected, row click toggles selection
@@ -206,23 +219,20 @@ export default function ContactTable({
                   >
                     {isSelectable && (
                       <Table.Td onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          checked={selected}
-                          onChange={() => toggleSelect!(contact.id)}
-                        />
+                        <Checkbox checked={selected} onChange={() => toggleSelect!(contact.id)} />
                       </Table.Td>
                     )}
 
                     <Table.Td>{contact.full_name}</Table.Td>
 
                     <Table.Td>
-                      <Text size="sm" c="dimmed">{contact.discord_id}</Text>
+                      <Text size="sm" c="dimmed">
+                        {contact.discord_id}
+                      </Text>
                     </Table.Td>
 
                     <Table.Td>
-                      <Text size="sm">
-                        {formatContactInfo(contact.email, contact.phone)}
-                      </Text>
+                      <Text size="sm">{formatContactInfo(contact.email, contact.phone)}</Text>
                     </Table.Td>
 
                     <Table.Td>
@@ -238,7 +248,9 @@ export default function ContactTable({
                           )}
                         </Group>
                       ) : (
-                        <Text size="sm" c="dimmed">No tags</Text>
+                        <Text size="sm" c="dimmed">
+                          No tags
+                        </Text>
                       )}
                     </Table.Td>
                   </Table.Tr>
@@ -249,11 +261,7 @@ export default function ContactTable({
         </Table>
         {totalPages > 1 && onPageChange && (
           <Center mt="md">
-            <Pagination
-              value={currentPage}
-              onChange={onPageChange}
-              total={totalPages}
-            />
+            <Pagination value={currentPage} onChange={onPageChange} total={totalPages} />
           </Center>
         )}
       </Stack>

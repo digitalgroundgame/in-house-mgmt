@@ -1,15 +1,9 @@
-'use client';
+"use client";
 
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from 'react';
-import getCookie, { deleteCookie } from '@/app/utils/cookie';
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import getCookie, { deleteCookie } from "@/app/utils/cookie";
 
-import type { User } from './types';
+import type { User } from "./types";
 export type { User };
 
 interface UserContextValue {
@@ -20,18 +14,14 @@ interface UserContextValue {
 
 const UserContext = createContext<UserContextValue | undefined>(undefined);
 
-export function UserProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchUser = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/user', {
+      const res = await fetch("/api/auth/user", {
         credentials: "include",
       });
 
@@ -43,8 +33,8 @@ export function UserProvider({
         deleteCookie("sessionid");
 
         // Only redirect if not already on /login
-        if (window.location.pathname !== '/login') {
-          window.location.replace('/login');
+        if (window.location.pathname !== "/login") {
+          window.location.replace("/login");
         }
         return;
       }
@@ -76,7 +66,7 @@ export function UserProvider({
 export function useUser() {
   const ctx = useContext(UserContext);
   if (!ctx) {
-    throw new Error('useUser must be used inside <UserProvider>');
+    throw new Error("useUser must be used inside <UserProvider>");
   }
   return ctx;
 }

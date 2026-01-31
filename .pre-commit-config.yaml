@@ -11,6 +11,16 @@ repos:
         name: ruff format (Python)
         files: ^Server/
 
+  # JavaScript/TypeScript formatting (Application)
+  - repo: local
+    hooks:
+      - id: prettier
+        name: prettier (TypeScript)
+        entry: bash -c 'cd Application && npx prettier --write .'
+        language: system
+        files: ^Application/.*\.(js|jsx|ts|tsx|json|css|md)$
+        pass_filenames: false
+
   # JavaScript/TypeScript linting (Application)
   - repo: local
     hooks:
