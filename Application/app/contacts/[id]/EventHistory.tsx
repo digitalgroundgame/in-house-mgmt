@@ -178,9 +178,9 @@ export default function EventHistory({ contactId }: { contactId: string }) {
     return (
         <Grid.Col span={{ base: 12, md: 6 }}>
             <Paper withBorder p="lg" radius="md" h="100%">
-                <Box pos="relative" style={{ minHeight: 350 }}>
+                <Box pos="relative" style={{ minHeight: 350, display: 'flex', flexDirection: 'column', height: '100%' }}>
                     <LoadingOverlay visible={eventsLoading} />
-                    <Stack gap="sm">
+                    <Stack gap="sm" style={{ flex: 1 }}>
                         <Title order={4}>Event History</Title>
 
                         <TextInput
@@ -207,7 +207,7 @@ export default function EventHistory({ contactId }: { contactId: string }) {
 
                         <Divider />
 
-                        <ScrollArea h={200}>
+                        <ScrollArea style={{ flex: 1 }}>
                             <Stack gap="xs">
                                 {participations.length === 0 && !eventsLoading ? (
                                     <Text c="dimmed" size="sm" ta="center" py="md">
@@ -246,41 +246,39 @@ export default function EventHistory({ contactId }: { contactId: string }) {
                                 )}
                             </Stack>
                         </ScrollArea>
-
-                        {totalPages > 1 && (
-                            <Group justify="center" gap="xs">
-                                <ActionIcon
-                                    variant="subtle"
-                                    size="sm"
-                                    disabled={!eventsPrevious}
-                                    onClick={() => {
-                                        if (eventsPrevious) {
-                                            setEventsPage((p) => p - 1);
-                                            fetchEvents(eventsPrevious);
-                                        }
-                                    }}
-                                >
-                                    <IconChevronLeft size={16} />
-                                </ActionIcon>
-                                <Text size="xs" c="dimmed">
-                                    {eventsPage} / {totalPages}
-                                </Text>
-                                <ActionIcon
-                                    variant="subtle"
-                                    size="sm"
-                                    disabled={!eventsNext}
-                                    onClick={() => {
-                                        if (eventsNext) {
-                                            setEventsPage((p) => p + 1);
-                                            fetchEvents(eventsNext);
-                                        }
-                                    }}
-                                >
-                                    <IconChevronRight size={16} />
-                                </ActionIcon>
-                            </Group>
-                        )}
                     </Stack>
+
+                    <Group justify="center" gap="xs" mt="sm">
+                        <ActionIcon
+                            variant="subtle"
+                            size="sm"
+                            disabled={!eventsPrevious}
+                            onClick={() => {
+                                if (eventsPrevious) {
+                                    setEventsPage((p) => p - 1);
+                                    fetchEvents(eventsPrevious);
+                                }
+                            }}
+                        >
+                            <IconChevronLeft size={16} />
+                        </ActionIcon>
+                        <Text size="xs" c="dimmed">
+                            {eventsPage} / {totalPages}
+                        </Text>
+                        <ActionIcon
+                            variant="subtle"
+                            size="sm"
+                            disabled={!eventsNext}
+                            onClick={() => {
+                                if (eventsNext) {
+                                    setEventsPage((p) => p + 1);
+                                    fetchEvents(eventsNext);
+                                }
+                            }}
+                        >
+                            <IconChevronRight size={16} />
+                        </ActionIcon>
+                    </Group>
                 </Box>
             </Paper>
         </Grid.Col>

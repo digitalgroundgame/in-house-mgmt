@@ -110,6 +110,7 @@ export default function OpenedTickets({ contactId }: { contactId: string }) {
     const buildTicketsUrl = useCallback((page?: number) => {
         const params = new URLSearchParams();
         params.set('contact', contactId);
+        params.set('page_size', '6');
         if (ticketSearch) params.set('search', ticketSearch);
         if (ticketStatusFilter) {
             if (ticketStatusFilter.mode === 'include') params.set('status', ticketStatusFilter.value);
@@ -123,6 +124,7 @@ export default function OpenedTickets({ contactId }: { contactId: string }) {
         try {
             setTicketsLoading(true);
             const response = await fetch(url || buildTicketsUrl());
+            console.log('Response:', response.results);
             const data = await response.json();
             const results: TicketListItem[] = data.results || [];
             setTickets(results.filter((t) => t.ticket_status !== 'CANCELED'));
@@ -155,14 +157,15 @@ export default function OpenedTickets({ contactId }: { contactId: string }) {
         }
     };
 
-    const totalTicketPages = Math.ceil(ticketsCount / 5);
+    const totalTicketPages = Math.ceil(ticketsCount / 6);
+    console.log(ticketsCount)
 
     return (
         <Grid.Col span={{ base: 12, md: 6 }}>
             <Paper withBorder p="lg" radius="md" h="100%">
-                <Box pos="relative" style={{ minHeight: 350 }}>
+                <Box pos="relative" style={{ minHeight: 350, display: 'flex', flexDirection: 'column', height: '100%' }}>
                     <LoadingOverlay visible={ticketsLoading} />
-                    <Stack gap="sm">
+                    <Stack gap="sm" style={{ flex: 1 }}>
                         <Title order={4}>Opened Tickets</Title>
 
                         <TextInput
@@ -182,7 +185,7 @@ export default function OpenedTickets({ contactId }: { contactId: string }) {
 
                         <Divider />
 
-                        <ScrollArea h={200}>
+                        <ScrollArea style={{ flex: 1 }}>
                             <Stack gap="xs">
                                 {tickets.length === 0 && !ticketsLoading ? (
                                     <Text c="dimmed" size="sm" ta="center" py="md">
@@ -219,41 +222,39 @@ export default function OpenedTickets({ contactId }: { contactId: string }) {
                                 )}
                             </Stack>
                         </ScrollArea>
-
-                        {totalTicketPages > 1 && (
-                            <Group justify="center" gap="xs">
-                                <ActionIcon
-                                    variant="subtle"
-                                    size="sm"
-                                    disabled={!ticketsPrevious}
-                                    onClick={() => {
-                                        if (ticketsPrevious) {
-                                            setTicketsPage((p) => p - 1);
-                                            fetchTickets(ticketsPrevious);
-                                        }
-                                    }}
-                                >
-                                    <IconChevronLeft size={16} />
-                                </ActionIcon>
-                                <Text size="xs" c="dimmed">
-                                    {ticketsPage} / {totalTicketPages}
-                                </Text>
-                                <ActionIcon
-                                    variant="subtle"
-                                    size="sm"
-                                    disabled={!ticketsNext}
-                                    onClick={() => {
-                                        if (ticketsNext) {
-                                            setTicketsPage((p) => p + 1);
-                                            fetchTickets(ticketsNext);
-                                        }
-                                    }}
-                                >
-                                    <IconChevronRight size={16} />
-                                </ActionIcon>
-                            </Group>
-                        )}
                     </Stack>
+
+                    <Group justify="center" gap="xs" mt="sm">
+                        <ActionIcon
+                            variant="subtle"
+                            size="sm"
+                            disabled={!ticketsPrevious}
+                            onClick={() => {
+                                if (ticketsPrevious) {
+                                    setTicketsPage((p) => p - 1);
+                                    fetchTickets(ticketsPrevious);
+                                }
+                            }}
+                        >
+                            <IconChevronLeft size={16} />
+                        </ActionIcon>
+                        <Text size="xs" c="dimmed">
+                            {ticketsPage} / {totalTicketPages}
+                        </Text>
+                        <ActionIcon
+                            variant="subtle"
+                            size="sm"
+                            disabled={!ticketsNext}
+                            onClick={() => {
+                                if (ticketsNext) {
+                                    setTicketsPage((p) => p + 1);
+                                    fetchTickets(ticketsNext);
+                                }
+                            }}
+                        >
+                            <IconChevronRight size={16} />
+                        </ActionIcon>
+                    </Group>
                 </Box>
             </Paper>
         </Grid.Col>
