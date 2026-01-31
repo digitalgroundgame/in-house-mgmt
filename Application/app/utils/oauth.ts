@@ -1,4 +1,4 @@
-import getCookie from '@/app/utils/cookie';
+import getCookie from "@/app/utils/cookie";
 
 const IS_LOCAL = process.env.NEXT_PUBLIC_USE_MOCK_OAUTH === "true";
 
@@ -20,25 +20,25 @@ export const loginWithProvider = (provider: Provider, next?: string) => {
 
 export const handleLogout = async (event: React.MouseEvent) => {
   event.preventDefault();
-  const csrfToken = getCookie('csrftoken');
+  const csrfToken = getCookie("csrftoken");
 
   try {
-    const res = await fetch('/accounts/logout/', {
-      method: 'POST',
-      credentials: 'include', // send cookies
+    const res = await fetch("/accounts/logout/", {
+      method: "POST",
+      credentials: "include", // send cookies
       headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': csrfToken || '',
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrfToken || "",
       },
     });
 
     if (res.ok) {
       window.location.href = `/login`;
     } else {
-      alert('Logout failed');
+      alert("Logout failed");
     }
   } catch (error) {
-    console.error('Logout error:', error);
-    alert('Logout failed');
+    console.error("Logout error:", error);
+    alert("Logout failed");
   }
 };

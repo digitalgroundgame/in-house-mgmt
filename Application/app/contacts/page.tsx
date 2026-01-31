@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   Container,
@@ -13,31 +13,41 @@ import {
   Modal,
   MultiSelect,
   ActionIcon,
-  NumberInput
-} from '@mantine/core';
-import { DateInput } from '@mantine/dates'
-import { IconPlus, IconFileUpload, IconSearch, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
-import { useState, useEffect, Component } from 'react';
-import { useRouter } from 'next/navigation';
-import { useForm } from '@mantine/form';
-import { TicketBulkCreateModal } from '@/app/components/tickets/TicketBulkCreateModal';
-import ContactTable, { type Contact, type Group as ContactGroup, type Tag } from '@/app/components/ContactTable';
-import './page.css';
+  NumberInput,
+} from "@mantine/core";
+import { DateInput } from "@mantine/dates";
+import {
+  IconPlus,
+  IconFileUpload,
+  IconSearch,
+  IconChevronLeft,
+  IconChevronRight,
+} from "@tabler/icons-react";
+import { useState, useEffect, Component } from "react";
+import { useRouter } from "next/navigation";
+import { useForm } from "@mantine/form";
+import { TicketBulkCreateModal } from "@/app/components/tickets/TicketBulkCreateModal";
+import ContactTable, {
+  type Contact,
+  type Group as ContactGroup,
+  type Tag,
+} from "@/app/components/ContactTable";
+import "./page.css";
 
 export default function ContactsPage() {
   const router = useRouter();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [bulkTicketModalOpen, setBulkTicketModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedGroup, setSelectedGroup] = useState<string | null>('all');
-  const [selectedTag, setSelectedTag] = useState<string | null>('all');
-  const [startDate, setStartDate] = useState<string | null>('')
-  const [endDate, setEndDate] = useState<string | null>('')
-  const [minEvents, setMinEvents] = useState<number | string>()
-  const [maxEvents, setMaxEvents] = useState<number | string>()
-  const [minTickets, setMinTickets] = useState<number | string>()
-  const [maxTickets, setMaxTickets] = useState<number | string>()
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedGroup, setSelectedGroup] = useState<string | null>("all");
+  const [selectedTag, setSelectedTag] = useState<string | null>("all");
+  const [startDate, setStartDate] = useState<string | null>("");
+  const [endDate, setEndDate] = useState<string | null>("");
+  const [minEvents, setMinEvents] = useState<number | string>();
+  const [maxEvents, setMaxEvents] = useState<number | string>();
+  const [minTickets, setMinTickets] = useState<number | string>();
+  const [maxTickets, setMaxTickets] = useState<number | string>();
   const [tags, setTags] = useState<Tag[]>([]);
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [previousUrl, setPreviousUrl] = useState<string | null>(null);
@@ -49,20 +59,18 @@ export default function ContactsPage() {
 
   const form = useForm({
     initialValues: {
-      discord_id: '',
-      full_name: '',
-      email: '',
-      phone: '',
-      tags: []
+      discord_id: "",
+      full_name: "",
+      email: "",
+      phone: "",
+      tags: [],
     },
     validate: {
-      discord_id: (value) => (!value ? 'Discord ID is required' : null),
-      full_name: (value) => (!value ? 'Full name is required' : null),
-      email: (value) => (value && !/^\S+@\S+$/.test(value) ? 'Invalid email' : null)
-    }
+      discord_id: (value) => (!value ? "Discord ID is required" : null),
+      full_name: (value) => (!value ? "Full name is required" : null),
+      email: (value) => (value && !/^\S+@\S+$/.test(value) ? "Invalid email" : null),
+    },
   });
-
-
 
   // Fetch groups and tags on component mount
   useEffect(() => {
@@ -72,24 +80,32 @@ export default function ContactsPage() {
   // Fetch contacts whenever filters change (reset to first page)
   useEffect(() => {
     fetchContacts();
-  }, [searchQuery, selectedGroup, selectedTag, minEvents, minTickets, maxEvents, maxTickets, startDate, endDate]);
+  }, [
+    searchQuery,
+    selectedGroup,
+    selectedTag,
+    minEvents,
+    minTickets,
+    maxEvents,
+    maxTickets,
+    startDate,
+    endDate,
+  ]);
 
   const fetchGroupsAndTags = async () => {
     try {
-      const [tagsRes] = await Promise.all([
-        fetch('/api/tags/')
-      ]);
+      const [tagsRes] = await Promise.all([fetch("/api/tags/")]);
 
-      console.log('Tags response:', tagsRes);
+      console.log("Tags response:", tagsRes);
 
       const tagsData = await tagsRes.json();
-      console.log('Tags data:', tagsData);
+      console.log("Tags data:", tagsData);
 
       // Handle both array and object responses
-      const tagsArray = Array.isArray(tagsData) ? tagsData : (tagsData.results || []);
+      const tagsArray = Array.isArray(tagsData) ? tagsData : tagsData.results || [];
       setTags(tagsArray);
     } catch (error) {
-      console.error('Error fetching groups and tags:', error);
+      console.error("Error fetching groups and tags:", error);
       setTags([]); // Ensure tags is always an array
     }
   };
@@ -103,15 +119,15 @@ export default function ContactsPage() {
       // If no URL provided, build the initial query
       if (!fetchUrl) {
         const params = new URLSearchParams();
-        if (searchQuery) params.append('search', searchQuery);
-        if (minEvents) params.append('min_events', minEvents.toString());
-        if (minTickets) params.append('min_tickets', minTickets.toString());
-        if (maxTickets) params.append('max_tickets', maxTickets.toString());
-        if (maxEvents) params.append('max_tickets', maxEvents.toString());
-        if (startDate) params.append('start_date', startDate);
-        if (endDate) params.append('end_date', endDate);
+        if (searchQuery) params.append("search", searchQuery);
+        if (minEvents) params.append("min_events", minEvents.toString());
+        if (minTickets) params.append("min_tickets", minTickets.toString());
+        if (maxTickets) params.append("max_tickets", maxTickets.toString());
+        if (maxEvents) params.append("max_tickets", maxEvents.toString());
+        if (startDate) params.append("start_date", startDate);
+        if (endDate) params.append("end_date", endDate);
 
-        if (selectedTag && selectedTag !== 'all') params.append('tag', selectedTag);
+        if (selectedTag && selectedTag !== "all") params.append("tag", selectedTag);
         fetchUrl = `/api/contacts/?${params}`;
       }
 
@@ -120,35 +136,35 @@ export default function ContactsPage() {
       const response = await fetch(fetchUrl);
       const data = await response.json();
 
-      console.log('Fetched contacts data:', data);
+      console.log("Fetched contacts data:", data);
       setContacts(data.results);
       setTotalCount(data.count);
       setNextUrl(data.next);
       setPreviousUrl(data.previous);
     } catch (error) {
-      console.error('Error fetching contacts:', error);
+      console.error("Error fetching contacts:", error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleReset = () => {
-    setSearchQuery('');
-    setSelectedGroup('all');
-    setSelectedTag('all');
-    setMaxEvents('');
-    setMinEvents('');
-    setMaxTickets('');
-    setMinTickets('');
-    setStartDate('');
-    setEndDate('');
+    setSearchQuery("");
+    setSelectedGroup("all");
+    setSelectedTag("all");
+    setMaxEvents("");
+    setMinEvents("");
+    setMaxTickets("");
+    setMinTickets("");
+    setStartDate("");
+    setEndDate("");
     fetchContacts();
   };
 
   const handleRowClick = (contact: Contact) => {
     // TODO: Navigate to contact detail page or show modal
     router.push(`/contacts/${contact.id}`);
-    console.log('Clicked contact:', contact);
+    console.log("Clicked contact:", contact);
   };
 
   const handleAddContact = () => {
@@ -165,34 +181,34 @@ export default function ContactsPage() {
         discord_id: values.discord_id,
         full_name: values.full_name,
         email: values.email,
-        phone: values.phone
+        phone: values.phone,
       };
 
-      const contactResponse = await fetch('/api/contacts/', {
-        method: 'POST',
+      const contactResponse = await fetch("/api/contacts/", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(contactData),
       });
 
       if (!contactResponse.ok) {
-        throw new Error('Failed to create contact');
+        throw new Error("Failed to create contact");
       }
 
       const newContact = await contactResponse.json();
 
       // Step 2: Assign tags to the contact
       if (selectedTags.length > 0) {
-        const tagAssignmentPromises = selectedTags.map(tagName =>
-          fetch('/api/tag-assignments/', {
-            method: 'POST',
+        const tagAssignmentPromises = selectedTags.map((tagName) =>
+          fetch("/api/tag-assignments/", {
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({
               contact_id: newContact.id,
-              tag_name: tagName
+              tag_name: tagName,
             }),
           })
         );
@@ -204,15 +220,15 @@ export default function ContactsPage() {
       setSelectedTags([]);
       fetchContacts();
     } catch (error) {
-      console.error('Error creating contact:', error);
-      alert('Failed to create contact. Please try again.');
+      console.error("Error creating contact:", error);
+      alert("Failed to create contact. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
 
   const toggleRowSelection = (id: number) => {
-    setSelectedRows(prev => {
+    setSelectedRows((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
@@ -221,13 +237,12 @@ export default function ContactsPage() {
 
   const handleUploadCSV = () => {
     // TODO: Open CSV upload modal
-    console.log('Upload CSV clicked');
+    console.log("Upload CSV clicked");
   };
 
-
   const tagOptions = [
-    { value: 'all', label: 'Any' },
-    ...tags.map(t => ({ value: t.id.toString(), label: t.name }))
+    { value: "all", label: "Any" },
+    ...tags.map((t) => ({ value: t.id.toString(), label: t.name })),
   ];
 
   return (
@@ -237,13 +252,10 @@ export default function ContactsPage() {
         <Group justify="space-between">
           <Title order={2}>Contacts</Title>
           <Group gap="sm">
-            <Button
-              leftSection={<IconPlus size={16} />}
-              onClick={handleAddContact}
-            >
+            <Button leftSection={<IconPlus size={16} />} onClick={handleAddContact}>
               Add contact
             </Button>
-      {/*      <Button
+            {/*      <Button
               variant="outline"
               leftSection={<IconFileUpload size={16} />}
               onClick={handleUploadCSV}
@@ -277,37 +289,37 @@ export default function ContactsPage() {
             </Group>
             <Group>
               <>
-                <ContactNumberInput 
+                <ContactNumberInput
                   label="Minimum Events Attended"
                   value={minEvents}
                   setValue={setMinEvents}
-                  placeholder='Min Events...'
+                  placeholder="Min Events..."
                 />
                 <ContactNumberInput
-                  label="Maximum Events Attended" 
+                  label="Maximum Events Attended"
                   value={maxEvents}
                   setValue={setMaxEvents}
-                  placeholder='Max Events...'
+                  placeholder="Max Events..."
                 />
                 <ContactNumberInput
                   label="Minimum Closed Tickets"
                   value={minTickets}
                   setValue={setMinTickets}
-                  placeholder='Min Tickets...'
+                  placeholder="Min Tickets..."
                 />
                 <ContactNumberInput
-                  label='Maximum Closed Tickets'  
+                  label="Maximum Closed Tickets"
                   value={maxTickets}
                   setValue={setMaxTickets}
-                  placeholder='Max Tickets...'
+                  placeholder="Max Tickets..."
                 />
-                <DateInput 
+                <DateInput
                   label="Search Start Time"
                   value={startDate}
                   onChange={setStartDate}
                   placeholder="Start Date..."
                 />
-                <DateInput 
+                <DateInput
                   label="Search End Time"
                   onChange={setEndDate}
                   value={endDate}
@@ -316,7 +328,9 @@ export default function ContactsPage() {
               </>
             </Group>
             <Group gap="sm">
-              <Button variant="outline" onClick={handleReset}>Reset</Button>
+              <Button variant="outline" onClick={handleReset}>
+                Reset
+              </Button>
             </Group>
           </Stack>
         </Paper>
@@ -336,7 +350,7 @@ export default function ContactsPage() {
           <Group justify="space-between" align="center">
             <Group gap="xs">
               <Text>
-                {totalCount} {totalCount === 1 ? 'contact' : 'contacts'} found
+                {totalCount} {totalCount === 1 ? "contact" : "contacts"} found
               </Text>
 
               {selectedRows.size > 0 && (
@@ -344,11 +358,7 @@ export default function ContactsPage() {
                   <Text size="sm" c="dimmed">
                     {selectedRows.size} selected
                   </Text>
-                  <Button
-                    size="xs"
-                    variant="light"
-                    onClick={() => setBulkTicketModalOpen(true)}
-                  >
+                  <Button size="xs" variant="light" onClick={() => setBulkTicketModalOpen(true)}>
                     Create Tickets
                   </Button>
                   <Button
@@ -399,24 +409,24 @@ export default function ContactsPage() {
               label="Discord ID"
               placeholder="Enter Discord ID"
               required
-              {...form.getInputProps('discord_id')}
+              {...form.getInputProps("discord_id")}
             />
             <TextInput
               label="Name"
               placeholder="Enter name"
               required
-              {...form.getInputProps('full_name')}
+              {...form.getInputProps("full_name")}
             />
             <TextInput
               label="Email"
               placeholder="Enter email (optional)"
               type="email"
-              {...form.getInputProps('email')}
+              {...form.getInputProps("email")}
             />
             <TextInput
               label="Phone"
               placeholder="Enter phone number (optional)"
-              {...form.getInputProps('phone')}
+              {...form.getInputProps("phone")}
             />
 
             <MultiSelect
@@ -424,7 +434,7 @@ export default function ContactsPage() {
               placeholder="Select tags"
               value={selectedTags}
               onChange={(value) => setSelectedTags(value || [])}
-              data={tags.map(t => ({ value: t.name, label: t.name }))}
+              data={tags.map((t) => ({ value: t.name, label: t.name }))}
               searchable
               clearable
             />
@@ -445,7 +455,7 @@ export default function ContactsPage() {
         onClose={() => setBulkTicketModalOpen(false)}
         contactIds={Array.from(selectedRows)}
         events={[]} // 🔧 plug in events once available
-        users={[]}  // 🔧 plug in users once available
+        users={[]} // 🔧 plug in users once available
         onSuccess={() => {
           setSelectedRows(new Set());
         }}
@@ -454,24 +464,27 @@ export default function ContactsPage() {
   );
 }
 
-function ContactNumberInput(
-  {label, value, setValue, placeholder}:
-  {label: string,
-    value: string | number | undefined,
-    setValue: (a: string | number | undefined) => void,
-    placeholder: string | undefined
-  }
-) {
-  return <NumberInput
-    label={label}
-    placeholder={placeholder}
-    value={value}
-    onChange={
-      num => {
+function ContactNumberInput({
+  label,
+  value,
+  setValue,
+  placeholder,
+}: {
+  label: string;
+  value: string | number | undefined;
+  setValue: (a: string | number | undefined) => void;
+  placeholder: string | undefined;
+}) {
+  return (
+    <NumberInput
+      label={label}
+      placeholder={placeholder}
+      value={value}
+      onChange={(num) => {
         setValue(typeof num === "number" ? num : 0);
-      }
-    }
-    allowNegative={false}
-    style={{ flex: 1 }} />;
+      }}
+      allowNegative={false}
+      style={{ flex: 1 }}
+    />
+  );
 }
-
