@@ -16,7 +16,7 @@ repos:
     hooks:
       - id: eslint
         name: eslint (TypeScript)
-        entry: bash -c 'cd Application && npx eslint --fix .'
+        entry: bash -c 'cd Application && npx eslint --fix --quiet .'
         language: system
         files: ^Application/.*\.(js|jsx|ts|tsx)$
         pass_filenames: false
