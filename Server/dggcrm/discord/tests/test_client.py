@@ -1,6 +1,6 @@
 import responses
 
-from dggcrm.discord.client import DiscordClient, DISCORD_API_BASE
+from dggcrm.discord.client import DISCORD_API_BASE, DiscordClient
 
 
 class TestDiscordClient:
@@ -101,3 +101,89 @@ class TestDiscordClient:
         # Verify the request was made with correct auth header
         assert len(responses.calls) == 1
         assert responses.calls[0].request.headers["Authorization"] == "Bot my-secret-token"
+
+    @responses.activate
+    def test_retry_on_503_then_success(self, mock_discord_members):
+        """Retries on 503 and succeeds on subsequent attempt."""
+        client = DiscordClient(token="test-token", guild_id=123456789)
+        mock_members = mock_discord_members(count=2)
+
+        # First call returns 503, second succeeds
+        responses.add(
+            responses.GET,
+            f"{DISCORD_API_BASE}/guilds/123456789/members?limit=1000",
+            body="Service Unavailable",
+            status=503,
+        )
+        responses.add(
+            responses.GET,
+            f"{DISCORD_API_BASE}/guilds/123456789/members?limit=1000",
+            json=mock_members,
+            status=200,
+        )
+
+        result = client.fetch_all_member_ids()
+
+        expected_ids = {m["user"]["id"] for m in mock_members}
+        assert result == expected_ids
+        assert len(responses.calls) == 2  # Retried once
+
+    @responses.activate
+    def test_retry_on_429_rate_limit(self, mock_discord_members):
+        """Retries on 429 rate limit response."""
+        client = DiscordClient(token="test-token", guild_id=123456789)
+        mock_members = mock_discord_members(count=2)
+
+        # First call returns 429, second succeeds
+        responses.add(
+            responses.GET,
+            f"{DISCORD_API_BASE}/guilds/123456789/members?limit=1000",
+            json={"message": "You are being rate limited", "retry_after": 1.0},
+            status=429,
+        )
+        responses.add(
+            responses.GET,
+            f"{DISCORD_API_BASE}/guilds/123456789/members?limit=1000",
+            json=mock_members,
+            status=200,
+        )
+
+        result = client.fetch_all_member_ids()
+
+        expected_ids = {m["user"]["id"] for m in mock_members}
+        assert result == expected_ids
+        assert len(responses.calls) == 2  # Retried once
+
+    @responses.activate
+    def test_no_retry_on_404(self):
+        """Does NOT retry on 404 - returns empty immediately."""
+        client = DiscordClient(token="test-token", guild_id=123456789)
+
+        responses.add(
+            responses.GET,
+            f"{DISCORD_API_BASE}/guilds/123456789/members?limit=1000",
+            body="Unknown Guild",
+            status=404,
+        )
+
+        result = client.fetch_all_member_ids()
+
+        assert result == set()
+        assert len(responses.calls) == 1  # No retry
+
+    @responses.activate
+    def test_no_retry_on_401(self):
+        """Does NOT retry on 401 Unauthorized - returns empty immediately."""
+        client = DiscordClient(token="bad-token", guild_id=123456789)
+
+        responses.add(
+            responses.GET,
+            f"{DISCORD_API_BASE}/guilds/123456789/members?limit=1000",
+            body="401: Unauthorized",
+            status=401,
+        )
+
+        result = client.fetch_all_member_ids()
+
+        assert result == set()
+        assert len(responses.calls) == 1  # No retry

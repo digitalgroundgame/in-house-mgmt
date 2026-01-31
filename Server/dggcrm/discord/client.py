@@ -10,8 +10,20 @@ import logging
 import os
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
+
+# Retry configuration: retry on connection errors, timeouts, and 5xx/429 errors
+# Do NOT retry on 4xx client errors (400, 401, 403, 404, etc.)
+RETRY_STRATEGY = Retry(
+    total=3,
+    backoff_factor=1,  # 1s, 2s, 4s between retries
+    status_forcelist=[429, 500, 502, 503, 504],
+    allowed_methods=["GET"],  # Only retry GET requests
+    raise_on_status=False,  # Don't raise, let us handle status codes
+)
 
 DISCORD_API_BASE = "https://discord.com/api/v10"
 
@@ -58,6 +70,10 @@ class DiscordClient:
         self.session = requests.Session()
         self.session.headers["Authorization"] = f"Bot {token}"
 
+        # Mount retry adapter for Discord API
+        adapter = HTTPAdapter(max_retries=RETRY_STRATEGY)
+        self.session.mount("https://", adapter)
+
     def fetch_all_member_ids(self) -> set[str]:
         """
         Fetch all guild member Discord IDs (paginated).
@@ -67,6 +83,10 @@ class DiscordClient:
         - after: user ID to paginate from (results sorted by user_id ascending)
 
         Returns set of Discord user ID strings.
+
+        Retry behavior:
+        - Retries on connection errors, timeouts, and 5xx/429 responses
+        - Does NOT retry on 4xx client errors (400, 401, 403, 404)
         """
         members: set[str] = set()
         after: str | None = None
@@ -78,7 +98,13 @@ class DiscordClient:
             if after:
                 url += f"&after={after}"
 
-            resp = self.session.get(url)
+            try:
+                resp = self.session.get(url, timeout=30)
+            except requests.exceptions.RequestException as e:
+                # Connection error after retries exhausted
+                logger.error(f"Network error fetching members (retries exhausted): {e}")
+                break
+
             if resp.status_code != 200:
                 logger.error(f"Failed to fetch members: {resp.status_code} - {resp.text}")
                 break

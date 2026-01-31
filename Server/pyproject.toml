@@ -50,6 +50,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "fake/main.py" = ["S311", "T201", "RUF005"]  # Fake data script: random is fine, print is fine
+"**/tests/**" = ["S101", "S106"]  # Tests: assert is fine, hardcoded test tokens are fine
 
 [tool.ruff.lint.isort]
 known-first-party = ["dggcrm", "config"]
