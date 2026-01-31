@@ -13,25 +13,20 @@ import {
   LoadingOverlay,
   Notification,
 } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import getCookie from '@/app/utils/cookie'
 import { loginWithProvider } from '@/app/utils/oauth';
-import { useUser } from '@/app/components/provider/UserContext';
+import { useUser, User } from '@/app/components/provider/UserContext';
 
-export default function ProfilePage() {
-  const { user, loading, refresh } = useUser();
+interface ProfileFormProps {
+  user: User;
+  refresh: () => void;
+}
+
+function ProfileForm({ user, refresh }: ProfileFormProps) {
   const [error, setError] = useState<string | null>(null);
-
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-
-  useEffect(() => {
-    if (user) {
-      setFirstName(user.first_name || '');
-      setLastName(user.last_name || '');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  const [firstName, setFirstName] = useState(user.first_name || '');
+  const [lastName, setLastName] = useState(user.last_name || '');
 
   const updateProfile = async () => {
     setError(null);
@@ -51,9 +46,8 @@ export default function ProfilePage() {
 
   return (
     <Paper p="lg" radius="md" withBorder style={{ maxWidth: 600, margin: "auto" }}>
-      <LoadingOverlay visible={loading} />
-      <Stack spacing="lg">
-        <Title order={2}>Account Settings for {user?.username || "..."}</Title>
+      <Stack gap="lg">
+        <Title order={2}>Account Settings for {user.username}</Title>
         {error && <Notification color="red">{error}</Notification>}
 
         {/* Profile */}
@@ -70,15 +64,15 @@ export default function ProfilePage() {
         />
         <Button
           onClick={updateProfile}
-          disabled={!user || firstName === user.first_name && lastName === user.last_name}
+          disabled={firstName === user.first_name && lastName === user.last_name}
         >
           Save profile
         </Button>
 
         {/* Emails */}
         <Divider label="Emails" />
-        <Stack spacing="xs">
-          {user?.email_addresses?.map((email) => (
+        <Stack gap="xs">
+          {user.email_addresses?.map((email) => (
             <Group key={email.email} position="apart">
               <Text>
                 {email.email}{" "}
@@ -91,8 +85,8 @@ export default function ProfilePage() {
 
         {/* Groups */}
         <Divider label="Auth Groups" />
-        <Group spacing="xs">
-          {user?.groups?.length ? (
+        <Group gap="xs">
+          {user.groups?.length ? (
             user.groups.map((group) => (
               <Badge key={group} color={group === "ADMIN"? "red": "blue"} variant="light">
                 {group}
@@ -107,8 +101,8 @@ export default function ProfilePage() {
 
         {/* OAuth connections */}
         <Divider label="Connected accounts / OAuth" />
-        <Stack spacing="sm">
-          {user?.social_accounts?.map((acct) => (
+        <Stack gap="sm">
+          {user.social_accounts?.map((acct) => (
             <Group key={acct.provider} position="apart">
               <Text>{acct.provider}</Text>
               <Button
@@ -137,4 +131,18 @@ export default function ProfilePage() {
       </Stack>
     </Paper>
   );
+}
+
+export default function ProfilePage() {
+  const { user, loading, refresh } = useUser();
+
+  if (loading || !user) {
+    return (
+      <Paper p="lg" radius="md" withBorder style={{ maxWidth: 600, margin: "auto" }}>
+        <LoadingOverlay visible={true} />
+      </Paper>
+    );
+  }
+
+  return <ProfileForm user={user} refresh={refresh} />;
 }

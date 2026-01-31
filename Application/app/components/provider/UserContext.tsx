@@ -9,7 +9,8 @@ import React, {
 } from 'react';
 import getCookie, { deleteCookie } from '@/app/utils/cookie';
 
-import type { User } from './types'; // or inline if you prefer
+import type { User } from './types';
+export type { User };
 
 interface UserContextValue {
   user: User | null;

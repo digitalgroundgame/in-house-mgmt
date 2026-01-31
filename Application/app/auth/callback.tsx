@@ -24,6 +24,6 @@ export default function AuthCallback() {
       });
   }, [router]);
 
-  if (error) return <p style={{ color: "red" }}>{error}</p>;
+  if ( error)   return <p style={{ color: "red" }}>{error}</p>;
   return <p>Signing you in…</p>;
 }
