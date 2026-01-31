@@ -1,12 +1,15 @@
-"use server";
-import { Event } from "@/app/components/event-utils";
-import { Text, Paper, Container, Stack, Divider, Title, Grid } from "@mantine/core";
-import EventView from "@/app/events/[id]/EventView";
-import { apiFetch } from "@/app/lib/api";
+"use client"
+import { Event } from '@/app/components/event-utils';
+import EventView from '@/app/events/[id]/EventView'
+import { useBackend } from '@/app/lib/api';
+import { useEffect, useState, use } from 'react';
 
-export default async function EventDetailsPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const eventDetails = (await (await apiFetch(`api/events/${id}`)).json()) as Event;
-  console.log(eventDetails);
-  return <EventView event={eventDetails} />;
+export default function EventDetailsPage({params}: {params: Promise<{id: string}>}) {
+  // const [eventDetail, setEventDetail] = useState<Event>();
+  const { id } = use(params)
+  const { data: eventDetail, loading, error } = useBackend<Event>(`/api/events/${id}`)
+
+  return <>
+    <EventView event={eventDetail}/>
+  </>
 }

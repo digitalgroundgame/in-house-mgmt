@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from .models import Event, EventParticipation, UsersInEvent
+from ..contacts.serializers import ContactSerializer
 
 User = get_user_model()
 
@@ -22,6 +23,7 @@ class EventParticipationSerializer(serializers.ModelSerializer):
         read_only=True,
     )
     event = EventSerializer()
+    contact = ContactSerializer()
 
     class Meta:
         model = EventParticipation
