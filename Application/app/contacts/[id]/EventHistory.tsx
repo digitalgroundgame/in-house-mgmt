@@ -124,6 +124,8 @@ export default function EventHistory({ contactId }: { contactId: string }) {
 
     const buildEventsUrl = useCallback((page?: number) => {
         const params = new URLSearchParams();
+        params.set('contact', contactId);
+        params.set('page_size', 5);
         if (eventSearch) params.set('search', eventSearch);
         if (statusFilter) {
             if (statusFilter.mode === 'include') params.set('status', statusFilter.value);
@@ -135,7 +137,7 @@ export default function EventHistory({ contactId }: { contactId: string }) {
         }
         if (page && page > 1) params.set('page', String(page));
         const qs = params.toString();
-        return `/api/contacts/${contactId}/events/${qs ? `?${qs}` : ''}`;
+        return `/api/participants${qs ? `?${qs}` : ''}`;
     }, [contactId, eventSearch, statusFilter, typeFilter]);
 
     const fetchEvents = useCallback(async (url?: string) => {

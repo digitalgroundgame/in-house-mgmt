@@ -30,19 +30,6 @@ class ContactSerializer(serializers.ModelSerializer):
         ]
 
 
-class ContactEventParticipationSerializer(serializers.ModelSerializer):
-    event = EventSerializer(read_only=True)
-    status_display = serializers.CharField(
-        source="get_status_display",
-        read_only=True,
-    )
-
-    class Meta:
-        model = EventParticipation
-        fields = ["id", "event", "status", "status_display", "created_at", "modified_at"]
-        read_only_fields = ["id", "created_at", "modified_at", "status_display"]
-
-
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
