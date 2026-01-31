@@ -8,6 +8,7 @@ export function proxy(request: NextRequest) {
 
   const isLoginPage = pathname === "/login";
   const isPublic =
+    pathname === "/login" ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon") ||
     pathname.startsWith("/accounts") ||
@@ -18,10 +19,6 @@ export function proxy(request: NextRequest) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
-  }
-  if (sessionid && isLoginPage) {
-    const homeUrl = new URL("/home", request.url)
-    return NextResponse.redirect(homeUrl);
   }
 
   return NextResponse.next();
