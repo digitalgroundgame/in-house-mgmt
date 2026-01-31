@@ -157,7 +157,7 @@ export default function OpenedTickets({ contactId }: { contactId: string }) {
         }
     };
 
-    const totalTicketPages = Math.ceil(ticketsCount / 6);
+    const totalTicketPages = Math.ceil(ticketsCount / 6) !== 0 ? Math.ceil(ticketsCount / 6) : 1;
     console.log(ticketsCount)
 
     return (
