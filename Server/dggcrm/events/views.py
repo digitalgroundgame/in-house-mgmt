@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated, DjangoModelPermissions
 from rest_framework.response import Response
 from django.db.models import Count, Q, F
 
-from .models import Event, EventParticipation, UsersInEvent, CommitmentStatus
+from .models import Event, EventParticipation, UsersInEvent, CommitmentStatus, EventStatus
 from .serializers import EventSerializer, EventParticipationSerializer, UsersInEventSerializer
 from .permissions import (
     get_event_visibility_filter,
@@ -66,9 +66,9 @@ class EventParticipationViewSet(viewsets.ModelViewSet):
     ]
 
     search_fields = [
+        "event__name",
         "contact__full_name",
         "contact__email",
-        "notes",
     ]
 
     ordering_fields = [
@@ -85,15 +85,25 @@ class EventParticipationViewSet(viewsets.ModelViewSet):
         event_id = self.request.query_params.get("event")
         contact_id = self.request.query_params.get("contact")
         status = self.request.query_params.get("status")
-
-        if event_id:
-            queryset = queryset.filter(event_id=event_id)
-
-        if contact_id:
-            queryset = queryset.filter(contact_id=contact_id)
+        exclude_status = self.request.query_params.get("exclude_status")
+        event_status = self.request.query_params.get("event_status")
+        event_type = self.request.query_params.get("event_type")
+        exclude_event_status = self.request.query_params.get("exclude_event_status")
 
         if status:
             queryset = queryset.filter(status=status)
+        if event_status:
+            queryset = queryset.filter(event__event_status=event_status)
+        if event_type:
+            queryset = queryset.filter(event__event_type=event_type)
+        if exclude_status:
+            queryset = queryset.exclude(status=exclude_status)
+        if exclude_event_status:
+            queryset = queryset.exclude(event__event_status=exclude_status)
+        if event_id:
+            queryset = queryset.filter(event_id=event_id)
+        if contact_id:
+            queryset = queryset.filter(contact_id=contact_id)
 
         return queryset.filter(get_participation_visibility_filter(self.request.user))
 
@@ -186,6 +196,13 @@ class CommitmentStatusViewSet(viewsets.ViewSet):
     def list(self, request):
         types = [{'value': t.value, 'label': t.label} for t in CommitmentStatus]
         return Response(types)
+
+
+# Readonly view set that returns all event statuses
+class EventStatusViewSet(viewsets.ViewSet):
+    def list(self, request):
+        statuses = [{'value': s.value, 'label': s.label} for s in EventStatus]
+        return Response(statuses)
 
 
 class UsersInEventViewSet(viewsets.ModelViewSet):

@@ -2,11 +2,12 @@ from rest_framework import viewsets, filters
 from rest_framework.permissions import IsAuthenticated, DjangoModelPermissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q, Count
 
 from .models import Contact, Tag, TagAssignments
 from ..tickets.models import TicketStatus
-from ..events.models import CommitmentStatus
+from ..events.models import CommitmentStatus, EventParticipation
 from .serializers import (
     ContactSerializer,
     TagSerializer,
