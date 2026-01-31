@@ -5,8 +5,9 @@ TODO: Production requires proper secrets management for DISCORD_BOT_TOKEN.
 Currently relies on environment variables which works for local dev but
 needs a secure secrets solution (Vault, AWS Secrets Manager, etc.) for production.
 """
-import os
+
 import logging
+import os
 
 import requests
 
@@ -92,5 +93,4 @@ class DiscordClient:
                 after = data[-1]["user"]["id"]
 
         logger.info(f"Fetched {len(members)} members from guild {self.guild_id}")
-
         return members
