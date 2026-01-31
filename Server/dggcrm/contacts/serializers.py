@@ -1,6 +1,8 @@
 from rest_framework import serializers
 
 from .models import Contact, Tag, TagAssignments
+from ..events.models import EventParticipation
+from ..events.serializers import EventSerializer
 
 
 class ContactSerializer(serializers.ModelSerializer):

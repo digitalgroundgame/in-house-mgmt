@@ -25,6 +25,7 @@ class EventParticipationSerializer(serializers.ModelSerializer):
         source="get_status_display",
         read_only=True,
     )
+    event = EventSerializer()
 
     class Meta:
         model = EventParticipation
