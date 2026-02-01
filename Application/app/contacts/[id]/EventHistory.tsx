@@ -19,6 +19,7 @@ import {
 import { useState, useEffect, useCallback } from "react";
 import { IconSearch, IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
+import { DateTime } from "@/app/components/datetime";
 
 interface EventData {
   id: number;
@@ -95,14 +96,6 @@ function FilterBadgeGroup({
     </Stack>
   );
 }
-
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-};
 
 export default function EventHistory({ contactId }: { contactId: string }) {
   const router = useRouter();
@@ -253,9 +246,13 @@ export default function EventHistory({ contactId }: { contactId: string }) {
                           <Text size="sm" fw={500} truncate="end">
                             {p.event.name || "Unnamed Event"}
                           </Text>
-                          <Text size="xs" c="dimmed">
-                            {formatDate(p.event.starts_at)}
-                          </Text>
+                          <DateTime
+                            value={p.event.starts_at}
+                            size="xs"
+                            c="dimmed"
+                            includeTime={false}
+                            style="medium"
+                          />
                         </div>
                         <Group gap={4} wrap="nowrap">
                           <Badge size="xs" variant="light">

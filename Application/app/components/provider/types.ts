@@ -19,4 +19,5 @@ export interface User {
   groups: string[];
   email_addresses: EmailAddress[];
   social_accounts: SocialAccount[];
+  timezone: string;
 }

@@ -1,10 +1,11 @@
 from django.urls import path
 
-from .views import CurrentUserView, SocialConnectionDeleteView
+from .views import CurrentUserView, SocialConnectionDeleteView, UserPreferencesView
 
 urlpatterns = [
     path(
         "auth/social/connections/<str:provider>/", SocialConnectionDeleteView.as_view(), name="social_connection_delete"
     ),
     path("auth/user/", CurrentUserView.as_view(), name="current-user"),
+    path("auth/preferences/", UserPreferencesView.as_view(), name="user-preferences"),
 ]

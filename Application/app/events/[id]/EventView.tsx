@@ -1,3 +1,5 @@
+"use client";
+
 import { Event, getStatusColor } from "@/app/components/event-utils";
 import {
   Text,
@@ -11,6 +13,7 @@ import {
   Box,
   Badge,
 } from "@mantine/core";
+import { DateTime } from "@/app/components/datetime";
 
 export default function EventView({ event }: { event: Event }) {
   return (
@@ -59,14 +62,14 @@ export default function EventView({ event }: { event: Event }) {
               <Text c="dimmed" size="sm">
                 Start Date
               </Text>
-              <Text>{event.starts_at}</Text>
+              <DateTime value={event.starts_at} style="long" />
             </Box>
             <Divider />
             <Box mt={4} mb={4}>
               <Text c="dimmed" size="sm">
                 End Date
               </Text>
-              <Text>{event.ends_at}</Text>
+              <DateTime value={event.ends_at} style="long" />
             </Box>
           </Paper>
         </GridCol>
