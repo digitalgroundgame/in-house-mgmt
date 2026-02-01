@@ -1,9 +1,12 @@
 import { Contact } from "@/app/components/ContactSearch";
 import EventsContactTable, { EventParticipation } from "@/app/components/EventsContactTable";
-import { Event, getStatusColor } from "@/app/components/event-utils";
+import PaginatedTable, { rowSelectionStateChange } from "@/app/components/PaginatedTable";
+import { formatContactInfo } from "@/app/components/contact-utils";
+import { Event } from "@/app/components/event-utils";
 import { BackendPaginatedResults, useBackend } from "@/app/lib/api";
-import { Text, Paper, Container, Stack, Divider, Title, Grid, GridCol, Box, Badge, LoadingOverlay } from "@mantine/core";
+import { Text, Paper, Container, Stack, Divider, Title, Grid, GridCol, Box, Badge, LoadingOverlay, Table } from "@mantine/core";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function EventView({event}: {event: Event | undefined}) {
   return <Container py="xl" size="xl">
@@ -64,17 +67,47 @@ function EventViewMetadata({event}: {event: Event}) {
   </GridCol>
 }
 
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'UNKNOWN': return 'gray';
+    case 'MAYBE': return 'gray';
+    case 'COMMITTED': return 'blue';
+    case 'REJECTED': return 'red';
+    case 'ATTENDED': return 'green';
+    case 'NO_SHOW': return 'red';
+    default: return 'DimGray';
+  }
+};
+
 function EventViewContactTable({event}: {event: Event}) {
   const {data, loading, error} = useBackend<BackendPaginatedResults<EventParticipation>>(`/api/participants?event=${event.id}`)
+  const [selected, setSelected] = useState<Set<number>>(new Set()) 
   const router = useRouter()
 
-  console.log(data)
+  console.log(selected)
   return <>
     <LoadingOverlay visible={!data}/>
-    {data && <EventsContactTable 
+
+     {data && <EventsContactTable 
         eventParticipations={data.results}
         loading={loading}
         onRowClick={(contact: Contact) => router.push(`/contacts/${contact.id}`)}
     />}
+    {data && <PaginatedTable 
+      data={data.results}
+      onRowClick={(contact: EventParticipation) => router.push(`/contacts/${contact.id}`)}
+      columns={["Name", "Contact", "Status"]} 
+      transforms={[
+        (ep) => <Table.Td key={ep.contact.full_name}>{ep.contact.full_name}</Table.Td>,
+        (ep) => <Table.Td key={ep.contact.phone}>{formatContactInfo(ep.contact.full_name, ep.contact.phone)}</Table.Td>,
+        (ep) => <Table.Td key={ep.status}>
+          <Badge color={getStatusColor(ep.status)}>{ep.status_display}</Badge>
+        </Table.Td>
+      ]}
+      useCheckboxes={true}
+      onSelect={(ele) => setSelected(prev => rowSelectionStateChange(prev, ele.id))}
+      selected={selected}
+      keyFn={(ep: EventParticipation) => ep.id}
+     />}
   </>
 }
