@@ -1,14 +1,11 @@
 "use client";
 
 import { Table, Badge, Stack, Title, LoadingOverlay, Paper, Tooltip, Text } from "@mantine/core";
-import { IconChevronUp, IconChevronDown, IconSelector, IconClock } from "@tabler/icons-react";
+import { IconChevronUp, IconChevronDown, IconSelector } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/app/components/provider/UserContext";
 import { Ticket } from "./ticket-utils";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
-
-dayjs.extend(relativeTime);
+import { RelativeTime } from "@/app/components/datetime";
 
 export type SortDirection = "asc" | "desc" | null;
 export type SortField = "id" | "title" | "assigned_to_id" | "created_at" | null;
@@ -186,12 +183,11 @@ export default function TicketTable({
                   </Text>
                 </Table.Td>
                 <Table.Td>
-                  <Tooltip label={dayjs(ticket.created_at).format("ddd, MMM D, YYYY [at] h:mm A")}>
-                    <Text size="sm" style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <IconClock size={14} style={{ opacity: 0.6 }} />
-                      {dayjs(ticket.created_at).fromNow()}
-                    </Text>
-                  </Tooltip>
+                  <RelativeTime
+                    value={ticket.created_at}
+                    size="sm"
+                    style={{ display: "flex", alignItems: "center", gap: 4 }}
+                  />
                 </Table.Td>
               </Table.Tr>
             ))}

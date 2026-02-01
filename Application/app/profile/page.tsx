@@ -12,11 +12,14 @@ import {
   Badge,
   LoadingOverlay,
   Notification,
+  Select,
 } from "@mantine/core";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import getCookie from "@/app/utils/cookie";
 import { loginWithProvider } from "@/app/utils/oauth";
 import { useUser, User } from "@/app/components/provider/UserContext";
+import { useTimezone } from "@/app/components/provider/TimezoneContext";
+import { getTimezoneList, getBrowserTimezone } from "@/app/utils/datetime";
 
 interface ProfileFormProps {
   user: User;
@@ -27,6 +30,9 @@ function ProfileForm({ user, refresh }: ProfileFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [firstName, setFirstName] = useState(user.first_name || "");
   const [lastName, setLastName] = useState(user.last_name || "");
+  const { timezone, setTimezone, isLoading: timezoneLoading } = useTimezone();
+  const timezoneList = useMemo(() => getTimezoneList(), []);
+  const browserTimezone = useMemo(() => getBrowserTimezone(), []);
 
   const updateProfile = async () => {
     setError(null);
@@ -68,6 +74,20 @@ function ProfileForm({ user, refresh }: ProfileFormProps) {
         >
           Save profile
         </Button>
+
+        {/* Timezone Preferences */}
+        <Divider label="Timezone Preferences" />
+        <Select
+          label="Display timezone"
+          description={`Your browser detected: ${browserTimezone}`}
+          placeholder="Select timezone"
+          data={timezoneList}
+          value={timezone}
+          onChange={(value) => value && setTimezone(value)}
+          searchable
+          nothingFoundMessage="No timezone found"
+          disabled={timezoneLoading}
+        />
 
         {/* Emails */}
         <Divider label="Emails" />

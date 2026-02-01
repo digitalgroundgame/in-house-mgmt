@@ -19,6 +19,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "@mantine/form";
 import EventsTable from "@/app/components/EventsTable";
 import { type Event } from "../components/event-utils";
+import { DateTimePicker, DateTime } from "@/app/components/datetime";
 
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -241,17 +242,19 @@ export default function EventsPage() {
               placeholder="Enter event description (optional)"
               {...form.getInputProps("description")}
             />
-            <TextInput
+            <DateTimePicker
               label="Start Date"
-              placeholder="YYYY-MM-DD or ISO date string"
               required
-              {...form.getInputProps("starts_at")}
+              value={form.values.starts_at}
+              onChange={(val) => form.setFieldValue("starts_at", val || "")}
+              error={form.errors.starts_at as string}
             />
-            <TextInput
+            <DateTimePicker
               label="End Date"
-              placeholder="YYYY-MM-DD or ISO date string"
               required
-              {...form.getInputProps("ends_at")}
+              value={form.values.ends_at}
+              onChange={(val) => form.setFieldValue("ends_at", val || "")}
+              error={form.errors.ends_at as string}
             />
             <TextInput
               label="Location Name"
@@ -294,8 +297,8 @@ export default function EventsPage() {
               <Text size="sm" fw={500} c="dimmed">
                 Date
               </Text>
-              <Text size="sm">{selectedEvent.starts_at || "No start date specified"}</Text>
-              <Text size="sm">{selectedEvent.ends_at || "No end date specified"}</Text>
+              <DateTime value={selectedEvent.starts_at} size="sm" style="long" />
+              <DateTime value={selectedEvent.ends_at} size="sm" style="long" />
             </div>
             <div>
               <Text size="sm" fw={500} c="dimmed">

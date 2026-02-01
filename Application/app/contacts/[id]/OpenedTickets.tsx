@@ -18,6 +18,7 @@ import {
 } from "@mantine/core";
 import { useState, useEffect, useCallback } from "react";
 import { IconSearch, IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
+import { DateTime } from "@/app/components/datetime";
 
 interface TicketListItem {
   id: number;
@@ -87,14 +88,6 @@ function FilterBadgeGroup({
     </Stack>
   );
 }
-
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-};
 
 export default function OpenedTickets({ contactId }: { contactId: string }) {
   const [tickets, setTickets] = useState<TicketListItem[]>([]);
@@ -222,9 +215,13 @@ export default function OpenedTickets({ contactId }: { contactId: string }) {
                           <Text size="sm" fw={500} truncate="end">
                             {t.title || "Untitled Ticket"}
                           </Text>
-                          <Text size="xs" c="dimmed">
-                            {formatDate(t.created_at)}
-                          </Text>
+                          <DateTime
+                            value={t.created_at}
+                            size="xs"
+                            c="dimmed"
+                            includeTime={false}
+                            style="medium"
+                          />
                         </div>
                         <Group gap={4} wrap="nowrap">
                           <Badge size="xs" variant="light">

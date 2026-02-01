@@ -21,6 +21,7 @@
     "@mantine/form": "^8.3.10",
     "@mantine/hooks": "^8.3.10",
     "@tabler/icons-react": "^3.36.0",
+    "dayjs": "^1.11.19",
     "next": "16.1.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
