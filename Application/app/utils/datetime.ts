@@ -2,11 +2,13 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import relativeTime from "dayjs/plugin/relativeTime";
+import advancedFormat from "dayjs/plugin/advancedFormat";
 
 // Extend dayjs with plugins
 dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.extend(relativeTime);
+dayjs.extend(advancedFormat);
 
 export { dayjs };
 
@@ -40,7 +42,7 @@ export function formatDateTime(
   const formats: Record<string, { date: string; time: string }> = {
     short: { date: "MMM D", time: "h:mm A" },
     medium: { date: "MMM D, YYYY", time: "h:mm A" },
-    long: { date: "dddd, MMMM D, YYYY", time: "h:mm A z" },
+    long: { date: "dddd, MMMM D, YYYY", time: "h:mm A" },
   };
 
   const fmt = formats[style];
@@ -79,7 +81,8 @@ export function getTimezoneAbbr(tz: string): string {
  */
 export function formatFullDateTime(utcString: string | null | undefined, tz: string): string {
   if (!utcString) return "No date";
-  return dayjs.utc(utcString).tz(tz).format("dddd, MMMM D, YYYY [at] h:mm A z");
+  const date = dayjs.utc(utcString).tz(tz);
+  return `${date.format("dddd, MMMM D, YYYY [at] h:mm A")} ${getTimezoneAbbr(tz)}`;
 }
 
 /**

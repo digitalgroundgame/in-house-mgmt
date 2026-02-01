@@ -15,15 +15,17 @@ export function RelativeTime({ value, showTooltip = true, ...textProps }: Relati
   const { timezone } = useTimezone();
 
   const relativeText = getRelativeTime(value);
+  // Relative times don't show timezone (tooltip has full datetime with tz)
+  const displayText = relativeText;
   const tooltipText = formatFullDateTime(value, timezone);
 
   if (!showTooltip || !value) {
-    return <Text {...textProps}>{relativeText || "No date"}</Text>;
+    return <Text {...textProps}>{displayText || "No date"}</Text>;
   }
 
   return (
     <Tooltip label={tooltipText} withArrow>
-      <Text {...textProps}>{relativeText}</Text>
+      <Text {...textProps}>{displayText}</Text>
     </Tooltip>
   );
 }

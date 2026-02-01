@@ -2,7 +2,12 @@
 
 import { Text, Tooltip, TextProps } from "@mantine/core";
 import { useTimezone } from "@/app/components/provider/TimezoneContext";
-import { formatDateTime, formatFullDateTime, FormatDateTimeOptions } from "@/app/utils/datetime";
+import {
+  formatDateTime,
+  formatFullDateTime,
+  getTimezoneAbbr,
+  FormatDateTimeOptions,
+} from "@/app/utils/datetime";
 
 export interface DateTimeProps extends Omit<TextProps, "children"> {
   /** UTC datetime string */
@@ -13,6 +18,8 @@ export interface DateTimeProps extends Omit<TextProps, "children"> {
   style?: FormatDateTimeOptions["style"];
   /** Show tooltip with full datetime (default: true) */
   showTooltip?: boolean;
+  /** Show timezone abbreviation (default: true) */
+  showTimezone?: boolean;
 }
 
 export function DateTime({
@@ -20,11 +27,16 @@ export function DateTime({
   includeTime = true,
   style = "medium",
   showTooltip = true,
+  showTimezone = true,
   ...textProps
 }: DateTimeProps) {
   const { timezone } = useTimezone();
 
-  const displayText = formatDateTime(value, timezone, { includeTime, style });
+  const formattedDate = formatDateTime(value, timezone, { includeTime, style });
+  const tzAbbr = getTimezoneAbbr(timezone);
+  // Only show timezone when time is displayed
+  const displayText =
+    showTimezone && includeTime && value ? `${formattedDate} ${tzAbbr}` : formattedDate;
   const tooltipText = formatFullDateTime(value, timezone);
 
   if (!showTooltip || !value) {
