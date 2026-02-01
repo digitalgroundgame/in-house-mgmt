@@ -1,9 +1,9 @@
 import { Contact } from "@/app/components/ContactSearch";
-import ContactTable from "@/app/components/ContactTable";
+import EventsContactTable, { EventParticipation } from "@/app/components/EventsContactTable";
 import { Event, getStatusColor } from "@/app/components/event-utils";
-import { EventParticipation } from "@/app/components/tickets/TicketActions";
 import { BackendPaginatedResults, useBackend } from "@/app/lib/api";
 import { Text, Paper, Container, Stack, Divider, Title, Grid, GridCol, Box, Badge, LoadingOverlay } from "@mantine/core";
+import { useRouter } from "next/navigation";
 
 export default function EventView({event}: {event: Event | undefined}) {
   return <Container py="xl" size="xl">
@@ -64,24 +64,17 @@ function EventViewMetadata({event}: {event: Event}) {
   </GridCol>
 }
 
-interface EventParticipation {
-  contact: Contact,
-  created_at: string,
-  modified_at: string,
-  id: number
-  status: unknown
-  status_display: unknown
-}
-
 function EventViewContactTable({event}: {event: Event}) {
   const {data, loading, error} = useBackend<BackendPaginatedResults<EventParticipation>>(`/api/participants?event=${event.id}`)
+  const router = useRouter()
 
   console.log(data)
   return <>
     <LoadingOverlay visible={!data}/>
-    {data && <ContactTable 
-        contacts={data.results.map(eventParticipation => eventParticipation.contact)}
+    {data && <EventsContactTable 
+        eventParticipations={data.results}
         loading={loading}
+        onRowClick={(contact: Contact) => router.push(`/contacts/${contact.id}`)}
     />}
   </>
 }

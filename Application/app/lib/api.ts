@@ -16,7 +16,7 @@ export interface BackendPaginatedResults<T> {
  */
 export function useBackend<T>(path: string, options: RequestInit = {}) {
   const [data, setData] = useState<T>()
-  const [loading, setLoading] = useState<boolean>()
+  const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<Error | null>()
 
   useEffect(() => {
