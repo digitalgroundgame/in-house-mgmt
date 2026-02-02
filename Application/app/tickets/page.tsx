@@ -25,15 +25,23 @@ import TicketTable, {
 import ContactSearch from "@/app/components/ContactSearch";
 import { type Ticket } from "@/app/components/tickets/ticket-utils";
 
+const openStatusValues = ["OPEN", "TODO", "IN_PROGRESS", "BLOCKED"];
+const closedStatusValues = ["COMPLETED", "CANCELED"];
+const defaultExcluded = ["COMPLETED", "CANCELED"];
+
+const statusBadges = [
+  { value: "OPEN", label: "Open" },
+  { value: "TODO", label: "To Do" },
+  { value: "IN_PROGRESS", label: "In Progress" },
+  { value: "BLOCKED", label: "Blocked" },
+];
+
 // TODO: /tickets/123 doesn't work, we should make sure the url reflects the current ticket
 export default function TicketPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState("all");
-  const [showCanceled, setShowCanceled] = useState(false);
-  const [showCompleted, setShowCompleted] = useState(false);
-  const [closedOnly, setClosedOnly] = useState(false);
+  const [excludedStatuses, setExcludedStatuses] = useState<string[]>(defaultExcluded);
   const [priorities, setPriorities] = useState<{ value: string; label: string }[]>([]);
   const [priority, setPriority] = useState<string | null>(null);
   const [ticketType, setTicketType] = useState<string | null>(null);
@@ -44,16 +52,8 @@ export default function TicketPage() {
   const [sortField, setSortField] = useState<SortField>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
 
-  const openStatuses = [
-    { value: "all", label: "All" },
-    { value: "OPEN", label: "Open" },
-    { value: "TODO", label: "To Do" },
-    { value: "IN_PROGRESS", label: "In Progress" },
-    { value: "BLOCKED", label: "Blocked" },
-  ];
-
   useEffect(() => {
-    fetchTicketes(undefined, null, "all", null, null, null, showCanceled, showCompleted);
+    fetchTicketes();
     fetchPriorities();
   }, []);
 
@@ -72,43 +72,15 @@ export default function TicketPage() {
     }
   };
 
-  const handleReset = () => {
-    setPriority(null);
-    setTicketType(null);
-    setStatus("all");
-    setShowCanceled(false);
-    setShowCompleted(false);
-    setClosedOnly(false);
-    setSortField(null);
-    setSortDirection(null);
-    fetchTicketes(undefined, null, "all", null, null, null, false, false);
-  };
-
-  const handleSort = (field: SortField, direction: SortDirection) => {
-    setSortField(field);
-    setSortDirection(direction);
-    fetchTicketes(
-      undefined,
-      priority,
-      status,
-      field,
-      direction,
-      ticketType,
-      showCanceled,
-      showCompleted
-    );
-  };
-
   const fetchTicketes = async (
     url?: string,
-    priorityFilter?: string | null,
-    statusFilter?: string,
-    orderField?: SortField,
-    orderDirection?: SortDirection,
-    typeFilter?: string | null,
-    includeCanceled?: boolean,
-    includeCompleted?: boolean,
-    closedOnly?: boolean
+    overrides?: {
+      priority?: string | null;
+      ticketType?: string | null;
+      sortField?: SortField;
+      sortDirection?: SortDirection;
+      excludedStatuses?: string[];
+    }
   ) => {
     try {
       setLoading(true);
@@ -117,32 +89,31 @@ export default function TicketPage() {
       // Add filters if not using pagination URL
       if (!url) {
         const params = new URLSearchParams();
-        if (priorityFilter !== undefined && priorityFilter !== null) {
-          params.append("priority", priorityFilter);
+
+        const effectivePriority =
+          overrides?.priority !== undefined ? overrides.priority : priority;
+        const effectiveType =
+          overrides?.ticketType !== undefined ? overrides.ticketType : ticketType;
+        const effectiveSortField =
+          overrides?.sortField !== undefined ? overrides.sortField : sortField;
+        const effectiveSortDirection =
+          overrides?.sortDirection !== undefined ? overrides.sortDirection : sortDirection;
+        const effectiveExcluded =
+          overrides?.excludedStatuses !== undefined ? overrides.excludedStatuses : excludedStatuses;
+
+        if (effectivePriority !== undefined && effectivePriority !== null) {
+          params.append("priority", effectivePriority);
         }
-        if (statusFilter && statusFilter !== "all") {
-          params.append("status", statusFilter);
+        if (effectiveType) {
+          params.append("type", effectiveType);
         }
-        if (typeFilter) {
-          params.append("type", typeFilter);
-        }
-        if (orderField && orderDirection) {
-          const orderValue = orderDirection === "desc" ? `-${orderField}` : orderField;
+        if (effectiveSortField && effectiveSortDirection) {
+          const orderValue =
+            effectiveSortDirection === "desc" ? `-${effectiveSortField}` : effectiveSortField;
           params.append("ordering", orderValue);
         }
-        // Exclude statuses based on view mode
-        const excludeStatuses: string[] = [];
-        if (closedOnly) {
-          excludeStatuses.push("OPEN", "TODO", "IN_PROGRESS", "BLOCKED");
-        }
-        if (!includeCanceled && statusFilter !== "CANCELED") {
-          excludeStatuses.push("CANCELED");
-        }
-        if (!includeCompleted && statusFilter !== "COMPLETED") {
-          excludeStatuses.push("COMPLETED");
-        }
-        if (excludeStatuses.length > 0) {
-          params.append("exclude_status", excludeStatuses.join(","));
+        if (effectiveExcluded.length > 0) {
+          params.append("exclude_status", effectiveExcluded.join(","));
         }
         if (params.toString()) {
           fetchUrl = `/api/tickets?${params.toString()}`;
@@ -160,6 +131,44 @@ export default function TicketPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleStatus = (statusValue: string) => {
+    const newExcluded = excludedStatuses.includes(statusValue)
+      ? excludedStatuses.filter((s) => s !== statusValue)
+      : [...excludedStatuses, statusValue];
+    setExcludedStatuses(newExcluded);
+    fetchTicketes(undefined, { excludedStatuses: newExcluded });
+  };
+
+  const toggleAllOpen = () => {
+    const allOpenShown = !openStatusValues.some((s) => excludedStatuses.includes(s));
+    const newExcluded = allOpenShown
+      ? [...new Set([...excludedStatuses, ...openStatusValues])]
+      : excludedStatuses.filter((s) => !openStatusValues.includes(s));
+    setExcludedStatuses(newExcluded);
+    fetchTicketes(undefined, { excludedStatuses: newExcluded });
+  };
+
+  const handleReset = () => {
+    setPriority(null);
+    setTicketType(null);
+    setSortField(null);
+    setSortDirection(null);
+    setExcludedStatuses(defaultExcluded);
+    fetchTicketes(undefined, {
+      priority: null,
+      ticketType: null,
+      sortField: null,
+      sortDirection: null,
+      excludedStatuses: defaultExcluded,
+    });
+  };
+
+  const handleSort = (field: SortField, direction: SortDirection) => {
+    setSortField(field);
+    setSortDirection(direction);
+    fetchTicketes(undefined, { sortField: field, sortDirection: direction });
   };
 
   const handleRowClick = (reach: Ticket) => {
@@ -199,6 +208,8 @@ export default function TicketPage() {
     }
   };
 
+  const allOpenShown = !openStatusValues.some((s) => excludedStatuses.includes(s));
+
   return (
     <Container size="xl" py="xl">
       <Grid>
@@ -222,25 +233,19 @@ export default function TicketPage() {
               <Paper p="md" withBorder>
                 <Stack gap="md">
                   <Group gap="xs">
-                    {openStatuses.map((s) => (
+                    <Badge
+                      variant={allOpenShown ? "filled" : "outline"}
+                      style={{ cursor: "pointer" }}
+                      onClick={toggleAllOpen}
+                    >
+                      All
+                    </Badge>
+                    {statusBadges.map((s) => (
                       <Badge
                         key={s.value}
-                        variant={status === s.value && !closedOnly ? "filled" : "light"}
+                        variant={excludedStatuses.includes(s.value) ? "outline" : "filled"}
                         style={{ cursor: "pointer" }}
-                        onClick={() => {
-                          setStatus(s.value);
-                          setClosedOnly(false);
-                          fetchTicketes(
-                            undefined,
-                            priority,
-                            s.value,
-                            sortField,
-                            sortDirection,
-                            ticketType,
-                            showCanceled,
-                            showCompleted
-                          );
-                        }}
+                        onClick={() => toggleStatus(s.value)}
                       >
                         {s.label}
                       </Badge>
@@ -248,43 +253,17 @@ export default function TicketPage() {
                     <Text c="dimmed">|</Text>
                     <Badge
                       color="gray"
-                      variant={showCompleted ? "filled" : "outline"}
+                      variant={excludedStatuses.includes("COMPLETED") ? "outline" : "filled"}
                       style={{ cursor: "pointer" }}
-                      onClick={() => {
-                        setShowCompleted(!showCompleted);
-                        fetchTicketes(
-                          undefined,
-                          priority,
-                          status,
-                          sortField,
-                          sortDirection,
-                          ticketType,
-                          showCanceled,
-                          !showCompleted,
-                          closedOnly
-                        );
-                      }}
+                      onClick={() => toggleStatus("COMPLETED")}
                     >
                       Completed
                     </Badge>
                     <Badge
                       color="red"
-                      variant={showCanceled ? "filled" : "outline"}
+                      variant={excludedStatuses.includes("CANCELED") ? "outline" : "filled"}
                       style={{ cursor: "pointer" }}
-                      onClick={() => {
-                        setShowCanceled(!showCanceled);
-                        fetchTicketes(
-                          undefined,
-                          priority,
-                          status,
-                          sortField,
-                          sortDirection,
-                          ticketType,
-                          !showCanceled,
-                          showCompleted,
-                          closedOnly
-                        );
-                      }}
+                      onClick={() => toggleStatus("CANCELED")}
                     >
                       Canceled
                     </Badge>
@@ -294,7 +273,10 @@ export default function TicketPage() {
                     <Select
                       label="Priority"
                       value={priority}
-                      onChange={(value) => setPriority(value)}
+                      onChange={(value) => {
+                        setPriority(value);
+                        fetchTicketes(undefined, { priority: value });
+                      }}
                       placeholder="All priorities"
                       clearable
                       data={priorities}
@@ -303,7 +285,10 @@ export default function TicketPage() {
                     <Select
                       label="Type"
                       value={ticketType}
-                      onChange={(value) => setTicketType(value)}
+                      onChange={(value) => {
+                        setTicketType(value);
+                        fetchTicketes(undefined, { ticketType: value });
+                      }}
                       placeholder="All types"
                       clearable
                       data={[
@@ -325,23 +310,6 @@ export default function TicketPage() {
                       ]}
                       style={{ flex: 1 }}
                     />
-                    <Button
-                      mt="xl"
-                      onClick={() =>
-                        fetchTicketes(
-                          undefined,
-                          priority,
-                          status,
-                          sortField,
-                          sortDirection,
-                          ticketType,
-                          showCanceled,
-                          showCompleted
-                        )
-                      }
-                    >
-                      Update
-                    </Button>
                   </Group>
                   <Group gap="sm">
                     <Button variant="outline" onClick={handleReset}>
@@ -361,55 +329,26 @@ export default function TicketPage() {
                 sortDirection={sortDirection}
                 onSort={handleSort}
                 onStatusToggle={() => {
-                  // Cycle: open -> closed -> all -> open
-                  if (!showCanceled && !showCompleted) {
-                    // Currently open, switch to closed (both completed + canceled)
-                    setShowCanceled(true);
-                    setShowCompleted(true);
-                    setClosedOnly(true);
-                    setStatus("all");
-                    fetchTicketes(
-                      undefined,
-                      priority,
-                      "all",
-                      sortField,
-                      sortDirection,
-                      ticketType,
-                      true,
-                      true,
-                      true
-                    );
-                  } else if (closedOnly) {
-                    // Currently closed, switch to all
-                    setClosedOnly(false);
-                    setStatus("all");
-                    fetchTicketes(
-                      undefined,
-                      priority,
-                      "all",
-                      sortField,
-                      sortDirection,
-                      ticketType,
-                      true,
-                      true
-                    );
+                  const hasExcludedClosed = closedStatusValues.some((s) =>
+                    excludedStatuses.includes(s)
+                  );
+                  const hasExcludedOpen = openStatusValues.some((s) =>
+                    excludedStatuses.includes(s)
+                  );
+
+                  let newExcluded: string[];
+                  if (!hasExcludedOpen && hasExcludedClosed) {
+                    // Currently open view → switch to closed only
+                    newExcluded = [...openStatusValues];
+                  } else if (hasExcludedOpen && !hasExcludedClosed) {
+                    // Currently closed view → switch to all
+                    newExcluded = [];
                   } else {
-                    // Currently all, switch to open
-                    setShowCanceled(false);
-                    setShowCompleted(false);
-                    setClosedOnly(false);
-                    setStatus("all");
-                    fetchTicketes(
-                      undefined,
-                      priority,
-                      "all",
-                      sortField,
-                      sortDirection,
-                      ticketType,
-                      false,
-                      false
-                    );
+                    // Mixed or all → switch to open only (default)
+                    newExcluded = [...closedStatusValues];
                   }
+                  setExcludedStatuses(newExcluded);
+                  fetchTicketes(undefined, { excludedStatuses: newExcluded });
                 }}
               />
 
