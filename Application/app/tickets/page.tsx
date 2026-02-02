@@ -23,7 +23,15 @@ import TicketTable, {
   type SortDirection,
 } from "@/app/components/tickets/TicketTable";
 import ContactSearch from "@/app/components/ContactSearch";
+import { SearchSelect, type SearchSelectOption } from "@/app/components/SearchSelect";
 import { type Ticket } from "@/app/components/tickets/ticket-utils";
+
+interface UserResult {
+  id: number;
+  username: string;
+  first_name: string;
+  last_name: string;
+}
 
 const openStatusValues = ["OPEN", "TODO", "IN_PROGRESS", "BLOCKED"];
 const closedStatusValues = ["COMPLETED", "CANCELED"];
@@ -45,7 +53,7 @@ export default function TicketPage() {
   const [priorities, setPriorities] = useState<{ value: string; label: string }[]>([]);
   const [priority, setPriority] = useState<string | null>(null);
   const [ticketType, setTicketType] = useState<string | null>(null);
-  const [assignee, setAssignee] = useState("admin");
+  const [assignee, setAssignee] = useState<SearchSelectOption<UserResult> | null>(null);
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [previousUrl, setPreviousUrl] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
@@ -77,6 +85,7 @@ export default function TicketPage() {
     overrides?: {
       priority?: string | null;
       ticketType?: string | null;
+      assignee?: SearchSelectOption<UserResult> | null;
       sortField?: SortField;
       sortDirection?: SortDirection;
       excludedStatuses?: string[];
@@ -98,9 +107,14 @@ export default function TicketPage() {
           overrides?.sortField !== undefined ? overrides.sortField : sortField;
         const effectiveSortDirection =
           overrides?.sortDirection !== undefined ? overrides.sortDirection : sortDirection;
+        const effectiveAssignee =
+          overrides?.assignee !== undefined ? overrides.assignee : assignee;
         const effectiveExcluded =
           overrides?.excludedStatuses !== undefined ? overrides.excludedStatuses : excludedStatuses;
 
+        if (effectiveAssignee) {
+          params.append("assigned_to", String(effectiveAssignee.id));
+        }
         if (effectivePriority !== undefined && effectivePriority !== null) {
           params.append("priority", effectivePriority);
         }
@@ -186,26 +200,6 @@ export default function TicketPage() {
     if (priority == 3) return "yellow";
     if (priority <= 5) return "gray";
     return "gray";
-  };
-
-  // TODO: Use code in TicketesTable.tsx
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "OPEN":
-        return "gray";
-      case "TODO":
-        return "gray";
-      case "IN_PROGRESS":
-        return "blue";
-      case "BLOCKED":
-        return "red";
-      case "COMPLETED":
-        return "DimGray";
-      case "CANCELED":
-        return "red";
-      default:
-        return "DimGray";
-    }
   };
 
   const allOpenShown = !openStatusValues.some((s) => excludedStatuses.includes(s));
@@ -299,16 +293,20 @@ export default function TicketPage() {
                       ]}
                       style={{ flex: 1 }}
                     />
-                    <Select
+                    <SearchSelect<UserResult>
+                      endpoint="/api/users"
                       label="Assignee"
+                      placeholder="Search users…"
                       value={assignee}
-                      onChange={(value) => setAssignee(value || "admin")}
-                      data={[
-                        { value: "admin", label: "admin (admin@test.com)" },
-                        { value: "user1", label: "User 1 (user1@test.com)" },
-                        { value: "user2", label: "User 2 (user2@test.com)" },
-                      ]}
-                      style={{ flex: 1 }}
+                      onChange={setAssignee}
+                      clearable
+                      mapResult={(user) => ({
+                        id: user.id,
+                        label: user.first_name
+                          ? `${user.first_name} ${user.last_name} (${user.username})`
+                          : user.username,
+                        raw: user,
+                      })}
                     />
                   </Group>
                   <Group gap="sm">
