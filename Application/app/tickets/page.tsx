@@ -23,6 +23,7 @@ import TicketTable, {
   type SortDirection,
 } from "@/app/components/tickets/TicketTable";
 import ContactSearch from "@/app/components/ContactSearch";
+import { useUser } from "@/app/components/provider/UserContext";
 import { SearchSelect, type SearchSelectOption } from "@/app/components/SearchSelect";
 import { type Ticket } from "@/app/components/tickets/ticket-utils";
 
@@ -46,6 +47,7 @@ const statusBadges = [
 
 // TODO: /tickets/123 doesn't work, we should make sure the url reflects the current ticket
 export default function TicketPage() {
+  const { user } = useUser();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,6 +56,7 @@ export default function TicketPage() {
   const [priority, setPriority] = useState<string | null>(null);
   const [ticketType, setTicketType] = useState<string | null>(null);
   const [assignee, setAssignee] = useState<SearchSelectOption<UserResult> | null>(null);
+  const [assignedToMe, setAssignedToMe] = useState(false);
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [previousUrl, setPreviousUrl] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
@@ -147,6 +150,31 @@ export default function TicketPage() {
     }
   };
 
+  const setNewAssignee = (newAssignee: SearchSelectOption<UserResult> | null) => {
+    setAssignedToMe(false);
+    setAssignee(newAssignee);
+    fetchTicketes(undefined, { assignee: newAssignee });
+  };
+
+  const toggleAssignedToMe = () => {
+    if (assignedToMe) {
+      setAssignedToMe(false);
+      setAssignee(null);
+      fetchTicketes(undefined, { assignee: null });
+    } else if (user) {
+      const meOption: SearchSelectOption<UserResult> = {
+        id: user.id,
+        label: user.first_name
+          ? `${user.first_name} ${user.last_name} (${user.username})`
+          : user.username,
+        raw: { id: user.id, username: user.username, first_name: user.first_name, last_name: user.last_name },
+      };
+      setAssignedToMe(true);
+      setAssignee(meOption);
+      fetchTicketes(undefined, { assignee: meOption });
+    }
+  };
+
   const toggleStatus = (statusValue: string) => {
     const newExcluded = excludedStatuses.includes(statusValue)
       ? excludedStatuses.filter((s) => s !== statusValue)
@@ -167,6 +195,8 @@ export default function TicketPage() {
   const handleReset = () => {
     setPriority(null);
     setTicketType(null);
+    setAssignedToMe(false);
+    setAssignee(null);
     setSortField(null);
     setSortDirection(null);
     setExcludedStatuses(defaultExcluded);
@@ -298,8 +328,9 @@ export default function TicketPage() {
                       label="Assignee"
                       placeholder="Search users…"
                       value={assignee}
-                      onChange={setAssignee}
+                      onChange={setNewAssignee}
                       clearable
+                      disabled={assignedToMe}
                       mapResult={(user) => ({
                         id: user.id,
                         label: user.first_name
@@ -310,6 +341,13 @@ export default function TicketPage() {
                     />
                   </Group>
                   <Group gap="sm">
+                    <Button
+                      color="green"
+                      variant={assignedToMe ? "filled" : "outline"}
+                      onClick={toggleAssignedToMe}
+                    >
+                      Assigned to me
+                    </Button>
                     <Button variant="outline" onClick={handleReset}>
                       Reset
                     </Button>
