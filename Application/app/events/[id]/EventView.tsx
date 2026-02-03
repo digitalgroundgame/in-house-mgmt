@@ -1,11 +1,12 @@
 import { Contact } from "@/app/components/ContactSearch";
-import EventsContactTable, { EventParticipation } from "@/app/components/EventsContactTable";
-import PaginatedTable, { rowSelectionStateChange } from "@/app/components/PaginatedTable";
+import PaginatedTable from "@/app/components/PaginatedTable";
+import PaginationBar, { decrementPageSearchParam, incrementPageSearchParam } from "@/app/components/PaginationBar";
 import { formatContactInfo } from "@/app/components/contact-utils";
 import { Event } from "@/app/components/event-utils";
 import { BackendPaginatedResults, useBackend } from "@/app/lib/api";
-import { Text, Paper, Container, Stack, Divider, Title, Grid, GridCol, Box, Badge, LoadingOverlay, Table } from "@mantine/core";
-import { useRouter } from "next/navigation";
+import { Text, Paper, Container, Stack, Divider, Title, Grid, GridCol, Box, Badge, LoadingOverlay, Table, TextInput, Group, MultiSelect } from "@mantine/core";
+import { IconSearch } from "@tabler/icons-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 export default function EventView({event}: {event: Event | undefined}) {
@@ -67,7 +68,16 @@ function EventViewMetadata({event}: {event: Event}) {
   </GridCol>
 }
 
-const getStatusColor = (status: string) => {
+export interface EventParticipation {
+  contact: Contact,
+  created_at: string,
+  modified_at: string,
+  id: number
+  status: string
+  status_display: string
+}
+
+export const getStatusColor = (status: string) => {
   switch (status) {
     case 'UNKNOWN': return 'gray';
     case 'MAYBE': return 'gray';
@@ -80,34 +90,82 @@ const getStatusColor = (status: string) => {
 };
 
 function EventViewContactTable({event}: {event: Event}) {
-  const {data, loading, error} = useBackend<BackendPaginatedResults<EventParticipation>>(`/api/participants?event=${event.id}`)
+  const currentParams = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState<string>()
+  const [statusArray, setStatusArray] = useState<string[]>()
+  const pageNum = currentParams.get("page")
+  const apiParams = new URLSearchParams()
+
+  if (pageNum) apiParams.append("page", pageNum);
+  if (searchQuery) apiParams.append("search", searchQuery);
+  if (statusArray) {
+    for (const status of statusArray) {
+      apiParams.append("status", status)
+    }
+  }
+  
+  apiParams.append("event", event.id.toString())
+
+  const {data, loading, error} = useBackend<BackendPaginatedResults<EventParticipation>>(`/api/participants?${apiParams}`)
   const [selected, setSelected] = useState<Set<number>>(new Set()) 
   const router = useRouter()
 
-  console.log(selected)
-  return <>
-    <LoadingOverlay visible={!data}/>
+  const updateParam = (key: string, value?: string) => {
+    const params = new URLSearchParams(currentParams.toString());
 
-     {data && <EventsContactTable 
-        eventParticipations={data.results}
-        loading={loading}
-        onRowClick={(contact: Contact) => router.push(`/contacts/${contact.id}`)}
-    />}
-    {data && <PaginatedTable 
-      data={data.results}
-      onRowClick={(contact: EventParticipation) => router.push(`/contacts/${contact.id}`)}
-      columns={["Name", "Contact", "Status"]} 
-      transforms={[
-        (ep) => <Table.Td key={ep.contact.full_name}>{ep.contact.full_name}</Table.Td>,
-        (ep) => <Table.Td key={ep.contact.phone}>{formatContactInfo(ep.contact.full_name, ep.contact.phone)}</Table.Td>,
-        (ep) => <Table.Td key={ep.status}>
-          <Badge color={getStatusColor(ep.status)}>{ep.status_display}</Badge>
-        </Table.Td>
-      ]}
-      useCheckboxes={true}
-      onSelect={(ele) => setSelected(prev => rowSelectionStateChange(prev, ele.id))}
-      selected={selected}
-      keyFn={(ep: EventParticipation) => ep.id}
-     />}
+    if (!value || value === 'all') params.delete(key);
+    else params.set(key, value);
+
+    router.replace(`?${params.toString()}`, { scroll: false });
+  };
+
+  return <>
+    <Paper p="md" mt="sm" withBorder style={{ position: 'relative'}}>
+      <Stack>
+        <Group>
+          <TextInput
+            label="Search"
+            placeholder="Search by name, Discord ID, email, or phone..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            leftSection={<IconSearch size={16} />}
+            style={{ flex: 1 }}
+          />
+          <MultiSelect
+            label="Participation Status"
+            data={['UNKNOWN','MAYBE','COMMITED','REJECTED','ATTENDED','NO_SHOW']}
+            onChange={setStatusArray}
+            value={statusArray}
+            style={{ flex: 1}}
+          />
+        </Group>
+        {data && <PaginatedTable 
+          title="Participants"
+          showTitle={true}
+          data={data.results}
+          onRowClick={(contact: EventParticipation) => router.push(`/contacts/${contact.id}`)}
+          columns={["Name", "Contact", "Status"]} 
+          transforms={[
+            (ep) => <Table.Td key={ep.contact.full_name}>{ep.contact.full_name}</Table.Td>,
+            (ep) => <Table.Td key={ep.contact.phone}>{formatContactInfo(ep.contact.full_name, ep.contact.phone)}</Table.Td>,
+            (ep) => <Table.Td key={ep.status}>
+              <Badge color={getStatusColor(ep.status)}>{ep.status_display}</Badge>
+            </Table.Td>
+          ]}
+          loading={loading}
+          useCheckboxes={true}
+          onSelectionChange={setSelected}
+          selected={selected}
+          keyFn={(ep: EventParticipation) => ep.id}
+        />}
+        {data && <PaginationBar 
+          totalCount={data?.count}
+          previousUrl={data?.previous}
+          nextUrl={data.next}
+          handleNext={() => data.next && updateParam("page", incrementPageSearchParam(currentParams))}
+          handlePrevious={() => data.previous && updateParam("page", decrementPageSearchParam(currentParams))}
+        />}
+      </Stack>
+    </Paper>
   </>
 }

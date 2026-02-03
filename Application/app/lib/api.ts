@@ -20,6 +20,7 @@ export function useBackend<T>(path: string, options: RequestInit = {}) {
   const [error, setError] = useState<Error | null>()
 
   useEffect(() => {
+    setLoading(true)
     fetch(path, {
       ...options,
     }).then(out => out.json() as Promise<T>)
