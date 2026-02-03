@@ -14,9 +14,17 @@ def api_client():
 
 
 @pytest.fixture
+def nonadmin_client(api_client, db):
+    """Returns an authenticated API client."""
+    user = User.objects.create_user(username="regular", password="testpass123")
+    api_client.force_authenticate(user=user)
+    return api_client
+
+
+@pytest.fixture
 def authenticated_client(api_client, db):
     """Returns an authenticated API client."""
-    user = User.objects.create_user(username="testuser", email="test@example.com", password="testpass123")
+    user = User.objects.create_superuser(username="admin", password="testpass123")
     api_client.force_authenticate(user=user)
     return api_client
 
@@ -59,6 +67,13 @@ class TestSyncMembershipTagsView:
         """Unauthenticated requests are rejected."""
         with patch_discord_client(member_ids=set()):
             response = api_client.post(self.ENDPOINT)
+
+        assert response.status_code in (401, 403)
+
+    def test_nonadmin_returns_401(self, nonadmin_client, patch_discord_client):
+        """Unauthenticated requests are rejected."""
+        with patch_discord_client(member_ids=set()):
+            response = nonadmin_client.post(self.ENDPOINT)
 
         assert response.status_code in (401, 403)
 
