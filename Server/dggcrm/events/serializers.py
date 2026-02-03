@@ -1,8 +1,8 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .models import Event, EventParticipation, UsersInEvent
 from ..contacts.serializers import ContactSerializer
+from .models import Event, EventParticipation, UsersInEvent
 
 User = get_user_model()
 
