@@ -1,8 +1,8 @@
-from django.db import models
-from django.conf import settings
-
 from auditlog.models import AuditlogHistoryField
 from auditlog.registry import auditlog
+from django.conf import settings
+from django.db import models
+
 
 class TicketStatus(models.TextChoices):
     OPEN = "OPEN", "Open"
@@ -12,6 +12,7 @@ class TicketStatus(models.TextChoices):
     COMPLETED = "COMPLETED", "Completed"
     CANCELED = "CANCELED", "Canceled"
 
+
 # TODO: Should we convert to table?  (Yes, we def should)
 class TicketType(models.TextChoices):
     UNKNOWN = "UNKNOWN", "Unknown"
@@ -19,6 +20,7 @@ class TicketType(models.TextChoices):
     RECRUIT = "RECRUIT", "Recruit for event"
     CONFIRM = "CONFIRM", "Confirm event participation"
     # TODO: What other types do we want?
+
 
 class TicketAskStatus(models.TextChoices):
     UNKNOWN = "UNKNOWN", "Unknown"
@@ -28,22 +30,20 @@ class TicketAskStatus(models.TextChoices):
     FAILED = "FAILED", "Failed"
     GHOSTED = "GHOSTED", "Ghosted"
 
+
 class Ticket(models.Model):
     """
     Represents a task that must be accomplished by a user.
     Tasks might be introductions, recruitments, etc.
     They also may track tasks that must be accomplished for events.
     """
+
     id = models.AutoField(primary_key=True)
     ticket_status = models.CharField(
-        default=TicketStatus.OPEN,
-        choices=TicketStatus.choices,
-        help_text="Current status of this ticket."
+        default=TicketStatus.OPEN, choices=TicketStatus.choices, help_text="Current status of this ticket."
     )
     ticket_type = models.CharField(
-        default=TicketType.UNKNOWN,
-        choices=TicketType.choices,
-        help_text="Type for this ticket"
+        default=TicketType.UNKNOWN, choices=TicketType.choices, help_text="Type for this ticket"
     )
 
     event = models.ForeignKey(
@@ -104,7 +104,7 @@ class Ticket(models.Model):
     history = AuditlogHistoryField()
 
     class Meta:
-        db_table = 'tickets'
+        db_table = "tickets"
         permissions = [
             ("view_all_tickets", "Can view any ticket"),
             ("view_tickets_via_event", "Can view any ticket associated to an event"),
@@ -118,8 +118,10 @@ class Ticket(models.Model):
     def __str__(self):
         return f"{self.id} ({self.get_ticket_status_display()})"
 
-# Using django-auditlog to keep history of tickets 
+
+# Using django-auditlog to keep history of tickets
 auditlog.register(Ticket)
+
 
 class TicketComment(models.Model):
     ticket = models.ForeignKey(
@@ -141,7 +143,7 @@ class TicketComment(models.Model):
     modified_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'ticket_comments'
+        db_table = "ticket_comments"
         ordering = ["created_at"]
         permissions = [
             ("add_any_comment", "Can comment on any ticket"),
@@ -149,6 +151,7 @@ class TicketComment(models.Model):
 
     def __str__(self):
         return f"Comment on {self.ticket_id}"
+
 
 class TicketAsks(models.Model):
     ticket = models.ForeignKey(
@@ -165,12 +168,12 @@ class TicketAsks(models.Model):
         related_name="ticket_asks",
     )
 
-   # user_id = models.ForeignKey(
-   #     settings.AUTH_USER_MODEL,
-   #     null=True,
-   #     blank=True,
-   #     on_delete=models.SET_NULL,
-   #  )
+    # user_id = models.ForeignKey(
+    #     settings.AUTH_USER_MODEL,
+    #     null=True,
+    #     blank=True,
+    #     on_delete=models.SET_NULL,
+    #  )
 
     status = models.CharField(
         max_length=15,
@@ -183,7 +186,11 @@ class TicketAsks(models.Model):
     edited_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'ticket_asks'
+        db_table = "ticket_asks"
         ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Ask for {self.ticket_id}"
+
 
 # TODO: implement missing tables from DB diagram

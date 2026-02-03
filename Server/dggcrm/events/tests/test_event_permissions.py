@@ -1,9 +1,9 @@
 import pytest
-from rest_framework.test import APIRequestFactory
 from django.db.models import Q
+from rest_framework.test import APIRequestFactory
 
 from dggcrm.events.models import Event
-from dggcrm.events.permissions import get_event_visibility_filter, EventObjectPermission
+from dggcrm.events.permissions import EventObjectPermission, get_event_visibility_filter
 
 
 @pytest.mark.django_db
@@ -107,12 +107,8 @@ class TestEventObjectPermission:
     ):
         perm = EventObjectPermission()
 
-        assert perm.has_object_permission(
-            self.get(rf, admin_user), None, completed_event
-        )
-        assert perm.has_object_permission(
-            self.patch(rf, admin_user), None, completed_event
-        )
+        assert perm.has_object_permission(self.get(rf, admin_user), None, completed_event)
+        assert perm.has_object_permission(self.patch(rf, admin_user), None, completed_event)
 
     # --------------------
     # READ
@@ -125,9 +121,7 @@ class TestEventObjectPermission:
     ):
         perm = EventObjectPermission()
 
-        assert perm.has_object_permission(
-            self.get(rf, regular_user), None, scheduled_event
-        ) is False
+        assert perm.has_object_permission(self.get(rf, regular_user), None, scheduled_event) is False
 
     def test_view_all_events_can_read_any_status(
         self,
@@ -143,9 +137,7 @@ class TestEventObjectPermission:
         )
 
         perm = EventObjectPermission()
-        assert perm.has_object_permission(
-            self.get(rf, regular_user), None, completed_event
-        )
+        assert perm.has_object_permission(self.get(rf, regular_user), None, completed_event)
 
     def test_scheduled_event_readable_without_assignment(
         self,
@@ -157,9 +149,7 @@ class TestEventObjectPermission:
         regular_user.user_permissions.add(view_event_permission)
 
         perm = EventObjectPermission()
-        assert perm.has_object_permission(
-            self.get(rf, regular_user), None, scheduled_event
-        )
+        assert perm.has_object_permission(self.get(rf, regular_user), None, scheduled_event)
 
     def test_non_scheduled_unassigned_event_not_readable(
         self,
@@ -171,9 +161,7 @@ class TestEventObjectPermission:
         regular_user.user_permissions.add(view_event_permission)
 
         perm = EventObjectPermission()
-        assert perm.has_object_permission(
-            self.get(rf, regular_user), None, completed_event
-        ) is False
+        assert perm.has_object_permission(self.get(rf, regular_user), None, completed_event) is False
 
     def test_assigned_non_scheduled_event_readable_with_permission(
         self,
@@ -190,9 +178,7 @@ class TestEventObjectPermission:
         )
 
         perm = EventObjectPermission()
-        assert perm.has_object_permission(
-            self.get(rf, regular_user), None, completed_event
-        )
+        assert perm.has_object_permission(self.get(rf, regular_user), None, completed_event)
 
     # --------------------
     # WRITE
@@ -205,9 +191,7 @@ class TestEventObjectPermission:
     ):
         perm = EventObjectPermission()
 
-        assert perm.has_object_permission(
-            self.patch(rf, regular_user), None, scheduled_event
-        ) is False
+        assert perm.has_object_permission(self.patch(rf, regular_user), None, scheduled_event) is False
 
     def test_change_all_events_can_edit_any_event(
         self,
@@ -223,9 +207,7 @@ class TestEventObjectPermission:
         )
 
         perm = EventObjectPermission()
-        assert perm.has_object_permission(
-            self.patch(rf, regular_user), None, completed_event
-        )
+        assert perm.has_object_permission(self.patch(rf, regular_user), None, completed_event)
 
     def test_change_assigned_event_can_edit_assigned_event(
         self,
@@ -242,9 +224,7 @@ class TestEventObjectPermission:
         )
 
         perm = EventObjectPermission()
-        assert perm.has_object_permission(
-            self.patch(rf, regular_user), None, scheduled_event
-        )
+        assert perm.has_object_permission(self.patch(rf, regular_user), None, scheduled_event)
 
     def test_change_assigned_event_cannot_edit_unassigned_event(
         self,
@@ -260,9 +240,7 @@ class TestEventObjectPermission:
         )
 
         perm = EventObjectPermission()
-        assert perm.has_object_permission(
-            self.patch(rf, regular_user), None, scheduled_event
-        ) is False
+        assert perm.has_object_permission(self.patch(rf, regular_user), None, scheduled_event) is False
 
     def test_default_block(
         self,
@@ -276,6 +254,4 @@ class TestEventObjectPermission:
             change_event_permission,
         )
 
-        assert perm.has_object_permission(
-            self.patch(rf, regular_user), None, scheduled_event
-        ) is False
+        assert perm.has_object_permission(self.patch(rf, regular_user), None, scheduled_event) is False

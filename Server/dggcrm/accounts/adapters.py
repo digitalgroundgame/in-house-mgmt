@@ -1,16 +1,18 @@
-from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.account.adapter import DefaultAccountAdapter
-from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.account.models import EmailAddress
+from allauth.core.exceptions import ImmediateHttpResponse
+from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.contrib.auth import get_user_model
 from django.shortcuts import redirect
-from django.core.exceptions import PermissionDenied
+
 
 class SocialLoginForbidden(Exception):
     """Raised when a social login is not allowed (non-existing user)."""
+
     def __init__(self, email=None):
         self.email = email
         super().__init__(f"Social login blocked for {email}")
+
 
 class SocialAccountAdapter(DefaultSocialAccountAdapter):
     def pre_social_login(self, request, sociallogin):
@@ -24,9 +26,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
         email = sociallogin.account.extra_data.get("email")
         if not email:
             request.session.flush()
-            raise ImmediateHttpResponse(
-                redirect("/login?social_error=no_email")
-            )
+            raise ImmediateHttpResponse(redirect("/login?social_error=no_email"))
 
         # First check user table's email, then check EmailAddress table
         User = get_user_model()
@@ -39,12 +39,10 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
                     verified=True,
                 )
                 user = email_address.user
-            except EmailAddress.DoesNotExist:
+            except EmailAddress.DoesNotExist as err:
                 # No verified email anywhere in the system
                 request.session.flush()
-                raise ImmediateHttpResponse(
-                    redirect(f"/login?social_error=no_user&email={email}")
-                )
+                raise ImmediateHttpResponse(redirect(f"/login?social_error=no_user&email={email}")) from err
 
         # Link this social account to the owning user
         sociallogin.connect(request, user)
@@ -56,9 +54,9 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
 
     def on_authentication_error(self, request, provider_id, error=None, exception=None, extra_context=None):
         # Always redirect failed logins to /login with params
-        email = getattr(exception, 'email', '')
+        email = getattr(exception, "email", "")
         request.session.flush()
-        return ImmediateHttpResponse(redirect(f'/login?social_error=no_user&email={email}'))
+        return ImmediateHttpResponse(redirect(f"/login?social_error=no_user&email={email}"))
 
 
 class NoNewUsersAccountAdapter(DefaultAccountAdapter):
@@ -67,5 +65,5 @@ class NoNewUsersAccountAdapter(DefaultAccountAdapter):
 
     def on_authentication_error(self, request, provider_id, error=None, exception=None, extra_context=None):
         # Always redirect failed logins to /login with params
-        email = getattr(exception, 'email', '')
-        return ImmediateHttpResponse(redirect(f'/login?social_error=no_user&email={email}'))
+        email = getattr(exception, "email", "")
+        return ImmediateHttpResponse(redirect(f"/login?social_error=no_user&email={email}"))

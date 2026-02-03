@@ -1,6 +1,6 @@
 import requests
 from allauth.socialaccount.providers.oauth2.provider import OAuth2Provider
-from allauth.socialaccount.providers.oauth2.views import OAuth2Adapter, OAuth2LoginView, OAuth2CallbackView
+from allauth.socialaccount.providers.oauth2.views import OAuth2Adapter, OAuth2CallbackView, OAuth2LoginView
 
 
 class BaseMockOAuth2Adapter(OAuth2Adapter):
@@ -18,13 +18,13 @@ class BaseMockOAuth2Adapter(OAuth2Adapter):
         )
         resp.raise_for_status()
         extra_data = resp.json()
-        print(f"USER INFO ({self.provider_id})", extra_data, flush=True)
         return self.get_provider().sociallogin_from_response(request, extra_data)
 
 
 class MockGoogleOAuth2Adapter(BaseMockOAuth2Adapter):
     provider_id = "mock-google"
     authorize_url = "http://localhost:9000/mock-google/authorize"
+    # ruff: noqa: S105
     access_token_url = "http://mock_oauth:9000/mock-google/token"
     profile_url = "http://mock_oauth:9000/mock-google/userinfo"
 

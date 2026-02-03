@@ -4,8 +4,9 @@ Base Django settings for dggcrm.
 Shared across all environments.
 """
 
-from pathlib import Path
 import os
+from pathlib import Path
+
 import environ
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -48,7 +49,6 @@ THIRD_PARTY_APPS = [
     "rest_framework.authtoken",
     "corsheaders",
     "auditlog",
-
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
@@ -144,8 +144,8 @@ SOCIALACCOUNT_EMAIL_VERIFICATION = "optional"
 # ------------------------------------------------------------------------------
 
 REST_FRAMEWORK = {
-    'DEFAULT_PAGINATION_CLASS': 'config.pagination.StandardPagination',
-    #"DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "DEFAULT_PAGINATION_CLASS": "config.pagination.StandardPagination",
+    # "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
     "DEFAULT_FILTER_BACKENDS": [
         "rest_framework.filters.OrderingFilter",
