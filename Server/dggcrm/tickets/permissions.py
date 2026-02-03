@@ -1,7 +1,5 @@
 from django.db.models import Q
-from rest_framework.permissions import BasePermission, SAFE_METHODS
-
-from dggcrm.events.models import EventStatus
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 
 
 def get_ticket_visibility_filter(user):

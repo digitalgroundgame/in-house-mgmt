@@ -1,5 +1,6 @@
 from django.apps import AppConfig
 
+
 class EventsConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "dggcrm.events"
@@ -9,4 +10,5 @@ class EventsConfig(AppConfig):
         from auditlog.registry import auditlog
 
         from .models import EventParticipation
+
         auditlog.register(EventParticipation)

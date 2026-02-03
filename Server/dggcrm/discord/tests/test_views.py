@@ -4,7 +4,6 @@ from rest_framework.test import APIClient
 
 from dggcrm.contacts.models import Contact, Tag, TagAssignments
 
-
 User = get_user_model()
 
 
@@ -17,11 +16,7 @@ def api_client():
 @pytest.fixture
 def authenticated_client(api_client, db):
     """Returns an authenticated API client."""
-    user = User.objects.create_user(
-        username="testuser",
-        email="test@example.com",
-        password="testpass123"
-    )
+    user = User.objects.create_user(username="testuser", email="test@example.com", password="testpass123")
     api_client.force_authenticate(user=user)
     return api_client
 
@@ -75,9 +70,7 @@ class TestSyncMembershipTagsView:
         assert response.status_code == 503
         assert response.json()["error"] == "Discord bot not configured"
 
-    def test_adds_tags_for_discord_members(
-        self, authenticated_client, sample_contacts, patch_discord_client
-    ):
+    def test_adds_tags_for_discord_members(self, authenticated_client, sample_contacts, patch_discord_client):
         """Adds membership tag to contacts who are Discord guild members."""
         # Alice and Bob are members, Charlie is not
         member_ids = {"100000000000000001", "100000000000000002"}
@@ -98,9 +91,7 @@ class TestSyncMembershipTagsView:
         assert TagAssignments.objects.filter(contact=bob, tag=tag).exists()
         assert not TagAssignments.objects.filter(contact=charlie, tag=tag).exists()
 
-    def test_removes_tags_for_non_members(
-        self, authenticated_client, sample_contacts, patch_discord_client
-    ):
+    def test_removes_tags_for_non_members(self, authenticated_client, sample_contacts, patch_discord_client):
         """Removes membership tag from contacts who left the Discord guild."""
         alice, bob, charlie, _ = sample_contacts
 
@@ -126,9 +117,7 @@ class TestSyncMembershipTagsView:
         assert not TagAssignments.objects.filter(contact=bob, tag=tag).exists()
         assert not TagAssignments.objects.filter(contact=charlie, tag=tag).exists()
 
-    def test_ignores_contacts_without_discord_id(
-        self, authenticated_client, sample_contacts, patch_discord_client
-    ):
+    def test_ignores_contacts_without_discord_id(self, authenticated_client, sample_contacts, patch_discord_client):
         """Contacts without discord_id are not affected."""
         # All Discord IDs are members
         member_ids = {"100000000000000001", "100000000000000002", "100000000000000003"}
@@ -143,9 +132,7 @@ class TestSyncMembershipTagsView:
         no_discord_contact = sample_contacts[3]  # "No Discord" contact
         assert not TagAssignments.objects.filter(contact=no_discord_contact, tag=tag).exists()
 
-    def test_idempotent_sync(
-        self, authenticated_client, sample_contacts, patch_discord_client
-    ):
+    def test_idempotent_sync(self, authenticated_client, sample_contacts, patch_discord_client):
         """Running sync twice produces the same result."""
         member_ids = {"100000000000000001", "100000000000000002"}
 
@@ -162,9 +149,7 @@ class TestSyncMembershipTagsView:
         assert response2.json()["tags_added"] == 0
         assert response2.json()["tags_removed"] == 0
 
-    def test_handles_empty_guild(
-        self, authenticated_client, sample_contacts, patch_discord_client
-    ):
+    def test_handles_empty_guild(self, authenticated_client, sample_contacts, patch_discord_client):
         """Handles case when no members are returned from Discord."""
         alice, _, _, _ = sample_contacts
 
@@ -180,9 +165,7 @@ class TestSyncMembershipTagsView:
         assert data["members_fetched"] == 0
         assert data["tags_removed"] == 1
 
-    def test_creates_tag_if_not_exists(
-        self, authenticated_client, sample_contacts, patch_discord_client
-    ):
+    def test_creates_tag_if_not_exists(self, authenticated_client, sample_contacts, patch_discord_client):
         """Creates the membership tag if it doesn't exist."""
         assert not Tag.objects.filter(name="DGG Discord").exists()
 

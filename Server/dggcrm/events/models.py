@@ -1,6 +1,7 @@
-from django.db import models
-from django.conf import settings
 from auditlog.models import AuditlogHistoryField
+from django.conf import settings
+from django.db import models
+
 
 class EventStatus(models.TextChoices):
     DRAFT = "draft", "Draft"
@@ -8,41 +9,33 @@ class EventStatus(models.TextChoices):
     COMPLETED = "completed", "Completed"
     CANCELED = "canceled", "Canceled"
 
+
 class Event(models.Model):
     """
     Represents a task that must be accomplished by a user.
     Tasks might be introductions, recruitments, etc.
     They also may track tasks that must be accomplished for events.
     """
+
     id = models.AutoField(primary_key=True)
 
     name = models.CharField(max_length=100, blank=True)
     description = models.TextField(blank=True)
-    location_name = models.CharField(max_length=200, blank=True, null=True)
-    location_address = models.CharField(max_length=300, blank=True, null=True)
+    location_name = models.CharField(max_length=200, blank=True)
+    location_address = models.CharField(max_length=300, blank=True)
 
     starts_at = models.DateTimeField()
     ends_at = models.DateTimeField()
 
     event_status = models.CharField(
-        default=EventStatus.DRAFT,
-        choices=EventStatus.choices,
-        help_text="Current status of this event"
+        default=EventStatus.DRAFT, choices=EventStatus.choices, help_text="Current status of this event"
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
 
-    @property
-    def location_display(self):
-        if self.location_name:
-            return f"{self.location_name}"
-        elif self.location_address:
-            return f"{self.location_address}"
-        return "None"
-
     class Meta:
-        db_table = 'events'
+        db_table = "events"
         permissions = [
             ("view_all_events", "Can view all events"),
             ("view_any_assigned_event", "Can view assigned events regardless of status"),
@@ -53,6 +46,15 @@ class Event(models.Model):
     def __str__(self):
         return f"{self.name}"
 
+    @property
+    def location_display(self):
+        if self.location_name:
+            return f"{self.location_name}"
+        elif self.location_address:
+            return f"{self.location_address}"
+        return "None"
+
+
 class CommitmentStatus(models.TextChoices):
     UNKNOWN = "UNKNOWN", "Unknown"
     REJECTED = "REJECTED", "Rejected"
@@ -60,6 +62,7 @@ class CommitmentStatus(models.TextChoices):
     MAYBE = "MAYBE", "Maybe"
     ATTENDED = "ATTENDED", "Attended"
     NO_SHOW = "NO_SHOW", "No Show"
+
 
 class EventParticipation(models.Model):
     id = models.AutoField(primary_key=True)
@@ -143,7 +146,6 @@ class UsersInEvent(models.Model):
             ("change_all_usersinevents", "Modify participations for joined events"),
             ("change_usersinevent_via_event", "Can add/remove users for assigned events"),
         ]
-
 
     def __str__(self):
         return f"{self.user} -> {self.event}"

@@ -1,5 +1,6 @@
-from django.apps import AppConfig
 import logging
+
+from django.apps import AppConfig
 
 logger = logging.getLogger(__name__)
 
@@ -11,4 +12,5 @@ class DiscordConfig(AppConfig):
 
     def ready(self):
         from . import client
+
         client.initialize()
