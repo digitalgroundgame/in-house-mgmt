@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from .models import Contact, Tag, TagAssignments
 
+
 class ContactSerializer(serializers.ModelSerializer):
     tags = serializers.SerializerMethodField()
 
