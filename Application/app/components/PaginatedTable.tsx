@@ -5,11 +5,11 @@ export interface PaginatedTableProps<T> {
   /**
    * title for the table. only shown if showTitle is set
    */
-  title?: string
+  title?: string;
   /**
    * determines of the title is displayed or not
    */
-  showTitle?: boolean
+  showTitle?: boolean;
   /**
    * column names, in order, for the table
    */
@@ -22,7 +22,7 @@ export interface PaginatedTableProps<T> {
    * the data, rendered in order
    */
   data: T[];
-  loading: boolean
+  loading: boolean;
   /**
    * if the table should render checkboxes
    */
@@ -33,8 +33,8 @@ export interface PaginatedTableProps<T> {
   selected?: Set<number>;
   /**
    * hook to modify the state when a selection change occurs
-   * @param next 
-   * @returns 
+   * @param next
+   * @returns
    */
   onSelectionChange?: (next: Set<number>) => void;
   /**
@@ -45,8 +45,8 @@ export interface PaginatedTableProps<T> {
   keyFn?: (ele: T) => number;
   /**
    * call back for when row is clicked
-   * @param ele 
-   * @returns 
+   * @param ele
+   * @returns
    */
   onRowClick?: (ele: T) => void;
 }
@@ -67,10 +67,10 @@ function clearAll() {
 
 /** Generic Paginated Table. The table accepts data of type T and uses transforms
  * to extract the values for a given column. This allows the caller to
- * customize the children of the 
- * 
- * @param props 
- * @returns 
+ * customize the children of the
+ *
+ * @param props
+ * @returns
  */
 export default function PaginatedTable<T>(props: PaginatedTableProps<T>) {
   const {
@@ -84,37 +84,29 @@ export default function PaginatedTable<T>(props: PaginatedTableProps<T>) {
     onRowClick,
     title,
     showTitle,
-    loading
+    loading,
   } = props;
 
-  if (
-    useCheckboxes &&
-    (!selected || !onSelectionChange || !keyFn)
-  ) {
-    throw Error(
-      "useCheckboxes requires selected, onSelectionChange, and keyFn"
-    );
+  if (useCheckboxes && (!selected || !onSelectionChange || !keyFn)) {
+    throw Error("useCheckboxes requires selected, onSelectionChange, and keyFn");
   }
 
-  const allSelected =
-    useCheckboxes &&
-    selected &&
-    data.length > 0 &&
-    selected.size === data.length;
+  const allSelected = useCheckboxes && selected && data.length > 0 && selected.size === data.length;
 
   const partiallySelected =
-    useCheckboxes &&
-    selected &&
-    selected.size > 0 &&
-    selected.size < data.length;
+    useCheckboxes && selected && selected.size > 0 && selected.size < data.length;
 
-  return <>
-      {showTitle && <Title order={4}>{title} ({data.length})</Title>}
-      <LoadingOverlay visible={loading}/>
+  return (
+    <>
+      {showTitle && (
+        <Title order={4}>
+          {title} ({data.length})
+        </Title>
+      )}
+      <LoadingOverlay visible={loading} />
       <Table highlightOnHover>
         <Table.Thead>
-          <Table.Tr
-          >
+          <Table.Tr>
             {useCheckboxes && (
               <Table.Th>
                 <Checkbox
@@ -123,11 +115,7 @@ export default function PaginatedTable<T>(props: PaginatedTableProps<T>) {
                   onChange={() => {
                     if (!selected || !onSelectionChange || !keyFn) return;
 
-                    onSelectionChange(
-                      allSelected
-                        ? clearAll()
-                        : selectAll(data, keyFn)
-                    );
+                    onSelectionChange(allSelected ? clearAll() : selectAll(data, keyFn));
                   }}
                 />
               </Table.Th>
@@ -145,8 +133,12 @@ export default function PaginatedTable<T>(props: PaginatedTableProps<T>) {
 
             return (
               <Table.Tr
-                bg={id !== undefined && selected!.has(id) ? 'var(--mantine-color-blue-light)' : undefined}
-                style={{ cursor: 'pointer' }}
+                bg={
+                  id !== undefined && selected!.has(id)
+                    ? "var(--mantine-color-blue-light)"
+                    : undefined
+                }
+                style={{ cursor: "pointer" }}
                 key={id}
                 onClick={() => onRowClick?.(ele)}
               >
@@ -154,22 +146,17 @@ export default function PaginatedTable<T>(props: PaginatedTableProps<T>) {
                   <Table.Td onClick={(e) => e.stopPropagation()}>
                     <Checkbox
                       checked={selected!.has(id)}
-                      onChange={() =>
-                        onSelectionChange!(
-                          toggleOne(selected!, id)
-                        )
-                      }
+                      onChange={() => onSelectionChange!(toggleOne(selected!, id))}
                     />
                   </Table.Td>
                 )}
 
-                {transforms.map((f, i) => (
-                  f(ele)
-                ))}
+                {transforms.map((f, i) => f(ele))}
               </Table.Tr>
             );
           })}
         </Table.Tbody>
       </Table>
-  </>
+    </>
+  );
 }
