@@ -159,6 +159,7 @@ function EventViewContactTable({event}: {event: Event}) {
           keyFn={(ep: EventParticipation) => ep.id}
         />}
         {data && <PaginationBar 
+          entityName="Participant(s)"
           totalCount={data?.count}
           previousUrl={data?.previous}
           nextUrl={data.next}

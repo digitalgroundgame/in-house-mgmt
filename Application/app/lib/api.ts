@@ -14,20 +14,38 @@ export interface BackendPaginatedResults<T> {
  * @param options typical fetch options
  * @returns an object containing the requested data, loading state, and error states
  */
-export function useBackend<T>(path: string, options: RequestInit = {}) {
+export function useBackend<T>(path: string, options?: RequestInit) {
   const [data, setData] = useState<T>()
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<Error | null>()
 
+
   useEffect(() => {
-    setLoading(true)
-    fetch(path, {
-      ...options,
-    }).then(out => out.json() as Promise<T>)
-      .then(setData)
-      .catch(setError)
-      .finally(() => setLoading(false))
-  }, [path])
+    let cancelled = false
+    const load = async () => {
+      try {
+        setLoading(true)
+        const res = await fetch(path, options)
+        const json: T = await res.json() as T
+
+        if (!cancelled) {
+          setData(json)
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err : new Error(String(err)))
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [path, options])
 
   return { data, loading, error }
 } 

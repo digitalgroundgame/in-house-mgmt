@@ -13,12 +13,14 @@ export function decrementPageSearchParam(searchParams: ReadonlyURLSearchParams):
 export default function PaginationBar(
   {
     totalCount,
+    entityName,
     previousUrl,
     nextUrl,
     handlePrevious,
     handleNext
   }: {
     totalCount: number,
+    entityName: string,
     previousUrl: string,
     nextUrl: string,
     handlePrevious: () => void,
@@ -26,7 +28,7 @@ export default function PaginationBar(
   }) {
   return <Paper p="sm" withBorder>
     <Group justify="space-between">
-      <span>{totalCount} {totalCount === 1 ? 'event' : 'events'} found</span>
+      <span>{totalCount} {entityName} found</span>
       <Group gap="xs">
         <ActionIcon
           variant="filled"
