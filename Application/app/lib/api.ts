@@ -12,12 +12,13 @@ export interface BackendPaginatedResults<T> {
  *
  * @param path the api path
  * @param options typical fetch options
- * @returns an object containing the requested data, loading state, and error states
+ * @returns an object containing the requested data, loading state, and error states and refresh key
  */
 export function useBackend<T>(path: string, options?: RequestInit) {
   const [data, setData] = useState<T>();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>();
+  const [refreshToken, refresh] = useState()
 
   useEffect(() => {
     let cancelled = false;
@@ -44,7 +45,7 @@ export function useBackend<T>(path: string, options?: RequestInit) {
     return () => {
       cancelled = true;
     };
-  }, [path, options]);
+  }, [path, options, refreshToken]);
 
-  return { data, loading, error };
+  return { data, loading, error, refresh };
 }

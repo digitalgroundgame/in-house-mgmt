@@ -1,4 +1,4 @@
-import { Checkbox, LoadingOverlay, Paper, Table, Title } from "@mantine/core";
+import { Checkbox, LoadingOverlay, Table, Title } from "@mantine/core";
 import { JSX } from "react";
 
 export interface PaginatedTableProps<T> {
@@ -67,7 +67,7 @@ function clearAll() {
 
 /** Generic Paginated Table. The table accepts data of type T and uses transforms
  * to extract the values for a given column. This allows the caller to
- * customize the children of the
+ * customize the children of each column
  *
  * @param props
  * @returns
@@ -151,7 +151,7 @@ export default function PaginatedTable<T>(props: PaginatedTableProps<T>) {
                   </Table.Td>
                 )}
 
-                {transforms.map((f, i) => f(ele))}
+                {transforms.map((f) => f(ele))}
               </Table.Tr>
             );
           })}

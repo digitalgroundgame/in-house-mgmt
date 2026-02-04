@@ -22,8 +22,8 @@ class EventParticipationSerializer(serializers.ModelSerializer):
         source="get_status_display",
         read_only=True,
     )
-    event = EventSerializer()
-    contact = ContactSerializer()
+    event = EventSerializer(read_only=True)
+    contact = ContactSerializer(read_only=True)
 
     class Meta:
         model = EventParticipation

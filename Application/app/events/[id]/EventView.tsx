@@ -1,9 +1,9 @@
 import { Contact } from "@/app/components/ContactSearch";
-import PaginatedTable from "@/app/components/PaginatedTable";
+import PaginatedTable from "@/app/components/pagination/PaginatedTable";
 import PaginationBar, {
   decrementPageSearchParam,
   incrementPageSearchParam,
-} from "@/app/components/PaginationBar";
+} from "@/app/components/pagination/PaginationBar";
 import { formatContactInfo } from "@/app/components/contact-utils";
 import { Event } from "@/app/components/event-utils";
 import { BackendPaginatedResults, useBackend } from "@/app/lib/api";
