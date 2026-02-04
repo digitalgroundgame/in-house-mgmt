@@ -18,7 +18,7 @@ export function useBackend<T>(path: string, options?: RequestInit) {
   const [data, setData] = useState<T>();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>();
-  const [refreshToken, refresh] = useState()
+  const [refreshToken, refresh] = useState();
 
   useEffect(() => {
     let cancelled = false;
