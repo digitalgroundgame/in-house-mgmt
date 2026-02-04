@@ -9,6 +9,7 @@ services:
       - server
     environment:
       - NEXT_PUBLIC_USE_MOCK_OAUTH=false
+      - BACKEND_URL=http://server:8080
     ports:
       - '3030:3030'
 
