@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 # Retry configuration: retry on connection errors, timeouts, and 5xx/429 errors
 # Do NOT retry on 4xx client errors (400, 401, 403, 404, etc.)
 RETRY_STRATEGY = Retry(
-    total=3,
+    total=os.getenv('DISCORD_RETRY_COUNT', 3),
     backoff_factor=1,  # 1s, 2s, 4s between retries
     status_forcelist=[429, 500, 502, 503, 504],
     allowed_methods=["GET"],  # Only retry GET requests
