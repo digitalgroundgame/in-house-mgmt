@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 # Do NOT retry on 4xx client errors (400, 401, 403, 404, etc.)
 RETRY_STRATEGY = Retry(
     total=os.getenv('DISCORD_RETRY_COUNT', 3),
-    backoff_factor=1,  # 1s, 2s, 4s between retries
+    backoff_factor=os.getenv('DISCORD_BACKOFF_FACTOR', 1'),
     status_forcelist=[429, 500, 502, 503, 504],
     allowed_methods=["GET"],  # Only retry GET requests
     raise_on_status=False,  # Don't raise, let us handle status codes
