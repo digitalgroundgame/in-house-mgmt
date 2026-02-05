@@ -128,7 +128,7 @@ The application includes a Discord integration for syncing guild membership data
 
 ### 6. Configure Environment Variables
 
-Add to `.envs/.dev/.discord`:
+Add to `.envs/{environement}/.discord`:
 
 ```bash
 DISCORD_BOT_ENABLED=true
