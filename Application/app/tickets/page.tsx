@@ -18,6 +18,7 @@ import {
 } from "@mantine/core";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { useState, useEffect } from "react";
+import { apiClient } from "@/app/lib/apiClient";
 import TicketTable, {
   type SortField,
   type SortDirection,
@@ -59,10 +60,9 @@ export default function TicketPage() {
 
   const fetchPriorities = async () => {
     try {
-      const response = await fetch("/api/ticket-priorities");
-      const data = await response.json();
+      const data = await apiClient.get<{ value: number; label: string }[]>("/ticket-priorities");
       // API returns [{value: number, label: string}, ...] - convert value to string for Select
-      const priorityOptions = data.map((p: { value: number; label: string }) => ({
+      const priorityOptions = data.map((p) => ({
         value: String(p.value),
         label: p.label,
       }));
@@ -112,7 +112,7 @@ export default function TicketPage() {
   ) => {
     try {
       setLoading(true);
-      let fetchUrl = url || "/api/tickets";
+      let fetchPath = url?.replace(/^\/api/, "") || "/tickets";
 
       // Add filters if not using pagination URL
       if (!url) {
@@ -145,12 +145,16 @@ export default function TicketPage() {
           params.append("exclude_status", excludeStatuses.join(","));
         }
         if (params.toString()) {
-          fetchUrl = `/api/tickets?${params.toString()}`;
+          fetchPath = `/tickets?${params.toString()}`;
         }
       }
 
-      const response = await fetch(fetchUrl);
-      const data = await response.json();
+      const data = await apiClient.get<{
+        results: Ticket[];
+        count: number;
+        next: string | null;
+        previous: string | null;
+      }>(fetchPath);
       setTickets(data.results || []);
       setTotalCount(data.count);
       setNextUrl(data.next);

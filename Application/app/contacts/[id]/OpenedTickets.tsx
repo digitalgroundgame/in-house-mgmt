@@ -19,6 +19,7 @@ import {
 import { useState, useEffect, useCallback } from "react";
 import { IconSearch, IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { DateTime } from "@/app/components/datetime";
+import { apiClient } from "@/app/lib/apiClient";
 
 interface TicketListItem {
   id: number;
@@ -106,8 +107,7 @@ export default function OpenedTickets({ contactId }: { contactId: string }) {
 
   const fetchTicketStatuses = async () => {
     try {
-      const response = await fetch("/api/ticket-statuses/");
-      const data: StatusOption[] = await response.json();
+      const data = await apiClient.get<StatusOption[]>("/ticket-statuses/");
       setTicketStatuses(data.filter((s) => s.value !== "CANCELED"));
     } catch (error) {
       console.error("Error fetching ticket statuses:", error);
@@ -125,7 +125,7 @@ export default function OpenedTickets({ contactId }: { contactId: string }) {
       }
       if (page && page > 1) params.set("page", String(page));
       const qs = params.toString();
-      return `/api/tickets/${qs ? `?${qs}` : ""}`;
+      return `/tickets/${qs ? `?${qs}` : ""}`;
     },
     [contactId, ticketSearch, ticketStatusFilter]
   );
@@ -134,9 +134,13 @@ export default function OpenedTickets({ contactId }: { contactId: string }) {
     async (url?: string) => {
       try {
         setTicketsLoading(true);
-        const response = await fetch(url || buildTicketsUrl());
-        console.log("Response:", response.results);
-        const data = await response.json();
+        const fetchPath = url?.replace(/^\/api/, "") || buildTicketsUrl();
+        const data = await apiClient.get<{
+          results: TicketListItem[];
+          next: string | null;
+          previous: string | null;
+          count: number;
+        }>(fetchPath);
         const results: TicketListItem[] = data.results || [];
         setTickets(results.filter((t) => t.ticket_status !== "CANCELED"));
         setTicketsNext(data.next);

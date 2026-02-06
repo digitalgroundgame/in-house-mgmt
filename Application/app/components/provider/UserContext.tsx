@@ -1,7 +1,8 @@
 "use client";
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
-import getCookie, { deleteCookie } from "@/app/utils/cookie";
+import { deleteCookie } from "@/app/utils/cookie";
+import { apiClient } from "@/app/lib/apiClient";
 
 import type { User } from "./types";
 export type { User };
@@ -21,26 +22,19 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const fetchUser = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/user", {
-        credentials: "include",
-      });
-
-      if (!res.ok && res.status === 403) {
-        setUser(null);
-
-        // Delete cookie if not online
-        deleteCookie("csrftoken");
-        deleteCookie("sessionid");
-
-        // Only redirect if not already on /login
-        if (window.location.pathname !== "/login") {
-          window.location.replace("/login");
-        }
-        return;
-      }
-
-      const data: User = await res.json();
+      const data = await apiClient.get<User>("/auth/user");
       setUser(data);
+    } catch {
+      setUser(null);
+
+      // Delete cookie if not online
+      deleteCookie("csrftoken");
+      deleteCookie("sessionid");
+
+      // Only redirect if not already on /login
+      if (window.location.pathname !== "/login") {
+        window.location.replace("/login");
+      }
     } finally {
       setLoading(false);
     }

@@ -28,7 +28,7 @@ import { SearchSelect, SearchSelectOption } from "@/app/components/SearchSelect"
 import { EnumSelect, EnumSelectOption } from "@/app/components/EnumSelect";
 import { useUser } from "@/app/components/provider/UserContext";
 import { Event } from "@/app/components/event-utils";
-import getCookie from "@/app/utils/cookie";
+import { apiClient } from "@/app/lib/apiClient";
 import TicketActions from "@/app/components/tickets/TicketActions";
 
 export type TimelineShowType = "all" | "comments" | "audit" | "event_participation";
@@ -69,26 +69,18 @@ export default function TicketView({
     async function fetchInfo() {
       try {
         if (ticket.contact) {
-          const contactRes = await fetch(`/api/contacts/${ticket.contact}`);
-          if (contactRes.ok) {
-            setContact(await contactRes.json());
-          } else if (contactRes.status === 404) {
-            setContact({
-              id: ticket.contact,
-              name: "UNKNOWN",
-            });
+          try {
+            setContact(await apiClient.get(`/contacts/${ticket.contact}`));
+          } catch {
+            setContact({ id: ticket.contact, name: "UNKNOWN" });
           }
         }
 
         if (ticket.event) {
-          const eventRes = await fetch(`/api/events/${ticket.event}`);
-          if (eventRes.ok) {
-            setEvent(await eventRes.json());
-          } else if (eventRes.status === 404) {
-            setEvent({
-              id: ticket.event,
-              name: "UNKNOWN",
-            });
+          try {
+            setEvent(await apiClient.get(`/events/${ticket.event}`));
+          } catch {
+            setEvent({ id: ticket.event, name: "UNKNOWN" });
           }
         }
       } catch (err) {
@@ -181,18 +173,11 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
   const handleClaimToggle = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/tickets/${ticket.id}/claim`, {
-        credentials: "include",
-        method: isClaimed ? "DELETE" : "POST",
-        headers: {
-          "X-CSRFToken": getCookie("csrftoken")!,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update claim status");
+      if (isClaimed) {
+        await apiClient.delete(`/tickets/${ticket.id}/claim`);
+      } else {
+        await apiClient.post(`/tickets/${ticket.id}/claim`, {});
       }
-
       window.location.reload();
     } catch (err) {
       console.error(err);
@@ -205,22 +190,10 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
   const upsertTicketStatus = async (status) => {
     console.log("status", status);
     try {
-      const res = await fetch(`/api/tickets/${ticket.id}`, {
-        method: "PATCH",
-        headers: {
-          "X-CSRFToken": getCookie("csrftoken")!,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ticket_status: status.id,
-        }),
+      await apiClient.patch(`/tickets/${ticket.id}`, {
+        ticket_status: status.id,
       });
-      if (res.ok) {
-        setTicketStatus(status);
-      } else {
-        throw new Error("Failed to upsert ticket status");
-      }
-
+      setTicketStatus(status);
       window.location.reload();
     } catch (err) {
       console.error(err);
@@ -379,19 +352,19 @@ function ResolvedName({ field, id }: { field: string; id: string }) {
       return;
     }
 
-    let endpoint: string;
+    let path: string;
     if (field === "contact") {
-      endpoint = `/api/contacts/${id}`;
+      path = `/contacts/${id}`;
     } else if (field === "event") {
-      endpoint = `/api/events/${id}`;
+      path = `/events/${id}`;
     } else if (field === "user") {
-      endpoint = `/api/users/${id}/`;
+      path = `/users/${id}/`;
     } else {
       return;
     }
 
-    fetch(endpoint, { credentials: "include" })
-      .then((res) => (res.ok ? res.json() : null))
+    apiClient
+      .get<Record<string, string>>(path)
       .then((data) => {
         if (data) {
           if (field === "contact") setName(data.full_name);

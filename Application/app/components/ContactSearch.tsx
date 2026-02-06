@@ -3,6 +3,7 @@
 import { Stack, TextInput, Paper, Text, Group, Button, Badge, Box, Divider } from "@mantine/core";
 import { useState, useEffect } from "react";
 import { IconSearch } from "@tabler/icons-react";
+import { apiClient } from "@/app/lib/apiClient";
 
 // TODO: Move to its own file
 export interface Contact {
@@ -38,8 +39,9 @@ export default function ContactSearch({ reachId }: ContactSearchProps) {
   const fetchResponses = async () => {
     try {
       // TODO: Replace with /api/tickets/<id>/audit?...
-      const response = await fetch(`/api/volunteer-responses/by-reach/${reachId}/`);
-      const data = await response.json();
+      const data = await apiClient.get<VolunteerResponse[]>(
+        `/volunteer-responses/by-reach/${reachId}/`
+      );
 
       const responsesMap = new Map<string, VolunteerResponse>();
       data.forEach((resp: VolunteerResponse) => {
@@ -60,8 +62,9 @@ export default function ContactSearch({ reachId }: ContactSearchProps) {
 
     try {
       setLoading(true);
-      const response = await fetch(`/api/contacts/?q=${encodeURIComponent(query)}`);
-      const data = await response.json();
+      const data = await apiClient.get<{ results?: Contact[] }>(
+        `/contacts/?q=${encodeURIComponent(query)}`
+      );
       setSearchResults(data.results || []);
     } catch (error) {
       console.error("Error searching contacts:", error);
@@ -76,24 +79,14 @@ export default function ContactSearch({ reachId }: ContactSearchProps) {
     try {
       if (existingResponse && existingResponse.did && existingResponse.rid === reachId) {
         // Update existing response using composite key
-        const response = await fetch("/api/volunteer-responses/update-by-keys/", {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
+        const data = await apiClient.patch<VolunteerResponse>(
+          "/volunteer-responses/update-by-keys/",
+          {
             rid: reachId,
             did: contact.discord_id,
             response: responseValue,
-          }),
-        });
-        const data = await response.json();
-
-        if (!response.ok) {
-          console.error("Failed to update response:", data);
-          alert(`Error updating: ${JSON.stringify(data)}`);
-          return;
-        }
+          }
+        );
 
         // Update local state
         const newResponses = new Map(responses);
@@ -108,22 +101,8 @@ export default function ContactSearch({ reachId }: ContactSearchProps) {
         };
         console.log("Creating response with payload:", payload);
 
-        const response = await fetch("/api/volunteer-responses/", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        });
-
-        const data = await response.json();
-        console.log("Response status:", response.status, "Data:", data);
-
-        if (!response.ok) {
-          console.error("Failed to create response:", data);
-          alert(`Error: ${JSON.stringify(data)}`);
-          return;
-        }
+        const data = await apiClient.post<VolunteerResponse>("/volunteer-responses/", payload);
+        console.log("Data:", data);
 
         // Update local state
         const newResponses = new Map(responses);
