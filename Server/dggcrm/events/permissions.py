@@ -1,9 +1,10 @@
 from django.db.models import Q
-from rest_framework.permissions import BasePermission, SAFE_METHODS
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 
-from dggcrm.tickets.models import Ticket, TicketStatus
-from dggcrm.events.models import EventStatus, UsersInEvent
 from dggcrm.contacts.permissions import ContactObjectPermission
+from dggcrm.events.models import EventStatus
+from dggcrm.tickets.models import Ticket, TicketStatus
+
 
 def get_event_visibility_filter(user):
     if user.is_superuser or user.has_perm("events.view_all_events"):
@@ -132,12 +133,15 @@ class ParticipationObjectPermission(BasePermission):
             return True
 
         # Assigned via ticket
-        if user.has_perm("events.change_participation_via_ticket") and Ticket.objects.filter(
+        if (
+            user.has_perm("events.change_participation_via_ticket")
+            and Ticket.objects.filter(
                 assigned_to=request.user,
                 contact=contact,
                 event=event,
                 ticket_status=TicketStatus.INPROGRESS,
-            ).exists():
+            ).exists()
+        ):
             return True
 
         # Assigned via event
@@ -181,7 +185,7 @@ class EventMembershipObjectPermission(BasePermission):
         if request.method in SAFE_METHODS:
             if not user.has_perm("events.view_usersinevent"):
                 return False
-            
+
             if user.has_perm("events.view_all_usersinevents"):
                 return True
 

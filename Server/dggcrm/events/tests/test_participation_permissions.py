@@ -2,12 +2,12 @@ import pytest
 from django.db.models import Q
 from rest_framework.test import APIRequestFactory
 
-from dggcrm.events.models import EventStatus, EventParticipation
-from dggcrm.tickets.models import TicketStatus
+from dggcrm.events.models import EventParticipation
 from dggcrm.events.permissions import (
-    get_participation_visibility_filter,
     ParticipationObjectPermission,
+    get_participation_visibility_filter,
 )
+from dggcrm.tickets.models import TicketStatus
 
 
 @pytest.mark.django_db
@@ -125,27 +125,17 @@ class TestParticipationObjectPermission:
         request = rf.get("/")
         request.user = None
 
-        assert ParticipationObjectPermission().has_object_permission(
-            request, None, scheduled_participation
-        ) is False
+        assert ParticipationObjectPermission().has_object_permission(request, None, scheduled_participation) is False
 
-    def test_superuser_bypasses_all(
-        self, rf, admin_user, scheduled_participation
-    ):
+    def test_superuser_bypasses_all(self, rf, admin_user, scheduled_participation):
         request = self.patch(rf, admin_user)
 
-        assert ParticipationObjectPermission().has_object_permission(
-            request, None, scheduled_participation
-        ) is True
+        assert ParticipationObjectPermission().has_object_permission(request, None, scheduled_participation) is True
 
-    def test_read_denied_without_base_permission(
-        self, rf, regular_user, scheduled_participation
-    ):
+    def test_read_denied_without_base_permission(self, rf, regular_user, scheduled_participation):
         request = self.get(rf, regular_user)
 
-        assert ParticipationObjectPermission().has_object_permission(
-            request, None, scheduled_participation
-        ) is False
+        assert ParticipationObjectPermission().has_object_permission(request, None, scheduled_participation) is False
 
     def test_read_allowed_with_view_all_participations(
         self,
@@ -160,9 +150,7 @@ class TestParticipationObjectPermission:
 
         request = self.get(rf, regular_user)
 
-        assert ParticipationObjectPermission().has_object_permission(
-            request, None, scheduled_participation
-        ) is True
+        assert ParticipationObjectPermission().has_object_permission(request, None, scheduled_participation) is True
 
     def test_read_allowed_via_event_visibility(
         self,
@@ -178,9 +166,7 @@ class TestParticipationObjectPermission:
 
         request = self.get(rf, regular_user)
 
-        assert ParticipationObjectPermission().has_object_permission(
-            request, None, scheduled_participation
-        ) is True
+        assert ParticipationObjectPermission().has_object_permission(request, None, scheduled_participation) is True
 
     def test_read_allowed_via_contact_visibility(
         self,
@@ -200,9 +186,7 @@ class TestParticipationObjectPermission:
 
         request = self.get(rf, regular_user)
 
-        assert ParticipationObjectPermission().has_object_permission(
-            request, None, scheduled_participation
-        ) is True
+        assert ParticipationObjectPermission().has_object_permission(request, None, scheduled_participation) is True
 
     def test_read_denied_when_not_visible(
         self,
@@ -215,9 +199,7 @@ class TestParticipationObjectPermission:
 
         request = self.get(rf, regular_user)
 
-        assert ParticipationObjectPermission().has_object_permission(
-            request, None, scheduled_participation
-        ) is False
+        assert ParticipationObjectPermission().has_object_permission(request, None, scheduled_participation) is False
 
     def test_write_allowed_with_change_all_participations(
         self,
@@ -227,16 +209,11 @@ class TestParticipationObjectPermission:
         change_participation_permission,
         change_all_participations_permission,
     ):
-        regular_user.user_permissions.add(
-            change_participation_permission,
-            change_all_participations_permission
-        )
+        regular_user.user_permissions.add(change_participation_permission, change_all_participations_permission)
 
         request = self.patch(rf, regular_user)
 
-        assert ParticipationObjectPermission().has_object_permission(
-            request, None, scheduled_participation
-        ) is True
+        assert ParticipationObjectPermission().has_object_permission(request, None, scheduled_participation) is True
 
     def test_write_allowed_via_ticket_assignment(
         self,
@@ -249,10 +226,7 @@ class TestParticipationObjectPermission:
         change_participation_permission,
         change_participation_via_ticket_permission,
     ):
-        regular_user.user_permissions.add(
-            change_participation_permission,
-            change_participation_via_ticket_permission
-        )
+        regular_user.user_permissions.add(change_participation_permission, change_participation_via_ticket_permission)
 
         ticket.assigned_to = regular_user
         ticket.ticket_status = TicketStatus.INPROGRESS
@@ -262,9 +236,7 @@ class TestParticipationObjectPermission:
 
         request = self.patch(rf, regular_user)
 
-        assert ParticipationObjectPermission().has_object_permission(
-            request, None, scheduled_participation
-        ) is True
+        assert ParticipationObjectPermission().has_object_permission(request, None, scheduled_participation) is True
 
     def test_write_allowed_via_event_assignment(
         self,
@@ -276,16 +248,11 @@ class TestParticipationObjectPermission:
         change_participation_permission,
         change_participation_via_event_permission,
     ):
-        regular_user.user_permissions.add(
-            change_participation_permission,
-            change_participation_via_event_permission
-        )
+        regular_user.user_permissions.add(change_participation_permission, change_participation_via_event_permission)
 
         request = self.patch(rf, regular_user)
 
-        assert ParticipationObjectPermission().has_object_permission(
-            request, None, scheduled_participation
-        ) is True
+        assert ParticipationObjectPermission().has_object_permission(request, None, scheduled_participation) is True
 
     def test_write_denied_without_change_perms(
         self,
@@ -298,10 +265,7 @@ class TestParticipationObjectPermission:
 
         request = self.patch(rf, regular_user)
 
-        assert ParticipationObjectPermission().has_object_permission(
-            request, None, scheduled_participation
-        ) is False
-
+        assert ParticipationObjectPermission().has_object_permission(request, None, scheduled_participation) is False
 
     def test_default_block(
         self,
@@ -317,8 +281,4 @@ class TestParticipationObjectPermission:
 
         request = self.patch(rf, regular_user)
 
-        assert ParticipationObjectPermission().has_object_permission(
-            request, None, scheduled_participation
-        ) is False
-
-
+        assert ParticipationObjectPermission().has_object_permission(request, None, scheduled_participation) is False

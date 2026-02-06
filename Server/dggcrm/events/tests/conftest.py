@@ -2,8 +2,8 @@ import pytest
 from django.contrib.auth.models import Permission, User
 from django.utils import timezone
 
-from dggcrm.events.models import Event, EventStatus, EventParticipation, UsersInEvent
 from dggcrm.contacts.models import Contact
+from dggcrm.events.models import Event, EventParticipation, EventStatus, UsersInEvent
 from dggcrm.tickets.models import Ticket, TicketStatus
 
 
@@ -68,6 +68,7 @@ def ticket(db, contact):
         contact=contact,
         ticket_status=TicketStatus.INPROGRESS,
     )
+
 
 @pytest.fixture
 def scheduled_participation(db, scheduled_event, contact):
@@ -178,6 +179,7 @@ def view_contact_permission(db):
 def view_usersinevent_permission(db):
     return Permission.objects.get(codename="view_usersinevent")
 
+
 @pytest.fixture
 def view_all_usersinevents_permission(db):
     return Permission.objects.get(codename="view_all_usersinevents")
@@ -187,13 +189,16 @@ def view_all_usersinevents_permission(db):
 def view_usersinevent_via_event_permission(db):
     return Permission.objects.get(codename="view_usersinevent_via_event")
 
+
 @pytest.fixture
 def change_usersinevent_permission(db):
     return Permission.objects.get(codename="change_usersinevent")
 
+
 @pytest.fixture
 def change_all_usersinevents_permission(db):
     return Permission.objects.get(codename="change_all_usersinevents")
+
 
 @pytest.fixture
 def change_usersinevent_via_event_permission(db):

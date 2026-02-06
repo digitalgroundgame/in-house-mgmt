@@ -22,4 +22,4 @@ node_modules/
 
 # Test Coverage
 .coverage
-htmlcov/ 
+htmlcov/

@@ -1,6 +1,6 @@
 import responses
 
-from dggcrm.discord.client import DiscordClient, DISCORD_API_BASE
+from dggcrm.discord.client import DISCORD_API_BASE, DiscordClient
 
 
 class TestDiscordClient:

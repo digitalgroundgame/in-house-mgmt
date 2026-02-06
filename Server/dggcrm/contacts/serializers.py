@@ -1,8 +1,6 @@
 from rest_framework import serializers
 
 from .models import Contact, Tag, TagAssignments
-from ..events.models import EventParticipation
-from ..events.serializers import EventSerializer
 
 
 class ContactSerializer(serializers.ModelSerializer):
@@ -19,22 +17,15 @@ class ContactSerializer(serializers.ModelSerializer):
 
     def get_tags(self, obj):
         """Get tags for this person"""
-        assigned_tags = TagAssignments.objects.filter(contact_id=obj).select_related('tag')
-        return [
-            {
-                'id': at.tag.id,
-                'name': at.tag.name,
-                'color': at.tag.color
-            }
-            for at in assigned_tags
-        ]
+        assigned_tags = TagAssignments.objects.filter(contact_id=obj).select_related("tag")
+        return [{"id": at.tag.id, "name": at.tag.name, "color": at.tag.color} for at in assigned_tags]
 
 
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
-        fields = '__all__'
-        read_only_fields = ['id', 'created_at', 'modified_at']
+        fields = "__all__"
+        read_only_fields = ["id", "created_at", "modified_at"]
 
 
 class TagAssignmentSerializer(serializers.ModelSerializer):

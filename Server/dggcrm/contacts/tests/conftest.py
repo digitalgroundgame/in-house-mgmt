@@ -4,8 +4,8 @@ from django.contrib.auth.models import Permission
 from django.utils import timezone
 
 from dggcrm.contacts.models import Contact, Tag, TagAssignments
+from dggcrm.events.models import Event, EventParticipation, EventStatus, UsersInEvent
 from dggcrm.tickets.models import Ticket, TicketStatus
-from dggcrm.events.models import Event, EventStatus, EventParticipation, UsersInEvent
 
 User = get_user_model()
 
@@ -25,6 +25,7 @@ def tag(db):
     return Tag.objects.create(
         name="you-are-it",
     )
+
 
 @pytest.fixture
 def contact(db):
@@ -60,6 +61,7 @@ def event(db):
         location_address="123 Test Street",
     )
 
+
 @pytest.fixture
 def event2(db):
     """Event with required non-null fields"""
@@ -72,12 +74,14 @@ def event2(db):
         location_name="REMOTE",
     )
 
+
 @pytest.fixture
 def tag_assignment(db, tag, contact):
     return TagAssignments.objects.create(
         contact=contact,
-        tag=tag, 
+        tag=tag,
     )
+
 
 @pytest.fixture
 def user_in_event(db, event, regular_user):
@@ -107,7 +111,6 @@ def view_contact_permission(db):
     return Permission.objects.get(codename="view_contact")
 
 
-
 @pytest.fixture
 def view_contacts_via_event_permission(db):
     return Permission.objects.get(codename="view_contacts_via_event")
@@ -126,4 +129,3 @@ def edit_ticket_contact_permission(db):
 @pytest.fixture
 def change_all_contacts_permission(db):
     return Permission.objects.get(codename="change_all_contacts")
-

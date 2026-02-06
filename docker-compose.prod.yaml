@@ -1,0 +1,44 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: ./compose/production/application/Dockerfile
+    image: inhouse_suite_frontend
+    container_name: inhouse_suite_frontend
+    depends_on:
+      - server
+    environment:
+      - NEXT_PUBLIC_USE_MOCK_OAUTH=false
+    ports:
+      - '3030:3030'
+
+  server: &server
+    build:
+      context: .
+      dockerfile: ./compose/production/server/Dockerfile
+    image: inhouse_suite_server
+    container_name: inhouse_suite_server
+    depends_on:
+      - postgres
+    env_file:
+      - ./.envs/.production/.postgres
+      - ./.envs/.production/.discord
+      - ./.envs/.production/.django
+    ports:
+      - '8080:8080'
+    command: /start
+
+  postgres:
+    image: postgres:18.1
+    container_name: inhouse_suite_postgres
+    volumes:
+      - dggcrm_production_postgres_data:/var/lib/postgresql/18/docker
+      - dggcrm_production_postgres_data_backups:/backups
+    env_file:
+      - ./.envs/.production/.postgres
+    ports:
+      - "5432:5432"
+
+volumes:
+  dggcrm_production_postgres_data:
+  dggcrm_production_postgres_data_backups:
