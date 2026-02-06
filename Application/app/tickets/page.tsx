@@ -102,16 +102,14 @@ export default function TicketPage() {
       if (!url) {
         const params = new URLSearchParams();
 
-        const effectivePriority =
-          overrides?.priority !== undefined ? overrides.priority : priority;
+        const effectivePriority = overrides?.priority !== undefined ? overrides.priority : priority;
         const effectiveType =
           overrides?.ticketType !== undefined ? overrides.ticketType : ticketType;
         const effectiveSortField =
           overrides?.sortField !== undefined ? overrides.sortField : sortField;
         const effectiveSortDirection =
           overrides?.sortDirection !== undefined ? overrides.sortDirection : sortDirection;
-        const effectiveAssignee =
-          overrides?.assignee !== undefined ? overrides.assignee : assignee;
+        const effectiveAssignee = overrides?.assignee !== undefined ? overrides.assignee : assignee;
         const effectiveExcluded =
           overrides?.excludedStatuses !== undefined ? overrides.excludedStatuses : excludedStatuses;
 
@@ -167,7 +165,12 @@ export default function TicketPage() {
         label: user.first_name
           ? `${user.first_name} ${user.last_name} (${user.username})`
           : user.username,
-        raw: { id: user.id, username: user.username, first_name: user.first_name, last_name: user.last_name },
+        raw: {
+          id: user.id,
+          username: user.username,
+          first_name: user.first_name,
+          last_name: user.last_name,
+        },
       };
       setAssignedToMe(true);
       setAssignee(meOption);

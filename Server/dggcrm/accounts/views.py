@@ -4,8 +4,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import UserPreferences
 from config.pagination import StandardPagination
+
+from .models import UserPreferences
 from .serializers import SocialAccountSerializer, UserDetailsSerializer, UserPreferencesSerializer, UserSearchSerializer
 
 

@@ -61,6 +61,7 @@ class UserDetailsSerializer(serializers.ModelSerializer):
             for sa in SocialAccount.objects.filter(user=user)
         ]
 
+
 class UserSearchSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
