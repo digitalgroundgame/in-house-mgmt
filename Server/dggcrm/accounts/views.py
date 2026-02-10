@@ -1,11 +1,24 @@
 from allauth.socialaccount.models import SocialAccount
-from rest_framework import generics, permissions, status
+from rest_framework import filters, generics, permissions, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from config.pagination import StandardPagination
+
 from .models import UserPreferences
-from .serializers import SocialAccountSerializer, UserDetailsSerializer, UserPreferencesSerializer
+from .serializers import SocialAccountSerializer, UserDetailsSerializer, UserPreferencesSerializer, UserSearchSerializer
+
+
+class UserSearchView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserSearchSerializer
+    pagination_class = StandardPagination
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["username", "first_name", "last_name"]
+
+    def get_queryset(self):
+        return self.serializer_class.Meta.model.objects.all()
 
 
 class SocialConnectionDeleteView(generics.DestroyAPIView):
