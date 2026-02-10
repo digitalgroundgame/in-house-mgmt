@@ -62,6 +62,12 @@ class UserDetailsSerializer(serializers.ModelSerializer):
         ]
 
 
+class UserSearchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "username", "first_name", "last_name"]
+
+
 class SocialAccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = SocialAccount
