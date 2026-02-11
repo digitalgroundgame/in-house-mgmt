@@ -23,6 +23,7 @@ import {
   IconNote,
 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
+import { apiClient } from "@/app/lib/apiClient";
 import EventHistory from "./EventHistory";
 import OpenedTickets from "./OpenedTickets";
 
@@ -87,8 +88,7 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
   const fetchContactDetails = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/contacts/${id}/`);
-      const data = await response.json();
+      const data = await apiClient.get<Contact>(`/contacts/${id}/`);
       setContact(data);
     } catch (error) {
       console.error("Error fetching contact details:", error);

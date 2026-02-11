@@ -1,6 +1,6 @@
 import { Modal, Select, TextInput, Textarea, Button, Group, Stack, Text } from "@mantine/core";
 import { useState } from "react";
-import getCookie from "@/app/utils/cookie";
+import { apiClient } from "@/app/lib/apiClient";
 import { type TicketType } from "@/app/components/ticket-utils";
 import { SearchSelect, SearchSelectOption } from "@/app/components/SearchSelect";
 
@@ -48,21 +48,7 @@ export function TicketBulkCreateModal({ opened, onClose, contactIds, onSuccess }
     if (priority !== null) payload.priority = Number(priority);
 
     try {
-      const res = await fetch("/api/tickets/bulk/", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRFToken": getCookie("csrftoken")!,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(JSON.stringify(data));
-      }
-
+      await apiClient.post("/tickets/bulk/", payload);
       onSuccess?.();
       onClose();
     } catch (err) {

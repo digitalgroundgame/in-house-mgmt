@@ -25,6 +25,7 @@ import {
 } from "@tabler/icons-react";
 import { useState, useEffect, Component } from "react";
 import { useRouter } from "next/navigation";
+import { apiClient } from "@/app/lib/apiClient";
 import { useForm } from "@mantine/form";
 import { TicketBulkCreateModal } from "@/app/components/tickets/TicketBulkCreateModal";
 import ContactTable, {
@@ -94,11 +95,7 @@ export default function ContactsPage() {
 
   const fetchGroupsAndTags = async () => {
     try {
-      const [tagsRes] = await Promise.all([fetch("/api/tags/")]);
-
-      console.log("Tags response:", tagsRes);
-
-      const tagsData = await tagsRes.json();
+      const tagsData = await apiClient.get<Tag[] | { results: Tag[] }>("/tags/");
       console.log("Tags data:", tagsData);
 
       // Handle both array and object responses
@@ -128,13 +125,17 @@ export default function ContactsPage() {
         if (endDate) params.append("end_date", endDate);
 
         if (selectedTag && selectedTag !== "all") params.append("tag", selectedTag);
-        fetchUrl = `/api/contacts/?${params}`;
+        fetchUrl = `/contacts/?${params}`;
       }
 
       console.log("Fetch URL:", fetchUrl);
 
-      const response = await fetch(fetchUrl);
-      const data = await response.json();
+      const data = await apiClient.get<{
+        results: Contact[];
+        count: number;
+        next: string | null;
+        previous: string | null;
+      }>(fetchUrl?.replace(/^\/api/, "") || `/contacts/`);
 
       console.log("Fetched contacts data:", data);
       setContacts(data.results);
@@ -184,32 +185,14 @@ export default function ContactsPage() {
         phone: values.phone,
       };
 
-      const contactResponse = await fetch("/api/contacts/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(contactData),
-      });
-
-      if (!contactResponse.ok) {
-        throw new Error("Failed to create contact");
-      }
-
-      const newContact = await contactResponse.json();
+      const newContact = await apiClient.post<Contact>("/contacts/", contactData);
 
       // Step 2: Assign tags to the contact
       if (selectedTags.length > 0) {
         const tagAssignmentPromises = selectedTags.map((tagName) =>
-          fetch("/api/tag-assignments/", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              contact_id: newContact.id,
-              tag_name: tagName,
-            }),
+          apiClient.post("/tag-assignments/", {
+            contact_id: newContact.id,
+            tag_name: tagName,
           })
         );
         await Promise.all(tagAssignmentPromises);

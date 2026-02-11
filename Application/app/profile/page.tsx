@@ -15,7 +15,7 @@ import {
   Select,
 } from "@mantine/core";
 import { useState, useMemo } from "react";
-import getCookie from "@/app/utils/cookie";
+import { apiClient } from "@/app/lib/apiClient";
 import { loginWithProvider } from "@/app/utils/oauth";
 import { useUser, User } from "@/app/components/provider/UserContext";
 import { useTimezone } from "@/app/components/provider/TimezoneContext";
@@ -36,17 +36,11 @@ function ProfileForm({ user, refresh }: ProfileFormProps) {
 
   const updateProfile = async () => {
     setError(null);
-    const res = await fetch("/api/auth/user", {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": getCookie("csrftoken"),
-      },
-      credentials: "include",
-      body: JSON.stringify({ first_name: firstName, last_name: lastName }),
-    });
-    if (!res.ok) setError("Failed to update profile");
-
+    try {
+      await apiClient.patch("/auth/user", { first_name: firstName, last_name: lastName });
+    } catch {
+      setError("Failed to update profile");
+    }
     refresh();
   };
 
@@ -138,13 +132,12 @@ function ProfileForm({ user, refresh }: ProfileFormProps) {
                 color="red"
                 variant="outline"
                 onClick={async () => {
-                  const res = await fetch(`/api/auth/social/connections/${acct.provider}/`, {
-                    method: "DELETE",
-                    headers: { "X-CSRFToken": getCookie("csrftoken") },
-                    credentials: "include",
-                  });
-                  if (res.ok) window.location.reload();
-                  else setError("Failed to remove connection");
+                  try {
+                    await apiClient.delete(`/auth/social/connections/${acct.provider}/`);
+                    window.location.reload();
+                  } catch {
+                    setError("Failed to remove connection");
+                  }
                 }}
               >
                 Disconnect

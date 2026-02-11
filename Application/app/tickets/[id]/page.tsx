@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { apiClient } from "@/app/lib/apiClient";
 import TicketView, { type TimelineShowType } from "@/app/components/tickets/TicketView";
 import { type Ticket } from "@/app/components/tickets/ticket-utils";
 import { Loader, Center, Text } from "@mantine/core";
@@ -32,19 +33,7 @@ export default function TicketInfoPage() {
     const fetchTicket = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`/api/tickets/${id}`, {
-          credentials: "include",
-        });
-
-        if (res.status === 404) {
-          throw new Error("Ticket does not exist");
-        }
-
-        if (!res.ok) {
-          throw new Error("Failed to load ticket");
-        }
-
-        const data = (await res.json()) as Ticket;
+        const data = await apiClient.get<Ticket>(`/tickets/${id}`);
         setTicket(data);
       } catch (err) {
         console.error(err);
@@ -63,16 +52,11 @@ export default function TicketInfoPage() {
     const fetchTimeline = async () => {
       try {
         setTimelineLoading(true);
-        const res = await fetch(`/api/tickets/${id}/timeline/?show=${showType}`, {
-          credentials: "include",
-        });
-
-        if (!res.ok) {
-          throw new Error("Failed to load timeline");
-        }
-
-        const data = await res.json();
-        setTimeline(data.results ?? data);
+        const data = await apiClient.get<{ results?: TimelineEntry[] } | TimelineEntry[]>(
+          `/tickets/${id}/timeline/?show=${showType}`
+        );
+        const entries = Array.isArray(data) ? data : (data.results ?? []);
+        setTimeline(entries);
       } catch (err) {
         console.error(err);
       } finally {

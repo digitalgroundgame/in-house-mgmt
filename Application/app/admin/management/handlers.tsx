@@ -2,6 +2,7 @@ import { type Organization } from "@/app/components/OrganizationsTable";
 import { type GroupMember } from "@/app/components/OrganizationMembersTable";
 import { type ContactWithRole } from "@/app/components/RolesTable";
 import { type UseFormReturnType } from "@mantine/form";
+import { apiClient } from "@/app/lib/apiClient";
 
 // Form value types
 export interface AddOrgFormValues {
@@ -95,14 +96,7 @@ export function useAdminHandlers(props: UseHandlersProps) {
   const handleSubmitOrganization = async (values: AddOrgFormValues) => {
     setSubmitting(true);
     try {
-      const response = await fetch("/api/groups/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
-
-      if (!response.ok) throw new Error("Failed to create organization");
-
+      await apiClient.post("/groups/", values);
       setAddOrgOpen(false);
       addOrgForm.reset();
       fetchOrganizations();
@@ -124,12 +118,7 @@ export function useAdminHandlers(props: UseHandlersProps) {
 
     setSubmitting(true);
     try {
-      const response = await fetch(`/api/groups/${selectedOrg.gid}/`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) throw new Error("Failed to delete organization");
-
+      await apiClient.delete(`/groups/${selectedOrg.gid}/`);
       setDeleteOrgOpen(false);
       setOrgDetailsOpen(false);
       setSelectedOrg(null);
@@ -154,17 +143,11 @@ export function useAdminHandlers(props: UseHandlersProps) {
 
     setSubmitting(true);
     try {
-      const response = await fetch("/api/volunteer-in-groups/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contact: values.contact,
-          group: selectedOrg.gid,
-          access_level: parseInt(values.access_level),
-        }),
+      await apiClient.post("/volunteer-in-groups/", {
+        contact: values.contact,
+        group: selectedOrg.gid,
+        access_level: parseInt(values.access_level),
       });
-
-      if (!response.ok) throw new Error("Failed to add member");
 
       setAddMemberOpen(false);
       addMemberForm.reset();
@@ -189,15 +172,9 @@ export function useAdminHandlers(props: UseHandlersProps) {
 
     setSubmitting(true);
     try {
-      const response = await fetch(`/api/volunteer-in-groups/${selectedMember.id}/`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          access_level: parseInt(values.access_level),
-        }),
+      await apiClient.patch(`/volunteer-in-groups/${selectedMember.id}/`, {
+        access_level: parseInt(values.access_level),
       });
-
-      if (!response.ok) throw new Error("Failed to update member");
 
       setEditMemberOpen(false);
       fetchOrgMembers(selectedOrg.gid);
@@ -214,11 +191,9 @@ export function useAdminHandlers(props: UseHandlersProps) {
     if (!selectedOrg) return;
 
     setSubmitting(true);
-    fetch(`/api/volunteer-in-groups/${member.id}/`, {
-      method: "DELETE",
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error("Failed to remove member");
+    apiClient
+      .delete(`/volunteer-in-groups/${member.id}/`)
+      .then(() => {
         fetchOrgMembers(selectedOrg.gid);
         fetchOrganizations(); // Refresh member counts
       })
@@ -244,16 +219,10 @@ export function useAdminHandlers(props: UseHandlersProps) {
 
     setSubmitting(true);
     try {
-      const response = await fetch("/api/general-roles/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contact: selectedContact.discord_id,
-          access_level: parseInt(values.access_level),
-        }),
+      await apiClient.post("/general-roles/", {
+        contact: selectedContact.discord_id,
+        access_level: parseInt(values.access_level),
       });
-
-      if (!response.ok) throw new Error("Failed to assign role");
 
       setAssignRoleOpen(false);
       assignRoleForm.reset();
@@ -277,15 +246,9 @@ export function useAdminHandlers(props: UseHandlersProps) {
 
     setSubmitting(true);
     try {
-      const response = await fetch(`/api/general-roles/${selectedContact.role_id}/`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          access_level: parseInt(values.access_level),
-        }),
+      await apiClient.patch(`/general-roles/${selectedContact.role_id}/`, {
+        access_level: parseInt(values.access_level),
       });
-
-      if (!response.ok) throw new Error("Failed to update role");
 
       setEditRoleOpen(false);
       fetchContactsWithRoles();
@@ -303,11 +266,9 @@ export function useAdminHandlers(props: UseHandlersProps) {
       return;
 
     setSubmitting(true);
-    fetch(`/api/general-roles/${contact.role_id}/`, {
-      method: "DELETE",
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error("Failed to remove role");
+    apiClient
+      .delete(`/general-roles/${contact.role_id}/`)
+      .then(() => {
         fetchContactsWithRoles();
       })
       .catch((error) => {
