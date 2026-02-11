@@ -24,6 +24,7 @@ import {
   IconChevronUp,
 } from "@tabler/icons-react";
 import { useState, useEffect } from "react";
+import { apiClient } from "@/app/lib/apiClient";
 import { useForm } from "@mantine/form";
 import OrganizationsTable, { type Organization } from "@/app/components/OrganizationsTable";
 import OrganizationMembersTable, {
@@ -152,15 +153,16 @@ export default function ManagementConsole() {
         page_size: itemsPerPage.toString(),
       });
 
-      const response = await fetch(`/api/groups/with-counts/?${params}`);
-      const data = await response.json();
+      const data = await apiClient.get<
+        { results?: Organization[]; total_pages?: number } | Organization[]
+      >(`/groups/with-counts/?${params}`);
 
       // Handle both paginated and non-paginated responses
-      if (data.results) {
+      if (!Array.isArray(data) && data.results) {
         setOrganizations(data.results);
         setOrgTotalPages(data.total_pages || 1);
       } else {
-        setOrganizations(data);
+        setOrganizations(Array.isArray(data) ? data : []);
         setOrgTotalPages(1);
       }
     } catch (error) {
@@ -174,8 +176,7 @@ export default function ManagementConsole() {
   const fetchOrgMembers = async (gid: number) => {
     setOrgDetailsLoading(true);
     try {
-      const response = await fetch(`/api/groups/${gid}/members/`);
-      const data = await response.json();
+      const data = await apiClient.get<GroupMember[]>(`/groups/${gid}/members/`);
       setSelectedOrgMembers(data);
     } catch (error) {
       console.error("Error fetching members:", error);
@@ -193,13 +194,10 @@ export default function ManagementConsole() {
         page_size: itemsPerPage.toString(),
       });
 
-      const [contactsRes, rolesRes] = await Promise.all([
-        fetch(`/api/contacts/?${params}`),
-        fetch("/api/general-roles/?page_size=1000"), // Fetch all roles to match with current page of contacts
+      const [contactsData, rolesData] = await Promise.all([
+        apiClient.get<{ results?: Contact[]; total_pages?: number }>(`/contacts/?${params}`),
+        apiClient.get<{ results?: GeneralRole[] }>("/general-roles/?page_size=1000"),
       ]);
-
-      const contactsData = await contactsRes.json();
-      const rolesData = await rolesRes.json();
 
       const contactsArray = contactsData.results || [];
       const rolesArray = rolesData.results || [];
@@ -233,8 +231,9 @@ export default function ManagementConsole() {
         page: page.toString(),
       });
 
-      const response = await fetch(`/api/contacts/?${params}`);
-      const data = await response.json();
+      const data = await apiClient.get<{ results?: Contact[]; next?: string }>(
+        `/contacts/?${params}`
+      );
 
       const results = data.results || [];
 

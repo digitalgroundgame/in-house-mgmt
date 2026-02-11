@@ -6,7 +6,7 @@ import { type Ticket, type TicketAsk, type TicketAskStatus } from "@/app/compone
 import { type Event } from "@/app/components/EventTable";
 import { type Contact } from "@/app/components/ContactTable";
 import { SearchSelect, SearchSelectOption } from "@/app/components/SearchSelect";
-import getCookie from "@/app/utils/cookie";
+import { apiClient } from "@/app/lib/apiClient";
 import { useUser } from "@/app/components/provider/UserContext";
 
 // TODO: Move to another file
@@ -43,10 +43,9 @@ export default function TicketActions({ ticket, event, contact }: TicketActionsP
           contact: contact.id.toString(),
         });
 
-        const res = await fetch(`/api/participants?${searchParams}`);
-        if (!res.ok) throw new Error("Failed to fetch participation");
-
-        const data = await res.json();
+        const data = await apiClient.get<{ results?: EventParticipation[] }>(
+          `/participants?${searchParams}`
+        );
         const existing = data.results?.[0];
 
         if (existing) {
@@ -77,21 +76,12 @@ export default function TicketActions({ ticket, event, contact }: TicketActionsP
    * ============================= */
   async function upsertParticipation(participation) {
     try {
-      const res = await fetch("/api/participants", {
-        method: "POST",
-        headers: {
-          "X-CSRFToken": getCookie("csrftoken")!,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          event: event.id,
-          contact: contact.id,
-          status: participation.raw.value,
-        }),
+      await apiClient.post("/participants", {
+        event: event.id,
+        contact: contact.id,
+        status: participation.raw.value,
       });
       setParticipation(participation);
-
-      if (!res.ok) throw new Error("Failed to upsert participation");
     } catch (err) {
       console.error(err);
       alert("Error upserting participation status");
