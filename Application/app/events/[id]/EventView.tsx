@@ -6,7 +6,7 @@ import PaginationBar, {
 } from "@/app/components/pagination/PaginationBar";
 import { formatContactInfo } from "@/app/components/contact-utils";
 import { Event } from "@/app/components/event-utils";
-import { BackendPaginatedResults, useBackend } from "@/app/lib/api";
+import { BackendPaginatedResults, useBackend, useBackendMutation } from "@/app/lib/api";
 import {
   Text,
   Paper,
@@ -23,10 +23,27 @@ import {
   TextInput,
   Group,
   MultiSelect,
+  Button,
+  Modal,
+  Select,
+  Combobox,
+  useCombobox,
 } from "@mantine/core";
 import { IconSearch } from "@tabler/icons-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { useDisclosure } from "@mantine/hooks";
+import getCookie from "@/app/utils/cookie";
+
+const EVENT_PARTICIPATION_STATUSES = [
+  "UNKNOWN",
+  "MAYBE",
+  "COMMITED",
+  "REJECTED",
+  "ATTENDED",
+  "NO_SHOW",
+] as const;
+type EventParticipationStatus = (typeof EVENT_PARTICIPATION_STATUSES)[number];
 
 export default function EventView({ event }: { event: Event | undefined }) {
   return (
@@ -133,10 +150,146 @@ export const getStatusColor = (status: string) => {
   }
 };
 
+function AddParticipantModal({
+  opened,
+  close,
+  refresh,
+}: {
+  opened: boolean;
+  close: () => void;
+  refresh: () => void;
+}) {
+  const [contactSearchQuery, setContactSearchQuery] = useState<string>();
+  const [selectedContacts, setSelectedContacts] = useState<Set<Contact>>(new Set());
+  const [eventStatus, setEventStatus] = useState<EventParticipationStatus>();
+  const eventId = usePathname().split("/").pop();
+  const apiParams = new URLSearchParams();
+  if (contactSearchQuery) apiParams.append("search", contactSearchQuery);
+
+  const contactsSearch = useBackend<BackendPaginatedResults<Contact>>(
+    `/api/contacts/?${apiParams}`
+  );
+  const { mutate, loading, error } = useBackendMutation(`/api/participants`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": getCookie("csrftoken") ?? "",
+    },
+  });
+  const selectedContactIds: number[] = [];
+  selectedContacts.forEach((c) => selectedContactIds.push(c.id));
+  const contacts = contactsSearch.data?.results.filter((c) => !selectedContactIds.includes(c.id));
+  const combobox = useCombobox();
+  const removeContact = (c: Contact) => {
+    setSelectedContacts((prev) => {
+      const next = new Set(prev);
+      next.delete(c);
+      return next;
+    });
+  };
+
+  return (
+    <Modal opened={opened} onClose={close} title="Add Participant">
+      <LoadingOverlay visible={loading} />
+      <Stack>
+        <Combobox
+          store={combobox}
+          onOptionSubmit={(value) => {
+            const contact = contacts?.find((c) => c.id.toString() === value);
+            if (!contact) return;
+
+            setSelectedContacts((prev) => {
+              const next = new Set(prev);
+              next.add(contact);
+              return next;
+            });
+            setContactSearchQuery("");
+            combobox.closeDropdown();
+          }}
+        >
+          <Combobox.Target>
+            <TextInput
+              label="Contact"
+              placeholder="Search contacts..."
+              value={contactSearchQuery}
+              onChange={(event) => {
+                setContactSearchQuery(event.currentTarget.value);
+                combobox.openDropdown();
+              }}
+              onFocus={() => combobox.openDropdown()}
+              onClick={() => combobox.openDropdown()}
+              onBlur={() => combobox.closeDropdown()}
+            />
+          </Combobox.Target>
+
+          <Combobox.Dropdown hidden={contacts === undefined || contacts.length === 0}>
+            <Combobox.Options>
+              {contacts?.map((contact) => (
+                <Combobox.Option key={contact.id} value={contact.id.toString()}>
+                  {contact.full_name}
+                </Combobox.Option>
+              ))}
+
+              {contacts?.length === 0 && <Combobox.Empty>No contacts found</Combobox.Empty>}
+            </Combobox.Options>
+          </Combobox.Dropdown>
+        </Combobox>
+        <Select
+          label="Participation Status"
+          placeholder="Participation Status"
+          data={EVENT_PARTICIPATION_STATUSES}
+          onChange={(s, _) => setEventStatus(s as EventParticipationStatus)}
+          value={eventStatus}
+        />
+        <PaginatedTable
+          columns={["Full Name", "Discord ID"]}
+          data={Array.from(selectedContacts)}
+          transforms={[
+            (c: Contact) => <Table.Td>{c.full_name}</Table.Td>,
+            (c: Contact) => <Table.Td>{c.discord_id}</Table.Td>,
+            (c: Contact) => (
+              <Table.Td>
+                <Button color="red" onClick={() => removeContact(c)}>
+                  Remove
+                </Button>
+              </Table.Td>
+            ),
+          ]}
+          loading={false}
+          noDataText="Select a participant to proceed"
+        />
+        <Button
+          onClick={async () => {
+            await Promise.all(
+              Array.from(selectedContacts).map((c) =>
+                mutate({
+                  event_id: Number.parseInt(eventId!),
+                  status: eventStatus,
+                  contact_id: c.id,
+                })
+              )
+            );
+            if (!error) {
+              setSelectedContacts(new Set());
+              close();
+              refresh();
+            }
+          }}
+        >
+          Click me
+        </Button>
+      </Stack>
+    </Modal>
+  );
+}
+
 function EventViewContactTable({ event }: { event: Event }) {
   const currentParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState<string>();
   const [statusArray, setStatusArray] = useState<string[]>();
+  const [opened, { open, close }] = useDisclosure(false);
+
   const pageNum = currentParams.get("page");
   const apiParams = new URLSearchParams();
 
@@ -150,7 +303,7 @@ function EventViewContactTable({ event }: { event: Event }) {
 
   apiParams.append("event", event.id.toString());
 
-  const { data, loading, error } = useBackend<BackendPaginatedResults<EventParticipation>>(
+  const { data, loading, error, refresh } = useBackend<BackendPaginatedResults<EventParticipation>>(
     `/api/participants?${apiParams}`
   );
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -167,24 +320,24 @@ function EventViewContactTable({ event }: { event: Event }) {
 
   return (
     <>
+      {opened && <AddParticipantModal opened={opened} close={close} refresh={refresh} />}
       <Paper p="md" mt="sm" withBorder style={{ position: "relative" }}>
         <Stack>
-          <Group>
+          <Group grow align="flex-end">
             <TextInput
               label="Search"
               placeholder="Search by name, Discord ID, email, or phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               leftSection={<IconSearch size={16} />}
-              style={{ flex: 1 }}
             />
             <MultiSelect
               label="Participation Status"
-              data={["UNKNOWN", "MAYBE", "COMMITED", "REJECTED", "ATTENDED", "NO_SHOW"]}
+              data={EVENT_PARTICIPATION_STATUSES}
               onChange={setStatusArray}
               value={statusArray}
-              style={{ flex: 1 }}
             />
+            <Button onClick={open}>Add Participant</Button>
           </Group>
           {data && (
             <PaginatedTable
