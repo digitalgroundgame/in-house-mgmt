@@ -145,7 +145,7 @@ class EventParticipationViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-    # Extract the instances from validated data
+        # Extract the instances from validated data
         event = serializer.validated_data["event"]
         contact = serializer.validated_data["contact"]
         status_value = serializer.validated_data.get("status")
