@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 import { apiClient } from "@/app/lib/apiClient";
 import { Loader, Center, Text, ActionIcon } from "@mantine/core";
 import { type Ticket } from "@/app/components/tickets/ticket-utils";
