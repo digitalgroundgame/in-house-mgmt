@@ -5,7 +5,7 @@ import PaginationBar, {
   incrementPageSearchParam,
 } from "@/app/components/pagination/PaginationBar";
 import { formatContactInfo } from "@/app/components/contact-utils";
-import { Event } from "@/app/components/event-utils";
+import { Event, EventParticipation, getEventParticipationStatusColor } from "@/app/components/event-utils";
 import { BackendPaginatedResults, useBackend, useBackendMutation } from "@/app/lib/api";
 import {
   Text,
@@ -80,7 +80,7 @@ function EventViewMetadata({ event }: { event: Event }) {
           <Text c="dimmed" size="sm">
             Event Status
           </Text>
-          <Badge color={getStatusColor(event.status_display)}>{event.status_display}</Badge>
+          <Badge color={getEventParticipationStatusColor(event.status_display)}>{event.status_display}</Badge>
         </Box>
         <Divider />
         <Box mt={4} mb={4}>
@@ -122,45 +122,19 @@ function EventViewMetadata({ event }: { event: Event }) {
   );
 }
 
-export interface EventParticipation {
-  contact: Contact;
-  created_at: string;
-  modified_at: string;
-  id: number;
-  status: string;
-  status_display: string;
-}
-
-export const getStatusColor = (status: string) => {
-  switch (status) {
-    case "UNKNOWN":
-      return "gray";
-    case "MAYBE":
-      return "gray";
-    case "COMMITTED":
-      return "blue";
-    case "REJECTED":
-      return "red";
-    case "ATTENDED":
-      return "green";
-    case "NO_SHOW":
-      return "red";
-    default:
-      return "DimGray";
-  }
-};
-
 function AddParticipantModal({
+  selected,
   opened,
   close,
   refresh,
 }: {
+  selected?: EventParticipation[],
   opened: boolean;
   close: () => void;
   refresh: () => void;
 }) {
   const [contactSearchQuery, setContactSearchQuery] = useState<string>();
-  const [selectedContacts, setSelectedContacts] = useState<Set<Contact>>(new Set());
+  const [selectedContacts, setSelectedContacts] = useState<Set<Contact>>(new Set(selected?.map(ep => ep.contact)));
   const [eventStatus, setEventStatus] = useState<EventParticipationStatus>();
   const eventId = usePathname().split("/").pop();
   const apiParams = new URLSearchParams();
@@ -277,7 +251,7 @@ function AddParticipantModal({
             }
           }}
         >
-          Click me
+          Submit
         </Button>
       </Stack>
     </Modal>
@@ -318,9 +292,10 @@ function EventViewContactTable({ event }: { event: Event }) {
     router.replace(`?${params.toString()}`, { scroll: false });
   };
 
+  const selectedData = data?.results.filter(participation => selected.has(participation.id))
   return (
     <>
-      {opened && <AddParticipantModal opened={opened} close={close} refresh={refresh} />}
+      {opened && <AddParticipantModal selected={selectedData} opened={opened} close={close} refresh={refresh} />}
       <Paper p="md" mt="sm" withBorder style={{ position: "relative" }}>
         <Stack>
           <Group grow align="flex-end">
@@ -337,7 +312,8 @@ function EventViewContactTable({ event }: { event: Event }) {
               onChange={setStatusArray}
               value={statusArray}
             />
-            <Button onClick={open}>Add Participant</Button>
+              {selected.size === 0 ? <Button onClick={open}>Add Participant</Button>
+                : <Button color="green" onClick={open}>Modify Selected</Button>}
           </Group>
           {data && (
             <PaginatedTable
@@ -355,7 +331,7 @@ function EventViewContactTable({ event }: { event: Event }) {
                 ),
                 (ep) => (
                   <Table.Td key={ep.status}>
-                    <Badge color={getStatusColor(ep.status)}>{ep.status_display}</Badge>
+                    <Badge color={getEventParticipationStatusColor(ep.status)}>{ep.status_display}</Badge>
                   </Table.Td>
                 ),
               ]}
