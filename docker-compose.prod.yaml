@@ -18,7 +18,8 @@ services:
     image: inhouse_suite_frontend
     container_name: inhouse_suite_frontend
     env_file:
-      - ./.envs/.production/.frontend
+      - path: ./.envs/.production/.frontend
+        required: false
     expose:
       - "3030"
 
@@ -33,9 +34,12 @@ services:
     depends_on:
       - postgres
     env_file:
-      - ./.envs/.production/.postgres
-      - ./.envs/.production/.discord
-      - ./.envs/.production/.django
+      - path: ./.envs/.production/.postgres
+        required: false
+      - path: ./.envs/.production/.discord
+        required: false
+      - path: ./.envs/.production/.django
+        required: false
     ports:
       - "8080:8080"
     command: /start
@@ -47,7 +51,8 @@ services:
       - dggcrm_production_postgres_data:/var/lib/postgresql/18/docker
       - dggcrm_production_postgres_data_backups:/backups
     env_file:
-      - ./.envs/.production/.postgres
+      - path: ./.envs/.production/.postgres
+        required: false
     expose:
       - "5432"
 
