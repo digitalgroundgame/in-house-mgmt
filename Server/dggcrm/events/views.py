@@ -1,6 +1,4 @@
 from django.db.models import Count, F
-from django.db import transaction
-from django.views.decorators.csrf import csrf_exempt
 from rest_framework import filters, viewsets
 from rest_framework import status as rest_status
 from rest_framework.decorators import action

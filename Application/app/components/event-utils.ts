@@ -55,5 +55,4 @@ export const getEventParticipationStatusColor = (status: string) => {
     default:
       return "DimGray";
   }
-}; 
-
+};

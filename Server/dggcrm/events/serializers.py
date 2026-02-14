@@ -2,7 +2,6 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from ..contacts.models import Contact
-
 from ..contacts.serializers import ContactSerializer
 from .models import Event, EventParticipation, UsersInEvent
 
