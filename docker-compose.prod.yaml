@@ -44,8 +44,8 @@ services:
         required: false
       - path: ./.envs/.production/.django
         required: false
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     command: /start
     networks:
       - in_house_suite
