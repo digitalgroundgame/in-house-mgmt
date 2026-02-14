@@ -1,6 +1,8 @@
 services:
   nginx:
-    image: nginx:1.27-alpine
+    build:
+      context: .
+      dockerfile: ./compose/production/nginx/Dockerfile
     container_name: inhouse_suite_nginx
     depends_on:
       - frontend
@@ -8,10 +10,10 @@ services:
     ports:
       - "8090:80"
     volumes:
-      - ./compose/production/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - dggcrm_production_admin_static_files:/app/staticfiles
     networks:
       - in_house_suite
+
 
   frontend:
     build:
