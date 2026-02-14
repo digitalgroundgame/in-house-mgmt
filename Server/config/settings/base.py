@@ -123,7 +123,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 ACCOUNT_LOGIN_METHODS = {"email", "username"}
-ACCOUNT_EMAIL_REQUIRED = False
+ACCOUNT_SIGNUP_FIELDS = ["email", "username"]
 ACCOUNT_EMAIL_VERIFICATION = "none"
 
 ACCOUNT_ADAPTER = "dggcrm.accounts.adapters.NoNewUsersAccountAdapter"
@@ -187,6 +187,7 @@ USE_TZ = True
 # ------------------------------------------------------------------------------
 
 STATIC_URL = "django/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # ------------------------------------------------------------------------------
 # Proxy / forwarding

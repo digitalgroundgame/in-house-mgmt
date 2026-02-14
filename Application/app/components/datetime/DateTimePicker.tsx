@@ -32,8 +32,12 @@ export function DateTimePicker({
   const localValue = parseToLocal(value, timezone);
 
   // Convert local Date back to UTC string for the callback
-  const handleChange = (date: Date | null) => {
-    onChange(toUTC(date, timezone));
+  const handleChange = (date: string | null) => {
+    if (!date) {
+      onChange(null);
+      return;
+    }
+    onChange(toUTC(new Date(date), timezone));
   };
 
   // Append timezone abbreviation to label if desired

@@ -87,7 +87,7 @@ function ProfileForm({ user, refresh }: ProfileFormProps) {
         <Divider label="Emails" />
         <Stack gap="xs">
           {user.email_addresses?.map((email) => (
-            <Group key={email.email} position="apart">
+            <Group key={email.email}>
               <Text>
                 {email.email}{" "}
                 {email.primary && (
@@ -125,7 +125,7 @@ function ProfileForm({ user, refresh }: ProfileFormProps) {
         <Divider label="Connected accounts / OAuth" />
         <Stack gap="sm">
           {user.social_accounts?.map((acct) => (
-            <Group key={acct.provider} position="apart">
+            <Group key={acct.provider}>
               <Text>{acct.provider}</Text>
               <Button
                 size="xs"

@@ -134,7 +134,7 @@ export default function EventHistory({ contactId }: { contactId: string }) {
     (page?: number) => {
       const params = new URLSearchParams();
       params.set("contact", contactId);
-      params.set("page_size", 5);
+      params.set("page_size", "5");
       if (eventSearch) params.set("search", eventSearch);
       if (statusFilter) {
         if (statusFilter.mode === "include") params.set("status", statusFilter.value);
@@ -257,7 +257,7 @@ export default function EventHistory({ contactId }: { contactId: string }) {
                             size="xs"
                             c="dimmed"
                             includeTime={false}
-                            style="medium"
+                            format="medium"
                           />
                         </div>
                         <Group gap={4} wrap="nowrap">

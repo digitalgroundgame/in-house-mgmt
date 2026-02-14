@@ -57,7 +57,7 @@ export function TimezoneProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <TimezoneContext.Provider value={{ timezone, setTimezone, isLoading }}>
-      <DatesProvider settings={{ timezone }}>{children}</DatesProvider>
+      <DatesProvider settings={{}}>{children}</DatesProvider>
     </TimezoneContext.Provider>
   );
 }
