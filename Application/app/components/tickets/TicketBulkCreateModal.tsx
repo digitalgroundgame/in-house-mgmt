@@ -1,14 +1,10 @@
 import { Modal, Select, TextInput, Textarea, Button, Group, Stack, Text } from "@mantine/core";
 import { useState } from "react";
 import { apiClient } from "@/app/lib/apiClient";
-import { type TicketType } from "@/app/components/ticket-utils";
+import { type TicketType } from "@/app/components/tickets/ticket-utils";
 import { SearchSelect, SearchSelectOption } from "@/app/components/SearchSelect";
 
 interface Event {
-  id: number;
-  name: string;
-}
-interface User {
   id: number;
   name: string;
 }
@@ -17,14 +13,13 @@ interface Props {
   opened: boolean;
   onClose: () => void;
   contactIds: number[];
-  users: User[];
   onSuccess?: () => void;
 }
 
 export function TicketBulkCreateModal({ opened, onClose, contactIds, onSuccess }: Props) {
-  const [ticketType, setTicketType] = useState<SearchSelectOption | null>(null);
+  const [ticketType, setTicketType] = useState<SearchSelectOption<TicketType> | null>(null);
   const [priority, setPriority] = useState<string | null>(null);
-  const [event, setEvent] = useState<SearchSelectOption | null>(null);
+  const [event, setEvent] = useState<SearchSelectOption<Event> | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [assignedToId, _setAssignedToId] = useState<string | null>(null);

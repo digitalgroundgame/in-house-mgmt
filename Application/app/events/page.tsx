@@ -291,8 +291,8 @@ export default function EventsPage() {
               <Text size="sm" fw={500} c="dimmed">
                 Date
               </Text>
-              <DateTime value={selectedEvent.starts_at} size="sm" style="long" />
-              <DateTime value={selectedEvent.ends_at} size="sm" style="long" />
+              <DateTime value={selectedEvent.starts_at} size="sm" format="long" />
+              <DateTime value={selectedEvent.ends_at} size="sm" format="long" />
             </div>
             <div>
               <Text size="sm" fw={500} c="dimmed">

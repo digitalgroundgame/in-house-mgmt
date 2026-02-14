@@ -437,8 +437,6 @@ export default function ContactsPage() {
         opened={bulkTicketModalOpen}
         onClose={() => setBulkTicketModalOpen(false)}
         contactIds={Array.from(selectedRows)}
-        events={[]} // 🔧 plug in events once available
-        users={[]} // 🔧 plug in users once available
         onSuccess={() => {
           setSelectedRows(new Set());
         }}

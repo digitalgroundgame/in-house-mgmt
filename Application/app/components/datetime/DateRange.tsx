@@ -16,8 +16,8 @@ export interface DateRangeProps extends Omit<TextProps, "children"> {
   end: string | null | undefined;
   /** Include time in output (default: false for ranges) */
   includeTime?: boolean;
-  /** Format style: 'short', 'medium', 'long' (default: 'short') */
-  style?: FormatDateTimeOptions["style"];
+  /** Date format: 'short', 'medium', 'long' (default: 'short') */
+  format?: FormatDateTimeOptions["style"];
   /** Separator between dates (default: ' - ') */
   separator?: string;
   /** Show tooltip with full datetime (default: true) */
@@ -30,7 +30,7 @@ export function DateRange({
   start,
   end,
   includeTime = false,
-  style = "short",
+  format = "short",
   separator = " - ",
   showTooltip = true,
   showTimezone = true,
@@ -38,10 +38,17 @@ export function DateRange({
 }: DateRangeProps) {
   const { timezone } = useTimezone();
 
-  const startText = formatDateTime(start, timezone, { includeTime, style });
-  const endText = formatDateTime(end, timezone, { includeTime, style });
+  const startText = formatDateTime(start, timezone, {
+    includeTime,
+    style: format,
+  });
+  const endText = formatDateTime(end, timezone, {
+    includeTime,
+    style: format,
+  });
+
   const tzAbbr = getTimezoneAbbr(timezone);
-  // Only show timezone when time is displayed
+
   const displayText =
     showTimezone && includeTime && (start || end)
       ? `${startText}${separator}${endText} ${tzAbbr}`

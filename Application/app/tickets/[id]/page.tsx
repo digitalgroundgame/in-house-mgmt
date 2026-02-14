@@ -3,18 +3,12 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { apiClient } from "@/app/lib/apiClient";
-import TicketView, { type TimelineShowType } from "@/app/components/tickets/TicketView";
+import TicketView, {
+  TimelineEntry,
+  type TimelineShowType,
+} from "@/app/components/tickets/TicketView";
 import { type Ticket } from "@/app/components/tickets/ticket-utils";
 import { Loader, Center, Text } from "@mantine/core";
-
-interface TimelineEntry {
-  type: "audit" | "comment";
-  created_at: string;
-  actor_display: string | null;
-  actor_id: number | null;
-  changes?: Record<string, [string, string]>;
-  message?: string;
-}
 
 export default function TicketInfoPage() {
   const { id } = useParams<{ id: string }>();
@@ -25,7 +19,7 @@ export default function TicketInfoPage() {
 
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
   const [timelineLoading, setTimelineLoading] = useState(false);
-  const [showType, setShowType] = useState<TimelineShowType>("comment");
+  const [showType, setShowType] = useState<TimelineShowType>("comments");
 
   useEffect(() => {
     if (!id) return;

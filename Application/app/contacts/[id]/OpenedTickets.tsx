@@ -224,7 +224,7 @@ export default function OpenedTickets({ contactId }: { contactId: string }) {
                             size="xs"
                             c="dimmed"
                             includeTime={false}
-                            style="medium"
+                            format="medium"
                           />
                         </div>
                         <Group gap={4} wrap="nowrap">

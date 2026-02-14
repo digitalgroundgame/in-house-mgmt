@@ -1,20 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Paper, Stack, Title, Tooltip, Group, Text, Loader } from "@mantine/core";
-import { type Ticket, type TicketAsk, type TicketAskStatus } from "@/app/components/ticket-utils";
-import { type Event } from "@/app/components/EventTable";
+import { Paper, Stack, Title, Tooltip } from "@mantine/core";
+import { type Ticket } from "@/app/components/tickets/ticket-utils";
+import { type Event } from "@/app/components/event-utils";
 import { type Contact } from "@/app/components/ContactTable";
 import { SearchSelect, SearchSelectOption } from "@/app/components/SearchSelect";
 import { apiClient } from "@/app/lib/apiClient";
 import { useUser } from "@/app/components/provider/UserContext";
-
-// TODO: Move to another file
-export interface EventParticipation {
-  id: number;
-  status: string;
-  status_display: string;
-}
+import { EventParticipation } from "@/app/events/[id]/EventView";
 
 interface CommitmentStatus {
   value: string;
@@ -28,7 +22,9 @@ interface TicketActionsProps {
 }
 
 export default function TicketActions({ ticket, event, contact }: TicketActionsProps) {
-  const [participation, setParticipation] = useState<SearchSelectOption | null>(null);
+  const [participation, setParticipation] = useState<SearchSelectOption<CommitmentStatus> | null>(
+    null
+  );
   const [loadingParticipation, setLoadingParticipation] = useState(false);
   const { user } = useUser();
 
@@ -36,6 +32,7 @@ export default function TicketActions({ ticket, event, contact }: TicketActionsP
     if (!event || !contact) return;
 
     async function fetchParticipation() {
+      if (!event || !contact) return;
       setLoadingParticipation(true);
       try {
         const searchParams = new URLSearchParams({
@@ -48,11 +45,12 @@ export default function TicketActions({ ticket, event, contact }: TicketActionsP
         );
         const existing = data.results?.[0];
 
+        // Map EventParticipation to CommitmentStatus shape
         if (existing) {
           setParticipation({
             id: existing.status,
             label: existing.status_display,
-            raw: existing,
+            raw: { value: existing.status, label: existing.status_display },
           });
         } else {
           setParticipation({
@@ -72,14 +70,15 @@ export default function TicketActions({ ticket, event, contact }: TicketActionsP
   }, [event, contact]);
 
   /* =============================
-   * Upsert EventParticipation
+   * Upsert EventParticipation React.SetStateAction<
    * ============================= */
-  async function upsertParticipation(participation) {
+  async function upsertParticipation(participation: SearchSelectOption<CommitmentStatus> | null) {
+    if (!event || !contact || !participation) return;
     try {
       await apiClient.post("/participants", {
         event: event.id,
         contact: contact.id,
-        status: participation.raw.value,
+        status: participation.raw?.value,
       });
       setParticipation(participation);
     } catch (err) {
@@ -93,12 +92,9 @@ export default function TicketActions({ ticket, event, contact }: TicketActionsP
    * ============================= */
   return (
     <Paper p="md" withBorder>
-      <Stack spacing="md">
+      <Stack>
         <Title order={5}>Actions</Title>
 
-        {/* -------------------------
-         * Event Participation
-         * ------------------------- */}
         {event && contact && (
           <Tooltip label="Update Event Participation">
             <SearchSelect<CommitmentStatus>
