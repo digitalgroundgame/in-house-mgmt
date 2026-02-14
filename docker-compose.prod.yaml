@@ -6,10 +6,12 @@ services:
       - frontend
       - server
     ports:
-      - "80:80"
+      - "8090:80"
     volumes:
       - ./compose/production/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - dggcrm_production_admin_static_files:/app/staticfiles
+    networks:
+      - in_house_suite
 
   frontend:
     build:
@@ -22,6 +24,8 @@ services:
         required: false
     expose:
       - "3030"
+    networks:
+      - in_house_suite
 
   server: &server
     build:
@@ -43,6 +47,9 @@ services:
     ports:
       - "8080:8080"
     command: /start
+    networks:
+      - in_house_suite
+
 
   postgres:
     image: postgres:18.1
@@ -55,8 +62,14 @@ services:
         required: false
     expose:
       - "5432"
+    networks:
+      - in_house_suite
 
 volumes:
   dggcrm_production_postgres_data:
   dggcrm_production_postgres_data_backups:
   dggcrm_production_admin_static_files:
+
+networks:
+  in_house_suite:
+    driver: bridge
