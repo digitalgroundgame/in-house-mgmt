@@ -52,6 +52,7 @@ THIRD_PARTY_APPS = [
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
+    "health_check",
 ]
 
 LOCAL_APPS = [
@@ -59,7 +60,6 @@ LOCAL_APPS = [
     "dggcrm.tickets",
     "dggcrm.events",
     "dggcrm.accounts",
-    "dggcrm.discord",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
