@@ -39,26 +39,26 @@ export function DateRangePicker({
   const [opened, setOpened] = useState(false);
 
   // Compute local Date values from UTC strings
-  const localStart = useMemo(() => parseToLocal(value.start, timezone), [value.start, timezone]);
-  const localEnd = useMemo(() => parseToLocal(value.end, timezone), [value.end, timezone]);
+  // const localStart = useMemo(() => parseToLocal(value.start, timezone), [value.start, timezone]);
+  // const localEnd = useMemo(() => parseToLocal(value.end, timezone), [value.end, timezone]);
 
   // Local draft state for when popover is open
-  const [draftStart, setDraftStart] = useState<Date | null>(null);
-  const [draftEnd, setDraftEnd] = useState<Date | null>(null);
+  const [draftStart, setDraftStart] = useState<string | null>(value.start);
+  const [draftEnd, setDraftEnd] = useState<string | null>(value.end);
 
   // Reset draft when popover opens
   const handleOpenChange = (isOpen: boolean) => {
     if (isOpen) {
-      setDraftStart(localStart);
-      setDraftEnd(localEnd);
+      setDraftStart(value.start);
+      setDraftEnd(value.end);
     }
     setOpened(isOpen);
   };
 
   const handleApply = () => {
     onChange({
-      start: toUTC(draftStart, timezone),
-      end: toUTC(draftEnd, timezone),
+      start: draftStart,
+      end: draftEnd,
     });
     setOpened(false);
   };

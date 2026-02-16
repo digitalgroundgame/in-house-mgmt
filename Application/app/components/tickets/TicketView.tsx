@@ -22,8 +22,8 @@ import {
 import { useRouter } from "next/navigation";
 import { getStatusColor, getPriorityColor } from "./TicketTable";
 import TicketDescription from "./TicketDescription";
-import { Ticket } from "./ticket-utils";
-import ContactSearch, { Contact } from "./ContactSearch";
+import { Ticket, TicketType } from "./ticket-utils";
+import ContactSearch, { Contact } from "@/app/components/ContactSearch";
 import { SearchSelect, SearchSelectOption } from "@/app/components/SearchSelect";
 import { EnumSelect, EnumSelectOption } from "@/app/components/EnumSelect";
 import { useUser } from "@/app/components/provider/UserContext";
@@ -33,8 +33,8 @@ import TicketActions from "@/app/components/tickets/TicketActions";
 
 export type TimelineShowType = "all" | "comments" | "audit" | "event_participation";
 
-interface TimelineEntry {
-  type: "audit" | "comment" | "event_participation";
+export interface TimelineEntry {
+  type: TimelineShowType;
   created_at: string;
   actor_display: string | null;
   actor_id: number | null;
@@ -62,8 +62,8 @@ export default function TicketView({
   showType,
   onShowTypeChange,
 }: TicketViewProps) {
-  const [contact, setContact] = useState<Contact>(null);
-  const [event, setEvent] = useState<Event>(null);
+  const [contact, setContact] = useState<Contact | null>(null);
+  const [event, setEvent] = useState<Event | null>(null);
 
   useEffect(() => {
     async function fetchInfo() {
@@ -72,7 +72,7 @@ export default function TicketView({
           try {
             setContact(await apiClient.get(`/contacts/${ticket.contact}`));
           } catch {
-            setContact({ id: ticket.contact, name: "UNKNOWN" });
+            setContact(null);
           }
         }
 
@@ -80,7 +80,7 @@ export default function TicketView({
           try {
             setEvent(await apiClient.get(`/events/${ticket.event}`));
           } catch {
-            setEvent({ id: ticket.event, name: "UNKNOWN" });
+            setEvent(null);
           }
         }
       } catch (err) {
@@ -110,7 +110,11 @@ export default function TicketView({
         <Grid.Col span={{ base: 12, md: 4 }}>
           <Stack gap="md">
             <TicketMetadataCard ticket={ticket} />
-            <TicketActions ticket={ticket} contact={contact} event={event} />
+            <TicketActions
+              ticket={ticket}
+              contact={contact ?? undefined}
+              event={event ?? undefined}
+            />
           </Stack>
         </Grid.Col>
       </Grid>
@@ -164,9 +168,10 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
   const isClaimed = Boolean(ticket.assigned_to);
   const { user } = useUser();
 
-  const [ticketStatus, setTicketStatus] = useState<EnumSelectOption>({
+  const [ticketStatus, setTicketStatus] = useState<EnumSelectOption<TicketStatus> | null>({
     id: ticket.ticket_status,
-    label: ticket?.status_display,
+    label: ticket.status_display ?? "",
+    hidden: false,
     color: getStatusColor(ticket.ticket_status),
   });
 
@@ -187,8 +192,8 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
     }
   };
 
-  const upsertTicketStatus = async (status) => {
-    console.log("status", status);
+  const upsertTicketStatus = async (status: EnumSelectOption<TicketType> | null) => {
+    if (!status) return;
     try {
       await apiClient.patch(`/tickets/${ticket.id}`, {
         ticket_status: status.id,
@@ -230,7 +235,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
               hidden: status.value === "OPEN", // HIDE opened option in UI
               color: getStatusColor(status.value),
             })}
-            disabled={user && ticket.assigned_to !== user.id}
+            disabled={!!user && ticket.assigned_to !== user.id}
           />
         </Box>
 
@@ -395,7 +400,7 @@ function TicketTimeline({ timeline, loading, showType, onShowTypeChange }: Ticke
         return "Ticket updated";
       case "event_participation":
         return "Event Participation Changed";
-      case "comment":
+      case "comments":
         return `${entry.actor_display} left a comment`;
       default:
         return `Comment added`;
@@ -437,7 +442,7 @@ function TicketTimeline({ timeline, loading, showType, onShowTypeChange }: Ticke
         <Timeline active={timeline.length - 1} bulletSize={24} lineWidth={2}>
           {timeline.map((entry, index) => (
             <Timeline.Item key={index} title={getEntryTitle(entry)}>
-              {entry.type === "comment" && entry.message && (
+              {entry.type === "comments" && entry.message && (
                 <Text size="sm" mb={4}>
                   {entry.message}
                 </Text>

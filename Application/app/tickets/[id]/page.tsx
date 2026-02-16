@@ -3,19 +3,14 @@
 import { useEffect, useState } from "react";
 import { apiClient } from "@/app/lib/apiClient";
 import { Loader, Center, Text, ActionIcon } from "@mantine/core";
+import TicketView, {
+  TimelineEntry,
+  type TimelineShowType,
+} from "@/app/components/tickets/TicketView";
 import { type Ticket } from "@/app/components/tickets/ticket-utils";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import TicketView, { type TimelineShowType } from "@/app/components/tickets/TicketView";
-
-interface TimelineEntry {
-  type: "audit" | "comment";
-  created_at: string;
-  actor_display: string | null;
-  actor_id: number | null;
-  changes?: Record<string, [string, string]>;
-  message?: string;
-}
+//import TicketView, { type TimelineShowType } from "@/app/components/tickets/TicketView";
 
 export default function TicketInfoPage() {
   const { id } = useParams<{ id: string }>();
@@ -29,7 +24,7 @@ export default function TicketInfoPage() {
 
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
   const [timelineLoading, setTimelineLoading] = useState(false);
-  const [showType, setShowType] = useState<TimelineShowType>("comment");
+  const [showType, setShowType] = useState<TimelineShowType>("comments");
 
   const navigate = async (direction: "next" | "previous") => {
     setNavLoading(true);

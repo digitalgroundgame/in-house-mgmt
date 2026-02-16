@@ -68,7 +68,7 @@ export default function EventsTable({
                       start={event.starts_at}
                       end={event.ends_at}
                       size="sm"
-                      style="medium"
+                      format="medium"
                     />
                   </Table.Td>
                   <Table.Td>

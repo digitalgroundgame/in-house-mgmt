@@ -19,7 +19,7 @@ import { apiClient } from "@/app/lib/apiClient";
 export interface SearchSelectOption<T = unknown> {
   id: number | string;
   label: string;
-  raw: T;
+  raw: T | null;
 }
 
 interface SearchSelectProps<T = unknown> {

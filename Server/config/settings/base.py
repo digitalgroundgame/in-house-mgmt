@@ -52,6 +52,7 @@ THIRD_PARTY_APPS = [
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
+    "health_check",
 ]
 
 LOCAL_APPS = [
@@ -59,7 +60,6 @@ LOCAL_APPS = [
     "dggcrm.tickets",
     "dggcrm.events",
     "dggcrm.accounts",
-    "dggcrm.discord",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -123,7 +123,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 ACCOUNT_LOGIN_METHODS = {"email", "username"}
-ACCOUNT_EMAIL_REQUIRED = False
+ACCOUNT_SIGNUP_FIELDS = ["email", "username"]
 ACCOUNT_EMAIL_VERIFICATION = "none"
 
 ACCOUNT_ADAPTER = "dggcrm.accounts.adapters.NoNewUsersAccountAdapter"
@@ -187,6 +187,7 @@ USE_TZ = True
 # ------------------------------------------------------------------------------
 
 STATIC_URL = "django/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # ------------------------------------------------------------------------------
 # Proxy / forwarding

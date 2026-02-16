@@ -8,6 +8,7 @@ django-cors-headers
 django-environ==0.12.0
 django-auditlog==3.4.1
 django-allauth==65.13.1
+django-health-check==4.0.0
 djangorestframework-simplejwt
 psycopg[c]==3.3.2
 argparse
@@ -26,3 +27,6 @@ pytest-cov>=7.0.0
 
 # Task runner (like npm scripts)
 taskipy>=1.12.0
+
+# Production
+gunicorn>=25.1.0
