@@ -20,6 +20,7 @@ format = "ruff format ."
 format_check = "ruff format --check ."
 
 [tool.ruff]
+force-exclude = true
 target-version = "py313"
 line-length = 120
 exclude = [
@@ -28,6 +29,7 @@ exclude = [
     "__pycache__",
     "migrations",
     ".pytest_cache",
+    "fake",
 ]
 
 [tool.ruff.lint]
@@ -46,11 +48,17 @@ select = [
 ]
 ignore = [
     "E501",   # line too long (handled by formatter)
+    "RUF012", # DRF serializers and views use mutable class attributes as standard pattern
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"fake/main.py" = ["S311", "T201", "RUF005"]  # Fake data script: random is fine, print is fine
-"**/tests/**" = ["S101", "S106"]  # Tests: assert is fine, hardcoded test tokens are fine
+# Fake data script: random is fine, print is fine
+"fake/main.py" = ["S311", "T201", "RUF005"]
+# Ignore some common issues in linters
+"**/tests/*.py" = ["S106", "PT009", "S101"]
+"**/test.py" = ["S106", "PT009", "S101"]
+"**/tests.py" = ["S106", "PT009", "S101"]
+"**/settings/*" = ["F405"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["dggcrm", "config"]

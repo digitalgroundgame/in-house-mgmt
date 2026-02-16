@@ -1,13 +1,14 @@
-import os
 import logging
+import os
 
 from django.db import transaction
-from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from dggcrm.contacts.models import Contact, Tag, TagAssignments
+
 from .client import get_discord_client
 
 logger = logging.getLogger(__name__)
@@ -21,16 +22,13 @@ class SyncMembershipTagsView(APIView):
     Requires authentication.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAdminUser]
 
     def post(self, request):
         # Get the injected client singleton
         client = get_discord_client()
         if not client:
-            return Response(
-                {"error": "Discord bot not configured"},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE
-            )
+            return Response({"error": "Discord bot not configured"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         # Fetch all member IDs from Discord
         member_ids = client.fetch_all_member_ids()
@@ -46,10 +44,9 @@ class SyncMembershipTagsView(APIView):
 
             # Fetch all existing tag assignments for this tag in one query
             existing_assignments = set(
-                TagAssignments.objects.filter(
-                    tag=tag,
-                    contact__in=contacts_with_discord
-                ).values_list("contact_id", flat=True)
+                TagAssignments.objects.filter(tag=tag, contact__in=contacts_with_discord).values_list(
+                    "contact_id", flat=True
+                )
             )
 
             # Determine which contacts need tags added/removed
@@ -70,15 +67,14 @@ class SyncMembershipTagsView(APIView):
             added = len(to_add)
 
             # Bulk delete removed assignments
-            removed, _ = TagAssignments.objects.filter(
-                tag=tag,
-                contact_id__in=to_remove_contact_ids
-            ).delete()
+            removed, _ = TagAssignments.objects.filter(tag=tag, contact_id__in=to_remove_contact_ids).delete()
 
         logger.info(f"Sync complete: added={added}, removed={removed}")
 
-        return Response({
-            "members_fetched": len(member_ids),
-            "tags_added": added,
-            "tags_removed": removed,
-        })
+        return Response(
+            {
+                "members_fetched": len(member_ids),
+                "tags_added": added,
+                "tags_removed": removed,
+            }
+        )

@@ -1,8 +1,9 @@
 "use client";
 
-import { Table, Badge, Stack, Title, LoadingOverlay, Paper, Text } from "@mantine/core";
+import { Table, Stack, Title, LoadingOverlay, Paper, Text } from "@mantine/core";
 import { useRouter } from "next/navigation";
 import { Event } from "./event-utils";
+import { DateRange } from "@/app/components/datetime";
 
 interface EventsTableProps {
   events: Event[];
@@ -18,19 +19,6 @@ export default function EventsTable({
   showTitle = true,
 }: EventsTableProps) {
   const router = useRouter();
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "No date";
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
-    } catch {
-      return dateString;
-    }
-  };
 
   return (
     <Paper p="md" withBorder style={{ position: "relative", minHeight: "400px" }}>
@@ -76,9 +64,12 @@ export default function EventsTable({
                     <Text size="sm">{event.status_display}</Text>
                   </Table.Td>
                   <Table.Td>
-                    <Text size="sm">
-                      {formatDate(event.starts_at)} - {formatDate(event.ends_at)}
-                    </Text>
+                    <DateRange
+                      start={event.starts_at}
+                      end={event.ends_at}
+                      size="sm"
+                      format="medium"
+                    />
                   </Table.Td>
                   <Table.Td>
                     <Text size="sm">{event.location_display}</Text>

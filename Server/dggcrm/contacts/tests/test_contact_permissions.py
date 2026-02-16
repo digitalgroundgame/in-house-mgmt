@@ -1,20 +1,21 @@
 import pytest
-from rest_framework.test import APIRequestFactory
-from rest_framework.request import Request
 from django.db.models import Q
+from rest_framework.request import Request
+from rest_framework.test import APIRequestFactory
 
+from dggcrm.contacts.models import Contact
 from dggcrm.contacts.permissions import (
-    ContactObjectPermission,
     CanModifyTagAssignment,
+    ContactObjectPermission,
+    get_contact_visibility_filter,
 )
-from dggcrm.contacts.permissions import get_contact_visibility_filter
-from dggcrm.contacts.models import Contact, TagAssignments
 from dggcrm.tickets.models import TicketStatus
 
 factory = APIRequestFactory()
 
 # Extensively testing all permissions for the contact module
 # Please do not modify this file without properly understanding the implications
+
 
 @pytest.mark.django_db
 class TestGetContactVisibilityFilter:
@@ -48,7 +49,9 @@ class TestGetContactVisibilityFilter:
         # The user is assigned to a ticket for this contact
         assert Contact.objects.filter(filters).first() == contact
 
-    def test_event_closed_no_visibility(self, regular_user, contact, participation, user_in_event2, view_contacts_via_event_permission):
+    def test_event_closed_no_visibility(
+        self, regular_user, contact, participation, user_in_event2, view_contacts_via_event_permission
+    ):
         # Can always view contacts associated with user joined events
         regular_user.user_permissions.add(view_contacts_via_event_permission)
 
@@ -56,7 +59,9 @@ class TestGetContactVisibilityFilter:
         qs = Contact.objects.filter(filters)
         assert contact not in qs
 
-    def test_event_scoped_visibility(self, regular_user, contact, participation, user_in_event, view_contacts_via_event_permission):
+    def test_event_scoped_visibility(
+        self, regular_user, contact, participation, user_in_event, view_contacts_via_event_permission
+    ):
         # Can always view contacts associated with user joined events
         regular_user.user_permissions.add(view_contacts_via_event_permission)
 
@@ -87,7 +92,9 @@ class TestContactObjectPermission:
         request.user = regular_user
         assert perm.has_object_permission(request, None, contact) is False
 
-    def test_read_with_global_permission(self, regular_user, contact, view_contact_permission, view_all_contacts_permission):
+    def test_read_with_global_permission(
+        self, regular_user, contact, view_contact_permission, view_all_contacts_permission
+    ):
         # Permissions for reading all contacts
         regular_user.user_permissions.add(
             view_contact_permission,
@@ -122,7 +129,9 @@ class TestContactObjectPermission:
         request.user = regular_user
         assert perm.has_object_permission(request, None, contact) is False
 
-    def test_edit_without_ticket_denied(self, regular_user, contact, view_contact_permission, change_contact_permission):
+    def test_edit_without_ticket_denied(
+        self, regular_user, contact, view_contact_permission, change_contact_permission
+    ):
         # Must have a ticket in order to view contact
         regular_user.user_permissions.add(view_contact_permission, change_contact_permission)
         perm = ContactObjectPermission()
@@ -130,7 +139,9 @@ class TestContactObjectPermission:
         request.user = regular_user
         assert perm.has_object_permission(request, None, contact) is False
 
-    def test_edit_ticket_scoped_permission(self, regular_user, contact, ticket, edit_ticket_contact_permission, change_contact_permission):
+    def test_edit_ticket_scoped_permission(
+        self, regular_user, contact, ticket, edit_ticket_contact_permission, change_contact_permission
+    ):
         # Must have special permissions to edit a contact associated with a ticket
         regular_user.user_permissions.add(change_contact_permission, edit_ticket_contact_permission)
 
@@ -142,7 +153,9 @@ class TestContactObjectPermission:
         request.user = regular_user
         assert perm.has_object_permission(request, None, contact) is True
 
-    def test_edit_ticket_status_permission(self, regular_user, contact, ticket, edit_ticket_contact_permission, change_contact_permission):
+    def test_edit_ticket_status_permission(
+        self, regular_user, contact, ticket, edit_ticket_contact_permission, change_contact_permission
+    ):
         # Tests that contact edit by ticket permissions only apply if the ticket is open
         regular_user.user_permissions.add(change_contact_permission, edit_ticket_contact_permission)
 
@@ -155,19 +168,26 @@ class TestContactObjectPermission:
         request.user = regular_user
         assert perm.has_object_permission(request, None, contact) is False
 
-    def test_edit_change_all_contacts(self, regular_user, contact, ticket, change_contact_permission, change_all_contacts_permission):
+    def test_edit_change_all_contacts(
+        self, regular_user, contact, ticket, change_contact_permission, change_all_contacts_permission
+    ):
         # Verify that change_all_contacts allows changing all contacts
-        regular_user.user_permissions.add(
-            change_contact_permission,
-            change_all_contacts_permission
-        )
+        regular_user.user_permissions.add(change_contact_permission, change_all_contacts_permission)
 
         perm = ContactObjectPermission()
         request = Request(factory.put("/"))
         request.user = regular_user
         assert perm.has_object_permission(request, None, contact) is True
 
-    def test_closed_event_no_permission(self, regular_user, contact, participation, user_in_event2, view_contact_permission, view_contacts_via_event_permission):
+    def test_closed_event_no_permission(
+        self,
+        regular_user,
+        contact,
+        participation,
+        user_in_event2,
+        view_contact_permission,
+        view_contacts_via_event_permission,
+    ):
         # Closed events do not grant permission
         regular_user.user_permissions.add(view_contact_permission, view_contacts_via_event_permission)
 
@@ -176,7 +196,15 @@ class TestContactObjectPermission:
         request.user = regular_user
         assert perm.has_object_permission(request, None, contact) is False
 
-    def test_read_event_scoped_permission(self, regular_user, contact, participation, user_in_event, view_contact_permission, view_contacts_via_event_permission):
+    def test_read_event_scoped_permission(
+        self,
+        regular_user,
+        contact,
+        participation,
+        user_in_event,
+        view_contact_permission,
+        view_contacts_via_event_permission,
+    ):
         # Give event-scoped permission
         regular_user.user_permissions.add(view_contact_permission, view_contacts_via_event_permission)
 
@@ -185,7 +213,15 @@ class TestContactObjectPermission:
         request.user = regular_user
         assert perm.has_object_permission(request, None, contact) is True
 
-    def test_edit_event_scoped_denied(self, regular_user, contact, participation, user_in_event, view_contact_permission, view_contacts_via_event_permission):
+    def test_edit_event_scoped_denied(
+        self,
+        regular_user,
+        contact,
+        participation,
+        user_in_event,
+        view_contact_permission,
+        view_contacts_via_event_permission,
+    ):
         # Give event-scoped permission
         regular_user.user_permissions.add(view_contact_permission, view_contacts_via_event_permission)
 
@@ -239,7 +275,11 @@ class TestCanModifyTagAssignmentPermission:
         assert perm.has_object_permission(request, None, tag_assignment) is False
 
     def test_user_with_ticket_and_object_permission_can_add(
-        self, regular_user, contact, ticket, tag_assignment,
+        self,
+        regular_user,
+        contact,
+        ticket,
+        tag_assignment,
     ):
         # Users with assigned ticket + contact change perms can update tag assignments
         perm = CanModifyTagAssignment()

@@ -1,9 +1,8 @@
 # conftest.py (additions)
 import pytest
-
-from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
+from django.utils import timezone
 from rest_framework.test import APIRequestFactory
 
 from dggcrm.contacts.models import Contact

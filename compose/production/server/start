@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+# Run migrations before starting server
+python /app/manage.py migrate
+
+# Collect static files
+python /app/manage.py collectstatic --noinput
+
+exec gunicorn config.wsgi:application --bind 0.0.0.0:8080 --workers 3

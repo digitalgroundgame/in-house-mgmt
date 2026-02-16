@@ -1,6 +1,5 @@
 import pytest
 
-from dggcrm.tickets.models import Ticket
 from dggcrm.tickets.permissions import TicketClaimPermission
 
 
@@ -13,14 +12,12 @@ class TestClaimPermission:
         perm = TicketClaimPermission()
         assert not perm.has_object_permission(request, None, assigned_ticket)
 
-
     def test_superuser(self, rf, admin_user, assigned_ticket):
         request = rf.get("/")
         request.user = admin_user
 
         perm = TicketClaimPermission()
         assert perm.has_object_permission(request, None, assigned_ticket)
-
 
     def test_claim_requires_permission(
         self,
@@ -33,7 +30,6 @@ class TestClaimPermission:
 
         perm = TicketClaimPermission()
         assert not perm.has_object_permission(request, None, unassigned_ticket)
-
 
     def test_claim_unassigned_allowed(
         self,
@@ -50,7 +46,6 @@ class TestClaimPermission:
         perm = TicketClaimPermission()
         assert perm.has_object_permission(request, None, unassigned_ticket)
 
-
     def test_claim_assigned_denied(
         self,
         rf,
@@ -65,7 +60,6 @@ class TestClaimPermission:
 
         perm = TicketClaimPermission()
         assert not perm.has_object_permission(request, None, assigned_ticket)
-
 
     def test_unclaim_own_ticket_allowed(
         self,
@@ -82,7 +76,6 @@ class TestClaimPermission:
         perm = TicketClaimPermission()
         assert perm.has_object_permission(request, None, assigned_ticket)
 
-
     def test_unclaim_no_perms_denied(
         self,
         rf,
@@ -94,7 +87,6 @@ class TestClaimPermission:
 
         perm = TicketClaimPermission()
         assert not perm.has_object_permission(request, None, assigned_ticket)
-
 
     def test_unclaim_other_ticket_denied(
         self,
@@ -110,7 +102,6 @@ class TestClaimPermission:
 
         perm = TicketClaimPermission()
         assert not perm.has_object_permission(request, None, other_assigned_ticket)
-
 
     def test_unclaim_any_with_assign_permission(
         self,
@@ -130,7 +121,6 @@ class TestClaimPermission:
 
         perm = TicketClaimPermission()
         assert perm.has_object_permission(request, None, other_assigned_ticket)
-
 
     def test_bad_method_denied(
         self,

@@ -19,6 +19,8 @@ import {
 import { useState, useEffect, useCallback } from "react";
 import { IconSearch, IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
+import { DateTime } from "@/app/components/datetime";
+import { apiClient } from "@/app/lib/apiClient";
 
 interface EventData {
   id: number;
@@ -96,14 +98,6 @@ function FilterBadgeGroup({
   );
 }
 
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-};
-
 export default function EventHistory({ contactId }: { contactId: string }) {
   const router = useRouter();
 
@@ -125,12 +119,12 @@ export default function EventHistory({ contactId }: { contactId: string }) {
 
   const fetchStatusOptions = async () => {
     try {
-      const [eventRes, commitmentRes] = await Promise.all([
-        fetch("/api/event-statuses/"),
-        fetch("/api/commitment-statuses/"),
+      const [eventData, commitmentData] = await Promise.all([
+        apiClient.get<StatusOption[]>("/event-statuses/"),
+        apiClient.get<StatusOption[]>("/commitment-statuses/"),
       ]);
-      setEventStatuses(await eventRes.json());
-      setCommitmentStatuses(await commitmentRes.json());
+      setEventStatuses(eventData);
+      setCommitmentStatuses(commitmentData);
     } catch (error) {
       console.error("Error fetching status options:", error);
     }
@@ -140,7 +134,7 @@ export default function EventHistory({ contactId }: { contactId: string }) {
     (page?: number) => {
       const params = new URLSearchParams();
       params.set("contact", contactId);
-      params.set("page_size", 5);
+      params.set("page_size", "5");
       if (eventSearch) params.set("search", eventSearch);
       if (statusFilter) {
         if (statusFilter.mode === "include") params.set("status", statusFilter.value);
@@ -152,7 +146,7 @@ export default function EventHistory({ contactId }: { contactId: string }) {
       }
       if (page && page > 1) params.set("page", String(page));
       const qs = params.toString();
-      return `/api/participants${qs ? `?${qs}` : ""}`;
+      return `/participants${qs ? `?${qs}` : ""}`;
     },
     [contactId, eventSearch, statusFilter, typeFilter]
   );
@@ -161,8 +155,13 @@ export default function EventHistory({ contactId }: { contactId: string }) {
     async (url?: string) => {
       try {
         setEventsLoading(true);
-        const response = await fetch(url || buildEventsUrl());
-        const data = await response.json();
+        const fetchPath = url?.replace(/^\/api/, "") || buildEventsUrl();
+        const data = await apiClient.get<{
+          results: EventParticipation[];
+          next: string | null;
+          previous: string | null;
+          count: number;
+        }>(fetchPath);
         setParticipations(data.results || []);
         setEventsNext(data.next);
         setEventsPrevious(data.previous);
@@ -253,9 +252,13 @@ export default function EventHistory({ contactId }: { contactId: string }) {
                           <Text size="sm" fw={500} truncate="end">
                             {p.event.name || "Unnamed Event"}
                           </Text>
-                          <Text size="xs" c="dimmed">
-                            {formatDate(p.event.starts_at)}
-                          </Text>
+                          <DateTime
+                            value={p.event.starts_at}
+                            size="xs"
+                            c="dimmed"
+                            includeTime={false}
+                            format="medium"
+                          />
                         </div>
                         <Group gap={4} wrap="nowrap">
                           <Badge size="xs" variant="light">

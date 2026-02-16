@@ -18,7 +18,7 @@ const getText = (children: React.ReactNode): string =>
       : Array.isArray(children)
         ? children.map(getText).join("")
         : React.isValidElement(children)
-          ? getText(children.props.children)
+          ? getText((children.props as { children?: React.ReactNode }).children)
           : "";
 
 // --- Code block with copy button ---

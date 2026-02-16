@@ -1,7 +1,9 @@
 #!/usr/bin/env python
-import os, sys
-import django
+import os
+import sys
 from pathlib import Path
+
+import django
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
@@ -12,9 +14,9 @@ sys.path.insert(0, str(BASE_DIR))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local")
 django.setup()
 
+from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
-from allauth.account.models import EmailAddress
 
 # Define groups
 
@@ -34,9 +36,9 @@ GROUP_PERMISSIONS = {
         "delete_eventparticipation",
         "change_eventparticipation",
         "change_all_participations",
-        "change_all_event_users",
-        "view_userinevent",
-        "delete_userinevents",
+        "change_all_usersinevents",
+        "view_usersinevent",
+        "delete_usersinevents",
         "view_all_usersinevents",
         "change_all_usersinevents",
         "view_ticket",
@@ -50,7 +52,6 @@ GROUP_PERMISSIONS = {
     "HELPER": [
         "view_contact",
         "view_contacts_via_event",
-        "view_contacts_via_ticket",
         "change_contact",
         "add_eventparticipation",
         "change_eventparticipation",
@@ -59,7 +60,7 @@ GROUP_PERMISSIONS = {
         "view_eventparticipation",
         "view_event",
         "view_any_assigned_event",
-        "view_userinevent",
+        "view_usersinevent",
         "view_usersinevent_via_event",
         "view_ticket",
         "view_tickets_via_event",

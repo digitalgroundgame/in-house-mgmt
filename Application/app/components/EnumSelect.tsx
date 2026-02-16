@@ -4,6 +4,7 @@ import { Box, Paper, Stack, Text, Group, Badge, Loader, ActionIcon } from "@mant
 import { IconX, IconCheck, IconSelector } from "@tabler/icons-react";
 import { useClickOutside } from "@mantine/hooks";
 import { useCallback, useEffect, useState } from "react";
+import { apiClient } from "@/app/lib/apiClient";
 
 export interface EnumSelectOption<T = unknown> {
   id: number | string;
@@ -41,8 +42,9 @@ export function EnumSelect<T = unknown>({
   const ref = useClickOutside(() => setOpened(false));
 
   const fetchOptions = useCallback(() => {
-    fetch(`${endpoint}?page_size=${limit}`)
-      .then((r) => r.json())
+    const path = endpoint.replace(/^\/api/, "");
+    apiClient
+      .get<T[] | { results: T[] }>(`${path}?page_size=${limit}`)
       .then((data) => {
         const items: T[] = Array.isArray(data)
           ? data

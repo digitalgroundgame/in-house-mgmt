@@ -1,6 +1,7 @@
 # dggcrm/authmock/urls.py
 from django.urls import path
-from .mock import mock_google_login, mock_google_callback, mock_discord_login, mock_discord_callback
+
+from .mock import mock_discord_callback, mock_discord_login, mock_google_callback, mock_google_login
 
 urlpatterns = [
     path("mock-google/login/", mock_google_login, name="mock-google_login"),

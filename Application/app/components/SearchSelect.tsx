@@ -14,11 +14,12 @@ import {
 import { IconX, IconCheck, IconSelector } from "@tabler/icons-react";
 import { useDebouncedValue, useClickOutside } from "@mantine/hooks";
 import { useCallback, useEffect, useState } from "react";
+import { apiClient } from "@/app/lib/apiClient";
 
 export interface SearchSelectOption<T = unknown> {
   id: number | string;
   label: string;
-  raw: T;
+  raw: T | null;
 }
 
 interface SearchSelectProps<T = unknown> {
@@ -56,8 +57,11 @@ export function SearchSelect<T = unknown>({
     (search: string) => {
       setLoading(true);
 
-      fetch(`${endpoint}?search=${encodeURIComponent(search)}&page_size=${limit}`)
-        .then((r) => r.json())
+      const path = endpoint.replace(/^\/api/, "");
+      apiClient
+        .get<T[] | { results: T[] }>(
+          `${path}?search=${encodeURIComponent(search)}&page_size=${limit}`
+        )
         .then((data) => {
           // normalize paginated vs array
           const items: T[] = Array.isArray(data)

@@ -1,8 +1,10 @@
-from rest_framework.permissions import BasePermission, SAFE_METHODS
 from django.db.models import Q
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 
+from dggcrm.contacts.models import Contact
+from dggcrm.events.models import EventStatus
 from dggcrm.tickets.models import TicketStatus
-from dggcrm.events.models import EventStatus, Event
+
 
 # Filters out contacts a user is not permitted to see
 def get_contact_visibility_filter(user):
@@ -19,10 +21,7 @@ def get_contact_visibility_filter(user):
         )
 
     # Contacts with tickets assigned to the user
-    q |= Q(
-        tickets__assigned_to=user,
-        tickets__ticket_status=TicketStatus.INPROGRESS
-    )
+    q |= Q(tickets__assigned_to=user, tickets__ticket_status=TicketStatus.INPROGRESS)
 
     return q
 

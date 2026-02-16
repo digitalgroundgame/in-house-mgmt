@@ -2,19 +2,15 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiClient } from "@/app/lib/apiClient";
 
 export default function AuthCallback() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`/api/auth/user/`, {
-      credentials: "include", // cookies
-    })
-      .then(async (res) => {
-        if (!res.ok) throw new Error("Authentication failed");
-        return res.json();
-      })
+    apiClient
+      .get("/auth/user/")
       .then((user) => {
         console.log("Logged in as:", user);
         router.replace("/"); // redirect to dashboard

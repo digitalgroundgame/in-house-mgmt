@@ -16,9 +16,11 @@ import {
 } from "@mantine/core";
 import { IconPlus, IconSearch, IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { useState, useEffect } from "react";
+import { apiClient } from "@/app/lib/apiClient";
 import { useForm } from "@mantine/form";
 import EventsTable from "@/app/components/EventsTable";
 import { type Event } from "../components/event-utils";
+import { DateTimePicker, DateTime } from "@/app/components/datetime";
 
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -58,17 +60,21 @@ export default function EventsPage() {
     try {
       setLoading(true);
 
-      let fetchUrl = url;
-      if (!fetchUrl) {
+      let fetchPath = url?.replace(/^\/api/, "");
+      if (!fetchPath) {
         // Build query parameters for initial fetch
         const params = new URLSearchParams();
         if (searchQuery) params.append("search", searchQuery);
         if (dateFilter && dateFilter !== "all") params.append("date_filter", dateFilter);
-        fetchUrl = `/api/events/?${params}`;
+        fetchPath = `/events/?${params}`;
       }
 
-      const response = await fetch(fetchUrl);
-      const data = await response.json();
+      const data = await apiClient.get<{
+        results: Event[];
+        count: number;
+        next: string | null;
+        previous: string | null;
+      }>(fetchPath);
       console.log(data);
 
       setEvents(data.results || []);
@@ -101,18 +107,7 @@ export default function EventsPage() {
   const handleSubmitEvent = async (values: typeof form.values) => {
     setSubmitting(true);
     try {
-      const response = await fetch("/api/events/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(values),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to create event");
-      }
-
+      await apiClient.post("/events/", values);
       setAddModalOpen(false);
       form.reset();
       fetchEvents();
@@ -241,17 +236,19 @@ export default function EventsPage() {
               placeholder="Enter event description (optional)"
               {...form.getInputProps("description")}
             />
-            <TextInput
+            <DateTimePicker
               label="Start Date"
-              placeholder="YYYY-MM-DD or ISO date string"
               required
-              {...form.getInputProps("starts_at")}
+              value={form.values.starts_at}
+              onChange={(val) => form.setFieldValue("starts_at", val || "")}
+              error={form.errors.starts_at as string}
             />
-            <TextInput
+            <DateTimePicker
               label="End Date"
-              placeholder="YYYY-MM-DD or ISO date string"
               required
-              {...form.getInputProps("ends_at")}
+              value={form.values.ends_at}
+              onChange={(val) => form.setFieldValue("ends_at", val || "")}
+              error={form.errors.ends_at as string}
             />
             <TextInput
               label="Location Name"
@@ -294,8 +291,8 @@ export default function EventsPage() {
               <Text size="sm" fw={500} c="dimmed">
                 Date
               </Text>
-              <Text size="sm">{selectedEvent.starts_at || "No start date specified"}</Text>
-              <Text size="sm">{selectedEvent.ends_at || "No end date specified"}</Text>
+              <DateTime value={selectedEvent.starts_at} size="sm" format="long" />
+              <DateTime value={selectedEvent.ends_at} size="sm" format="long" />
             </div>
             <div>
               <Text size="sm" fw={500} c="dimmed">
