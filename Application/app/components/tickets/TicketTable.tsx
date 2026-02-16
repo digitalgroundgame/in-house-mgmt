@@ -18,6 +18,7 @@ interface TicketTableProps {
   sortDirection?: SortDirection;
   onSort?: (field: SortField, direction: SortDirection) => void;
   onStatusToggle?: () => void;
+  filterParams?: string;
 }
 
 export const getPriorityColor = (priority: number) => {
@@ -55,6 +56,7 @@ export default function TicketTable({
   sortDirection = null,
   onSort,
   onStatusToggle,
+  filterParams,
 }: TicketTableProps) {
   const router = useRouter();
   const { user } = useUser();
@@ -156,7 +158,9 @@ export default function TicketTable({
             {tickets.map((ticket) => (
               <Table.Tr
                 key={ticket.id}
-                onClick={() => router.push(`/tickets/${ticket.id}`)}
+                onClick={() =>
+                  router.push(`/tickets/${ticket.id}${filterParams ? `?${filterParams}` : ""}`)
+                }
                 style={{ cursor: "pointer" }}
               >
                 <Table.Td>{ticket.id}</Table.Td>
