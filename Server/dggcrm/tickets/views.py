@@ -311,6 +311,37 @@ class TicketViewSet(viewsets.ModelViewSet):
 
         return Response(serializer.data)
 
+    def _get_adjacent_ticket(self, request, current_id, direction):
+        queryset = self.filter_queryset(self.get_queryset())
+        id_list = list(queryset.values_list("id", flat=True))
+
+        if not id_list:
+            return Response(
+                {"detail": "No tickets in current queryset."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        try:
+            current_index = id_list.index(int(current_id))
+        except (ValueError, TypeError):
+            return Response(
+                {"detail": "Ticket not found in current queryset."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        adjacent_index = (current_index + direction) % len(id_list)
+        adjacent_ticket = Ticket.objects.get(id=id_list[adjacent_index])
+        serializer = TicketSerializer(adjacent_ticket, context={"request": request})
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], url_path="next/(?P<current_id>[^/.]+)")
+    def next(self, request, current_id=None):
+        return self._get_adjacent_ticket(request, current_id, 1)
+
+    @action(detail=False, methods=["get"], url_path="previous/(?P<current_id>[^/.]+)")
+    def previous(self, request, current_id=None):
+        return self._get_adjacent_ticket(request, current_id, -1)
+
     def perform_create(self, serializer):
         """
         Automatically sets reported_by to the current authenticated user.

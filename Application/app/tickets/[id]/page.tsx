@@ -1,25 +1,49 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 import { apiClient } from "@/app/lib/apiClient";
+import { Loader, Center, Text, ActionIcon } from "@mantine/core";
 import TicketView, {
   TimelineEntry,
   type TimelineShowType,
 } from "@/app/components/tickets/TicketView";
 import { type Ticket } from "@/app/components/tickets/ticket-utils";
-import { Loader, Center, Text } from "@mantine/core";
+import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+//import TicketView, { type TimelineShowType } from "@/app/components/tickets/TicketView";
 
 export default function TicketInfoPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [navLoading, setNavLoading] = useState(false);
 
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [showType, setShowType] = useState<TimelineShowType>("comments");
+
+  const navigate = async (direction: "next" | "previous") => {
+    setNavLoading(true);
+    try {
+      const params = searchParams.toString();
+      const query = params ? `?${params}` : "";
+      const res = await fetch(`/api/tickets/${direction}/${id}${query}`, {
+        credentials: "include",
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as Ticket;
+      const targetParams = params ? `?${params}` : "";
+      router.push(`/tickets/${data.id}${targetParams}`);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setNavLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -80,12 +104,38 @@ export default function TicketInfoPage() {
   if (!ticket) return null;
 
   return (
-    <TicketView
-      ticket={ticket}
-      timeline={timeline}
-      timelineLoading={timelineLoading}
-      showType={showType}
-      onShowTypeChange={setShowType}
-    />
+    <div style={{ display: "flex", alignItems: "stretch", minHeight: "100%" }}>
+      <ActionIcon
+        variant="subtle"
+        color="gray"
+        onClick={() => navigate("previous")}
+        disabled={navLoading}
+        style={{ alignSelf: "stretch", height: "auto", width: 40, borderRadius: 0 }}
+        aria-label="Previous ticket"
+      >
+        <IconChevronLeft size={24} />
+      </ActionIcon>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <TicketView
+          ticket={ticket}
+          timeline={timeline}
+          timelineLoading={timelineLoading}
+          showType={showType}
+          onShowTypeChange={setShowType}
+        />
+      </div>
+
+      <ActionIcon
+        variant="subtle"
+        color="gray"
+        onClick={() => navigate("next")}
+        disabled={navLoading}
+        style={{ alignSelf: "stretch", height: "auto", width: 40, borderRadius: 0 }}
+        aria-label="Next ticket"
+      >
+        <IconChevronRight size={24} />
+      </ActionIcon>
+    </div>
   );
 }

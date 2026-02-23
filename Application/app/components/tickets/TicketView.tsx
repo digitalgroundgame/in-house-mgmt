@@ -127,7 +127,7 @@ function TitleCard({ ticket }: { ticket: Ticket }) {
   return (
     <Group justify="space-between">
       <Title order={2}>{ticket.title}</Title>
-      <Button variant="outline" onClick={() => router.back()}>
+      <Button variant="outline" onClick={() => router.push("/tickets")}>
         Back to List
       </Button>
     </Group>
