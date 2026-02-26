@@ -9,6 +9,10 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
   const { id } = use(params);
   const { data: eventDetail, loading, error } = useBackend<Event>(`/api/events/${id}`);
 
+  useEffect(() => {
+    console.log(eventDetail);
+  }, [eventDetail]);
+
   return (
     <>
       <EventView event={eventDetail} />

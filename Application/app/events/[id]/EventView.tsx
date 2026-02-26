@@ -191,7 +191,7 @@ function EventViewContactTable({ event }: { event: Event }) {
               title="Participants"
               showTitle={true}
               data={data.results}
-              onRowClick={(contact: EventParticipation) => router.push(`/contacts/${contact.id}`)}
+              onRowClick={(ep: EventParticipation) => router.push(`/contacts/${ep.contact.id}`)}
               columns={["Name", "Contact", "Status"]}
               transforms={[
                 (ep) => <Table.Td key={ep.contact.full_name}>{ep.contact.full_name}</Table.Td>,

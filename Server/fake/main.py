@@ -153,6 +153,9 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=25, num_tickets=30
     conn.commit()
 
     # Event participation
+    c.execute("SELECT id FROM contacts")
+    contact_ids = [row[0] for row in c.fetchall()]
+
     for eid in event_ids:
         num_participants = random.randint(1, min(25, len(contact_ids)))
         participants = random.sample(contact_ids, num_participants)
