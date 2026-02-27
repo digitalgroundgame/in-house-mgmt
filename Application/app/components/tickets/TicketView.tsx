@@ -179,9 +179,9 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
     setLoading(true);
     try {
       if (isClaimed) {
-        await apiClient.delete(`/tickets/${ticket.id}/claim`);
+        await apiClient.delete(`/tickets/${ticket.id}/claim/`);
       } else {
-        await apiClient.post(`/tickets/${ticket.id}/claim`, {});
+        await apiClient.post(`/tickets/${ticket.id}/claim/`, {});
       }
       window.location.reload();
     } catch (err) {
