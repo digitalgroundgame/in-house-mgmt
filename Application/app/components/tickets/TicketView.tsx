@@ -70,7 +70,7 @@ export default function TicketView({
       try {
         if (ticket.contact) {
           try {
-            setContact(await apiClient.get(`/contacts/${ticket.contact}`));
+            setContact(await apiClient.get(`/contacts/${ticket.contact}/`));
           } catch {
             setContact(null);
           }
@@ -78,7 +78,7 @@ export default function TicketView({
 
         if (ticket.event) {
           try {
-            setEvent(await apiClient.get(`/events/${ticket.event}`));
+            setEvent(await apiClient.get(`/events/${ticket.event}/`));
           } catch {
             setEvent(null);
           }
@@ -195,7 +195,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
   const upsertTicketStatus = async (status: EnumSelectOption<TicketType> | null) => {
     if (!status) return;
     try {
-      await apiClient.patch(`/tickets/${ticket.id}`, {
+      await apiClient.patch(`/tickets/${ticket.id}/`, {
         ticket_status: status.id,
       });
       setTicketStatus(status);
