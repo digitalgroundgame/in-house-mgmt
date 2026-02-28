@@ -52,6 +52,8 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
+# Fake data script: random is fine, print is fine
+"fake/main.py" = ["S311", "T201", "RUF005"]
 # Ignore some common issues in linters
 "**/tests/*.py" = ["S106", "PT009", "S101"]
 "**/test.py" = ["S106", "PT009", "S101"]
