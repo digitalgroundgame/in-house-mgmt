@@ -7,20 +7,25 @@ import {
   Button,
   Paper,
   TextInput,
-  Select,
   Stack,
   Modal,
   Textarea,
   Text,
   ActionIcon,
+  Menu,
 } from "@mantine/core";
 import { IconPlus, IconSearch, IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { useState, useEffect } from "react";
-import { apiClient } from "@/app/lib/apiClient";
+import { ApiError, apiClient } from "@/app/lib/apiClient";
 import { useForm } from "@mantine/form";
 import EventsTable from "@/app/components/EventsTable";
 import { type Event } from "../components/event-utils";
 import { DateTimePicker, DateTime } from "@/app/components/datetime";
+
+interface EventStatusOption {
+  value: string;
+  label: string;
+}
 
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -34,6 +39,9 @@ export default function EventsPage() {
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+  const [eventStatuses, setEventStatuses] = useState<EventStatusOption[]>([]);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const form = useForm({
     initialValues: {
@@ -51,10 +59,24 @@ export default function EventsPage() {
     },
   });
 
+  // Fetch event statuses on mount
+  useEffect(() => {
+    fetchEventStatuses();
+  }, []);
+
   // Fetch events whenever filters change
   useEffect(() => {
     fetchEvents();
   }, [searchQuery, dateFilter]);
+
+  const fetchEventStatuses = async () => {
+    try {
+      const data = await apiClient.get<EventStatusOption[]>("/event-statuses/");
+      setEventStatuses(data);
+    } catch (error) {
+      console.error("Error fetching event statuses:", error);
+    }
+  };
 
   const fetchEvents = async (url?: string) => {
     try {
@@ -75,7 +97,6 @@ export default function EventsPage() {
         next: string | null;
         previous: string | null;
       }>(fetchPath);
-      console.log(data);
 
       setEvents(data.results || []);
       setTotalCount(data.count || 0);
@@ -133,12 +154,47 @@ export default function EventsPage() {
     }
   };
 
-  // TODO: Proper date filtering
-  // const dateFilterOptions = [
-  //   { value: 'all', label: 'All Events' },
-  //   { value: 'upcoming', label: 'Upcoming' },
-  //   { value: 'past', label: 'Past' }
-  // ];
+  const toggleRowSelection = (id: number) => {
+    setSelectedRows((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkUpdateStatus = async (eventStatus: string) => {
+    try {
+      await apiClient.post("/events/bulk-update-status/", {
+        ids: Array.from(selectedRows),
+        event_status: eventStatus,
+      });
+      setSelectedRows(new Set());
+      fetchEvents();
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403) {
+        alert("You do not have permission to update events.");
+      } else {
+        alert("Failed to update event statuses. Please try again.");
+      }
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      await apiClient.post("/events/bulk-delete/", {
+        ids: Array.from(selectedRows),
+      });
+      setSelectedRows(new Set());
+      setDeleteConfirmOpen(false);
+      fetchEvents();
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403) {
+        alert("You do not have permission to delete events.");
+      } else {
+        alert("Failed to delete events. Please try again.");
+      }
+    }
+  };
 
   return (
     <Container size="xl" py="xl">
@@ -163,19 +219,36 @@ export default function EventsPage() {
                 leftSection={<IconSearch size={16} />}
                 style={{ flex: 1 }}
               />
-              {/*<Select
-                label="Date"
-                placeholder="Filter by date"
-                value={dateFilter}
-                onChange={setDateFilter}
-                data={dateFilterOptions}
-                style={{ minWidth: 200 }}
-              />*/}
             </Group>
-            <Group gap="sm">
+            <Group gap="sm" justify="space-between">
               <Button variant="outline" onClick={handleReset}>
                 Reset
               </Button>
+              <Group gap="xs">
+                <Menu position="bottom-end" shadow="md">
+                  <Menu.Target>
+                    <Button size="xs" variant="light" disabled={selectedRows.size === 0}>
+                      Set Status
+                    </Button>
+                  </Menu.Target>
+                  <Menu.Dropdown>
+                    {eventStatuses.map((s) => (
+                      <Menu.Item key={s.value} onClick={() => handleBulkUpdateStatus(s.value)}>
+                        {s.label}
+                      </Menu.Item>
+                    ))}
+                  </Menu.Dropdown>
+                </Menu>
+                <Button
+                  size="xs"
+                  variant="light"
+                  color="red"
+                  disabled={selectedRows.size === 0}
+                  onClick={() => setDeleteConfirmOpen(true)}
+                >
+                  Delete
+                </Button>
+              </Group>
             </Group>
           </Stack>
         </Paper>
@@ -184,16 +257,19 @@ export default function EventsPage() {
         <EventsTable
           events={events}
           loading={loading}
-          onRowClick={handleRowClick}
           showTitle={false}
+          isSelectable
+          selectedIds={selectedRows}
+          toggleSelect={toggleRowSelection}
         />
 
-        {/* Pagination and count */}
+        {/* Pagination, result and selected count */}
         <Paper p="sm" withBorder>
-          <Group justify="space-between">
-            <span>
+          <Group justify="space-between" align="center">
+            <Text>
               {totalCount} {totalCount === 1 ? "event" : "events"} found
-            </span>
+            </Text>
+
             <Group gap="xs">
               <ActionIcon
                 variant="filled"
@@ -303,6 +379,29 @@ export default function EventsPage() {
             {/*TODO: Implement participants with issue #24 */}
           </Stack>
         )}
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        opened={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        title="Confirm Delete"
+        size="sm"
+      >
+        <Stack gap="md">
+          <Text>
+            Are you sure you want to delete {selectedRows.size}{" "}
+            {selectedRows.size === 1 ? "event" : "events"}? This action cannot be undone.
+          </Text>
+          <Group justify="flex-end">
+            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button color="red" onClick={handleBulkDelete}>
+              Delete
+            </Button>
+          </Group>
+        </Stack>
       </Modal>
     </Container>
   );

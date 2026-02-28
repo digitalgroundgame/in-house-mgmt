@@ -44,6 +44,60 @@ class EventViewSet(viewsets.ModelViewSet):
 
         return queryset.filter(get_event_visibility_filter(self.request.user))
 
+    @action(detail=False, methods=["post"], url_path="bulk-update-status")
+    def bulk_update_status(self, request):
+        ids = request.data.get("ids", [])
+        event_status = request.data.get("event_status")
+
+        if not ids or not event_status:
+            return Response(
+                {"detail": "ids and event_status are required."},
+                status=rest_status.HTTP_400_BAD_REQUEST,
+            )
+
+        valid_statuses = [choice[0] for choice in EventStatus.choices]
+        if event_status not in valid_statuses:
+            return Response(
+                {"detail": f"Invalid event_status. Must be one of: {valid_statuses}"},
+                status=rest_status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not request.user.has_perm("events.change_event"):
+            return Response(
+                {"detail": "You do not have permission to update events."},
+                status=rest_status.HTTP_403_FORBIDDEN,
+            )
+
+        queryset = Event.objects.filter(
+            id__in=ids,
+        ).filter(get_event_visibility_filter(request.user))
+
+        updated_count = queryset.update(event_status=event_status)
+        return Response({"updated_count": updated_count})
+
+    @action(detail=False, methods=["post"], url_path="bulk-delete")
+    def bulk_delete(self, request):
+        ids = request.data.get("ids", [])
+
+        if not ids:
+            return Response(
+                {"detail": "ids is required."},
+                status=rest_status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not request.user.has_perm("events.delete_event"):
+            return Response(
+                {"detail": "You do not have permission to delete events."},
+                status=rest_status.HTTP_403_FORBIDDEN,
+            )
+
+        queryset = Event.objects.filter(
+            id__in=ids,
+        ).filter(get_event_visibility_filter(request.user))
+
+        deleted_count, _ = queryset.delete()
+        return Response({"deleted_count": deleted_count})
+
 
 class EventParticipationViewSet(viewsets.ModelViewSet):
     queryset = EventParticipation.objects.select_related("event", "contact").order_by("-created_at")
