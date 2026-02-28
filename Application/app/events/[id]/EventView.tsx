@@ -7,7 +7,7 @@ import PaginationBar, {
 import { formatContactInfo } from "@/app/components/contact-utils";
 import { Event, getStatusColor as getEventStatusColor } from "@/app/components/event-utils";
 import { BackendPaginatedResults, useBackend } from "@/app/lib/api";
-import { apiClient } from "@/app/lib/apiClient";
+import { ApiError, apiClient } from "@/app/lib/apiClient";
 import {
   Text,
   Paper,
@@ -31,12 +31,10 @@ import { IconSearch } from "@tabler/icons-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-const EVENT_STATUS_OPTIONS = [
-  { label: "Draft", value: "draft" },
-  { label: "Scheduled", value: "scheduled" },
-  { label: "Completed", value: "completed" },
-  { label: "Canceled", value: "canceled" },
-];
+interface StatusOption {
+  label: string;
+  value: string;
+}
 
 function makeUnstyled(fontSize?: string, fontWeight?: string, forTextarea = false) {
   const base: Record<string, string | number> = {
@@ -185,9 +183,19 @@ export default function EventView({
 }
 
 function EventViewMain({ event, refresh }: { event: Event; refresh: () => void }) {
+  const { data: eventStatuses } = useBackend<StatusOption[]>("/api/event-statuses/");
+
   const handleSave = async (field: string, value: string) => {
-    await apiClient.patch(`/events/${event.id}/`, { [field]: value });
-    refresh();
+    try {
+      await apiClient.patch(`/events/${event.id}/`, { [field]: value });
+      refresh();
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403) {
+        alert("User does not have permission to edit this event.");
+      } else {
+        alert("Failed to save changes.");
+      }
+    }
   };
 
   return (
@@ -213,7 +221,7 @@ function EventViewMain({ event, refresh }: { event: Event; refresh: () => void }
         </Paper>
         <EventViewContactTable event={event} />
       </GridCol>
-      <EventViewMetadata event={event} onSave={handleSave} />
+      <EventViewMetadata event={event} onSave={handleSave} statusOptions={eventStatuses} />
     </Grid>
   );
 }
@@ -221,9 +229,11 @@ function EventViewMain({ event, refresh }: { event: Event; refresh: () => void }
 function EventViewMetadata({
   event,
   onSave,
+  statusOptions,
 }: {
   event: Event;
   onSave: (field: string, value: string) => void;
+  statusOptions?: StatusOption[];
 }) {
   return (
     <GridCol span={{ base: 12, md: 4 }}>
@@ -235,7 +245,7 @@ function EventViewMetadata({
           <InlineEdit
             type="select"
             value={event.event_status}
-            options={EVENT_STATUS_OPTIONS}
+            options={statusOptions}
             onSave={(v) => onSave("event_status", v)}
             displayComponent={
               <Badge color={getEventStatusColor(event.status_display)}>

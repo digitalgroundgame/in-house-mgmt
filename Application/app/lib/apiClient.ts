@@ -1,5 +1,16 @@
 import getCookie from "@/app/utils/cookie";
 
+export class ApiError extends Error {
+  status: number;
+  detail: string;
+
+  constructor(status: number, detail: string) {
+    super(detail);
+    this.status = status;
+    this.detail = detail;
+  }
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`/api${path}`, {
     ...options,
@@ -11,7 +22,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     credentials: "include",
   });
   if (!res.ok) {
-    throw new Error(`API error: ${res.status}`);
+    let detail = `API error: ${res.status}`;
+    try {
+      const body = await res.json();
+      if (body.detail) detail = body.detail;
+    } catch {
+      // response body not JSON, use default message
+    }
+    throw new ApiError(res.status, detail);
   }
   if (res.status === 204) return undefined as T;
   return res.json();
