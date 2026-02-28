@@ -1,12 +1,19 @@
 import { Contact } from "@/app/components/ContactSearch";
+import {
+  InlineDatetime,
+  InlineSelect,
+  InlineText,
+  InlineTextarea,
+} from "@/app/components/inline-edit";
 import PaginatedTable from "@/app/components/pagination/PaginatedTable";
 import PaginationBar, {
   decrementPageSearchParam,
   incrementPageSearchParam,
 } from "@/app/components/pagination/PaginationBar";
 import { formatContactInfo } from "@/app/components/contact-utils";
-import { Event } from "@/app/components/event-utils";
+import { Event, getStatusColor as getEventStatusColor } from "@/app/components/event-utils";
 import { BackendPaginatedResults, useBackend } from "@/app/lib/api";
+import { ApiError, apiClient } from "@/app/lib/apiClient";
 import {
   Text,
   Paper,
@@ -28,34 +35,74 @@ import { IconSearch } from "@tabler/icons-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-export default function EventView({ event }: { event: Event | undefined }) {
+export default function EventView({
+  event,
+  refresh,
+}: {
+  event: Event | undefined;
+  refresh: () => void;
+}) {
   return (
     <Container py="xl" size="xl">
       <LoadingOverlay visible={!event} />
-      {event && <EventViewMain event={event} />}
+      {event && <EventViewMain event={event} refresh={refresh} />}
     </Container>
   );
 }
 
-function EventViewMain({ event }: { event: Event }) {
+function EventViewMain({ event, refresh }: { event: Event; refresh: () => void }) {
+  const { data: eventStatuses } =
+    useBackend<{ label: string; value: string }[]>("/api/event-statuses/");
+
+  const handleSave = async (field: string, value: string) => {
+    try {
+      await apiClient.patch(`/events/${event.id}/`, { [field]: value });
+      refresh();
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403) {
+        alert("User does not have permission to edit this event.");
+      } else {
+        alert("Failed to save changes.");
+      }
+    }
+  };
+
   return (
     <Grid>
       <GridCol span={{ base: 12, md: 8 }}>
         <Paper withBorder p="md">
           <Stack gap="sm">
-            <Title>{event.name}</Title>
+            <InlineText
+              value={event.name}
+              onSave={(v) => handleSave("name", v)}
+              displayComponent={<Title>{event.name}</Title>}
+              fontSize="var(--mantine-h1-font-size)"
+              fontWeight="bold"
+            />
             <Divider />
-            <Text>{event.description}</Text>
+            <InlineTextarea
+              value={event.description ?? ""}
+              onSave={(v) => handleSave("description", v)}
+              displayComponent={<Text>{event.description || "No description"}</Text>}
+            />
           </Stack>
         </Paper>
         <EventViewContactTable event={event} />
       </GridCol>
-      <EventViewMetadata event={event} />
+      <EventViewMetadata event={event} onSave={handleSave} statusOptions={eventStatuses} />
     </Grid>
   );
 }
 
-function EventViewMetadata({ event }: { event: Event }) {
+function EventViewMetadata({
+  event,
+  onSave,
+  statusOptions,
+}: {
+  event: Event;
+  onSave: (field: string, value: string) => void;
+  statusOptions?: { label: string; value: string }[];
+}) {
   return (
     <GridCol span={{ base: 12, md: 4 }}>
       <Paper withBorder p="sm">
@@ -63,42 +110,60 @@ function EventViewMetadata({ event }: { event: Event }) {
           <Text c="dimmed" size="sm">
             Event Status
           </Text>
-          <Badge color={getStatusColor(event.status_display)}>{event.status_display}</Badge>
+          <InlineSelect
+            value={event.event_status}
+            options={statusOptions ?? []}
+            onSave={(v) => onSave("event_status", v)}
+            displayComponent={
+              <Badge color={getEventStatusColor(event.status_display)}>
+                {event.status_display}
+              </Badge>
+            }
+          />
         </Box>
         <Divider />
         <Box mt={4} mb={4}>
           <Text c="dimmed" size="sm">
             Location Name
           </Text>
-          <Text>{event.location_name}</Text>
+          <InlineText
+            value={event.location_name ?? ""}
+            onSave={(v) => onSave("location_name", v)}
+            displayComponent={<Text>{event.location_name || "—"}</Text>}
+          />
         </Box>
         <Divider />
         <Box mt={4} mb={4}>
           <Text c="dimmed" size="sm">
             Address
           </Text>
-          <Text mb={4}>{event.location_address}</Text>
-        </Box>
-        <Divider />
-        <Box mt={4} mb={4}>
-          <Text c="dimmed" size="sm">
-            Location Display
-          </Text>
-          <Text>{event.location_display}</Text>
+          <InlineText
+            value={event.location_address ?? ""}
+            onSave={(v) => onSave("location_address", v)}
+            displayComponent={<Text>{event.location_address || "—"}</Text>}
+          />
         </Box>
         <Divider />
         <Box mt={4} mb={4}>
           <Text c="dimmed" size="sm">
             Start Date
           </Text>
-          <Text>{event.starts_at}</Text>
+          <InlineDatetime
+            value={event.starts_at ?? ""}
+            onSave={(v) => onSave("starts_at", v)}
+            displayComponent={<Text>{event.starts_at || "—"}</Text>}
+          />
         </Box>
         <Divider />
         <Box mt={4} mb={4}>
           <Text c="dimmed" size="sm">
             End Date
           </Text>
-          <Text>{event.ends_at}</Text>
+          <InlineDatetime
+            value={event.ends_at ?? ""}
+            onSave={(v) => onSave("ends_at", v)}
+            displayComponent={<Text>{event.ends_at || "—"}</Text>}
+          />
         </Box>
       </Paper>
     </GridCol>
