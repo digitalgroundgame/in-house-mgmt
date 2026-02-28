@@ -1,4 +1,10 @@
 import { Contact } from "@/app/components/ContactSearch";
+import {
+  InlineDatetime,
+  InlineSelect,
+  InlineText,
+  InlineTextarea,
+} from "@/app/components/inline-edit";
 import PaginatedTable from "@/app/components/pagination/PaginatedTable";
 import PaginationBar, {
   decrementPageSearchParam,
@@ -22,150 +28,12 @@ import {
   LoadingOverlay,
   Table,
   TextInput,
-  Textarea,
-  Select,
   Group,
   MultiSelect,
 } from "@mantine/core";
 import { IconSearch } from "@tabler/icons-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-
-interface StatusOption {
-  label: string;
-  value: string;
-}
-
-function makeUnstyled(fontSize?: string, fontWeight?: string, forTextarea = false) {
-  const base: Record<string, string | number> = {
-    border: "none",
-    background: "transparent",
-    padding: 0,
-    margin: 0,
-    lineHeight: "inherit",
-    fontSize: fontSize ?? "inherit",
-    fontWeight: fontWeight ?? "inherit",
-    fontFamily: "inherit",
-    color: "inherit",
-  };
-  if (!forTextarea) {
-    base.height = "auto";
-    base.minHeight = "unset";
-  }
-  return { input: base };
-}
-
-function InlineEdit({
-  value,
-  onSave,
-  type = "text",
-  options,
-  displayComponent,
-  fontSize,
-  fontWeight,
-}: {
-  value: string;
-  onSave: (value: string) => void;
-  type?: "text" | "textarea" | "select" | "datetime-local";
-  options?: { label: string; value: string }[];
-  displayComponent: React.ReactNode;
-  fontSize?: string;
-  fontWeight?: string;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
-  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (editing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [editing]);
-
-  const handleSave = () => {
-    if (draft !== value) {
-      onSave(draft);
-    }
-    setEditing(false);
-  };
-
-  const handleCancel = () => {
-    setDraft(value);
-    setEditing(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && type !== "textarea") {
-      e.preventDefault();
-      handleSave();
-    } else if (e.key === "Escape") {
-      handleCancel();
-    }
-  };
-
-  if (!editing) {
-    return (
-      <Box
-        style={{ cursor: "pointer" }}
-        onClick={() => {
-          setDraft(value);
-          setEditing(true);
-        }}
-      >
-        {displayComponent}
-      </Box>
-    );
-  }
-
-  if (type === "select") {
-    return (
-      <Select
-        data={options}
-        value={draft}
-        onChange={(v) => {
-          if (v !== null) {
-            onSave(v);
-          }
-          setEditing(false);
-        }}
-        allowDeselect={false}
-        defaultDropdownOpened
-        onDropdownClose={() => setEditing(false)}
-        size="xs"
-      />
-    );
-  }
-
-  if (type === "textarea") {
-    return (
-      <Textarea
-        ref={inputRef as React.RefObject<HTMLTextAreaElement>}
-        value={draft}
-        onChange={(e) => setDraft(e.currentTarget.value)}
-        onBlur={handleSave}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") handleCancel();
-        }}
-        minRows={1}
-        autosize
-        styles={makeUnstyled(fontSize, fontWeight, true)}
-      />
-    );
-  }
-
-  return (
-    <TextInput
-      ref={inputRef as React.RefObject<HTMLInputElement>}
-      type={type}
-      value={draft}
-      onChange={(e) => setDraft(e.currentTarget.value)}
-      onBlur={handleSave}
-      onKeyDown={handleKeyDown}
-      styles={makeUnstyled(fontSize, fontWeight)}
-    />
-  );
-}
+import { useState } from "react";
 
 export default function EventView({
   event,
@@ -183,7 +51,8 @@ export default function EventView({
 }
 
 function EventViewMain({ event, refresh }: { event: Event; refresh: () => void }) {
-  const { data: eventStatuses } = useBackend<StatusOption[]>("/api/event-statuses/");
+  const { data: eventStatuses } =
+    useBackend<{ label: string; value: string }[]>("/api/event-statuses/");
 
   const handleSave = async (field: string, value: string) => {
     try {
@@ -203,7 +72,7 @@ function EventViewMain({ event, refresh }: { event: Event; refresh: () => void }
       <GridCol span={{ base: 12, md: 8 }}>
         <Paper withBorder p="md">
           <Stack gap="sm">
-            <InlineEdit
+            <InlineText
               value={event.name}
               onSave={(v) => handleSave("name", v)}
               displayComponent={<Title>{event.name}</Title>}
@@ -211,8 +80,7 @@ function EventViewMain({ event, refresh }: { event: Event; refresh: () => void }
               fontWeight="bold"
             />
             <Divider />
-            <InlineEdit
-              type="textarea"
+            <InlineTextarea
               value={event.description ?? ""}
               onSave={(v) => handleSave("description", v)}
               displayComponent={<Text>{event.description || "No description"}</Text>}
@@ -233,7 +101,7 @@ function EventViewMetadata({
 }: {
   event: Event;
   onSave: (field: string, value: string) => void;
-  statusOptions?: StatusOption[];
+  statusOptions?: { label: string; value: string }[];
 }) {
   return (
     <GridCol span={{ base: 12, md: 4 }}>
@@ -242,10 +110,9 @@ function EventViewMetadata({
           <Text c="dimmed" size="sm">
             Event Status
           </Text>
-          <InlineEdit
-            type="select"
+          <InlineSelect
             value={event.event_status}
-            options={statusOptions}
+            options={statusOptions ?? []}
             onSave={(v) => onSave("event_status", v)}
             displayComponent={
               <Badge color={getEventStatusColor(event.status_display)}>
@@ -259,7 +126,7 @@ function EventViewMetadata({
           <Text c="dimmed" size="sm">
             Location Name
           </Text>
-          <InlineEdit
+          <InlineText
             value={event.location_name ?? ""}
             onSave={(v) => onSave("location_name", v)}
             displayComponent={<Text>{event.location_name || "—"}</Text>}
@@ -270,7 +137,7 @@ function EventViewMetadata({
           <Text c="dimmed" size="sm">
             Address
           </Text>
-          <InlineEdit
+          <InlineText
             value={event.location_address ?? ""}
             onSave={(v) => onSave("location_address", v)}
             displayComponent={<Text>{event.location_address || "—"}</Text>}
@@ -281,8 +148,7 @@ function EventViewMetadata({
           <Text c="dimmed" size="sm">
             Start Date
           </Text>
-          <InlineEdit
-            type="datetime-local"
+          <InlineDatetime
             value={event.starts_at ?? ""}
             onSave={(v) => onSave("starts_at", v)}
             displayComponent={<Text>{event.starts_at || "—"}</Text>}
@@ -293,8 +159,7 @@ function EventViewMetadata({
           <Text c="dimmed" size="sm">
             End Date
           </Text>
-          <InlineEdit
-            type="datetime-local"
+          <InlineDatetime
             value={event.ends_at ?? ""}
             onSave={(v) => onSave("ends_at", v)}
             displayComponent={<Text>{event.ends_at || "—"}</Text>}
