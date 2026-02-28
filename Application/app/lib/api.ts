@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { apiClient } from "@/app/lib/apiClient";
 
 export interface BackendPaginatedResults<T> {
@@ -18,7 +18,8 @@ export function useBackend<T>(path: string) {
   const [data, setData] = useState<T>();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>();
-  const [refreshToken, refresh] = useState();
+  const [refreshToken, setRefreshToken] = useState(0);
+  const refresh = useCallback(() => setRefreshToken((n) => n + 1), []);
 
   useEffect(() => {
     let cancelled = false;
