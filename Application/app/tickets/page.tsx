@@ -241,6 +241,21 @@ export default function TicketPage() {
 
   const allOpenShown = !openStatusValues.some((s) => excludedStatuses.includes(s));
 
+  const buildFilterParams = () => {
+    const params = new URLSearchParams();
+    if (assignee) params.append("assigned_to", String(assignee.id));
+    if (priority) params.append("priority", priority);
+    if (ticketType) params.append("type", ticketType);
+    if (sortField && sortDirection) {
+      const orderValue = sortDirection === "desc" ? `-${sortField}` : sortField;
+      params.append("ordering", orderValue);
+    }
+    if (excludedStatuses.length > 0) {
+      params.append("exclude_status", excludedStatuses.join(","));
+    }
+    return params.toString();
+  };
+
   return (
     <Container size="xl" py="xl">
       <Grid>
@@ -331,7 +346,7 @@ export default function TicketPage() {
                       style={{ flex: 1 }}
                     />
                     <SearchSelect<UserResult>
-                      endpoint="/api/users"
+                      endpoint="/api/users/"
                       label="Assignee"
                       placeholder="Search users…"
                       value={assignee}
@@ -371,6 +386,7 @@ export default function TicketPage() {
                 sortField={sortField}
                 sortDirection={sortDirection}
                 onSort={handleSort}
+                filterParams={buildFilterParams()}
                 onStatusToggle={() => {
                   const hasExcludedClosed = closedStatusValues.some((s) =>
                     excludedStatuses.includes(s)

@@ -7,7 +7,7 @@ import { useEffect, useState, use } from "react";
 export default function EventDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   // const [eventDetail, setEventDetail] = useState<Event>();
   const { id } = use(params);
-  const { data: eventDetail, loading, error } = useBackend<Event>(`/api/events/${id}`);
+  const { data: eventDetail, loading, error } = useBackend<Event>(`/api/events/${id}/`);
 
   return (
     <>

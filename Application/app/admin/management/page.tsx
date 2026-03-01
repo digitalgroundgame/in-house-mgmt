@@ -14,6 +14,7 @@ import {
   Divider,
   Collapse,
   ActionIcon,
+  Alert,
 } from "@mantine/core";
 import {
   IconPlus,
@@ -22,6 +23,8 @@ import {
   IconSettings,
   IconChevronDown,
   IconChevronUp,
+  IconBrandDiscord,
+  IconRefresh,
 } from "@tabler/icons-react";
 import { useState, useEffect } from "react";
 import { apiClient } from "@/app/lib/apiClient";
@@ -76,6 +79,14 @@ export default function ManagementConsole() {
   const [orgSectionOpen, setOrgSectionOpen] = useState(false);
   const [roleSectionOpen, setRoleSectionOpen] = useState(false);
   const [configSectionOpen, setConfigSectionOpen] = useState(false);
+  const [discordSectionOpen, setDiscordSectionOpen] = useState(false);
+
+  // Discord sync states
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncResult, setSyncResult] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   // Pagination states
   const [orgCurrentPage, setOrgCurrentPage] = useState(1);
@@ -332,6 +343,31 @@ export default function ManagementConsole() {
     { value: "2", label: "Admin" },
   ];
 
+  // ===== Discord Sync Handler =====
+
+  const handleSyncMembership = async () => {
+    setSyncLoading(true);
+    setSyncResult(null);
+    try {
+      const data = await apiClient.post<{
+        members_fetched: number;
+        tags_added: number;
+        tags_removed: number;
+      }>("/discord/sync-membership/", {});
+      setSyncResult({
+        type: "success",
+        message: `Synced ${data.members_fetched} members — ${data.tags_added} tags added, ${data.tags_removed} removed.`,
+      });
+    } catch {
+      setSyncResult({
+        type: "error",
+        message: "Failed to sync membership. Discord bot may not be configured.",
+      });
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
   // ===== Placeholder Data =====
 
   const callTypes = [
@@ -437,7 +473,53 @@ export default function ManagementConsole() {
           </Stack>
         </Paper>
 
-        {/* Section 3: Call Types & Statuses (Placeholder) */}
+        {/* Section 3: Discord Integration */}
+        <Paper p="lg" withBorder>
+          <Stack gap="md">
+            <Group
+              gap="xs"
+              style={{ cursor: "pointer" }}
+              onClick={() => setDiscordSectionOpen(!discordSectionOpen)}
+            >
+              <IconBrandDiscord size={24} />
+              <Title order={3}>Discord Integration</Title>
+              <ActionIcon variant="subtle" size="lg">
+                {discordSectionOpen ? <IconChevronUp size={20} /> : <IconChevronDown size={20} />}
+              </ActionIcon>
+            </Group>
+
+            <Collapse in={discordSectionOpen}>
+              <Stack gap="md">
+                <Text size="sm" c="dimmed">
+                  Sync Discord guild membership with contact tags. This fetches all members from the
+                  Discord server and updates the membership tag on matching contacts.
+                </Text>
+
+                <Group>
+                  <Button
+                    leftSection={<IconRefresh size={16} />}
+                    onClick={handleSyncMembership}
+                    loading={syncLoading}
+                  >
+                    Sync Membership Tags
+                  </Button>
+                </Group>
+
+                {syncResult && (
+                  <Alert
+                    color={syncResult.type === "success" ? "green" : "red"}
+                    withCloseButton
+                    onClose={() => setSyncResult(null)}
+                  >
+                    {syncResult.message}
+                  </Alert>
+                )}
+              </Stack>
+            </Collapse>
+          </Stack>
+        </Paper>
+
+        {/* Section 4: Call Types & Statuses (Placeholder) */}
         <Paper p="lg" withBorder>
           <Stack gap="md">
             <Group

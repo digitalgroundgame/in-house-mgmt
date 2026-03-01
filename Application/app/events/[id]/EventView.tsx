@@ -285,8 +285,8 @@ function EventViewContactTable({ event }: { event: Event }) {
 
   apiParams.append("event", event.id.toString());
 
-  const { data, loading, error, refresh } = useBackend<BackendPaginatedResults<EventParticipation>>(
-    `/api/participants?${apiParams}`
+  const { data, loading, error } = useBackend<BackendPaginatedResults<EventParticipation>>(
+    `/api/participants/?${apiParams}`
   );
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const router = useRouter();

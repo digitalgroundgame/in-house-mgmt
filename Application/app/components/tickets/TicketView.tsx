@@ -70,7 +70,7 @@ export default function TicketView({
       try {
         if (ticket.contact) {
           try {
-            setContact(await apiClient.get(`/contacts/${ticket.contact}`));
+            setContact(await apiClient.get(`/contacts/${ticket.contact}/`));
           } catch {
             setContact(null);
           }
@@ -78,7 +78,7 @@ export default function TicketView({
 
         if (ticket.event) {
           try {
-            setEvent(await apiClient.get(`/events/${ticket.event}`));
+            setEvent(await apiClient.get(`/events/${ticket.event}/`));
           } catch {
             setEvent(null);
           }
@@ -127,7 +127,7 @@ function TitleCard({ ticket }: { ticket: Ticket }) {
   return (
     <Group justify="space-between">
       <Title order={2}>{ticket.title}</Title>
-      <Button variant="outline" onClick={() => router.back()}>
+      <Button variant="outline" onClick={() => router.push("/tickets")}>
         Back to List
       </Button>
     </Group>
@@ -179,9 +179,9 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
     setLoading(true);
     try {
       if (isClaimed) {
-        await apiClient.delete(`/tickets/${ticket.id}/claim`);
+        await apiClient.delete(`/tickets/${ticket.id}/claim/`);
       } else {
-        await apiClient.post(`/tickets/${ticket.id}/claim`, {});
+        await apiClient.post(`/tickets/${ticket.id}/claim/`, {});
       }
       window.location.reload();
     } catch (err) {
@@ -195,7 +195,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
   const upsertTicketStatus = async (status: EnumSelectOption<TicketType> | null) => {
     if (!status) return;
     try {
-      await apiClient.patch(`/tickets/${ticket.id}`, {
+      await apiClient.patch(`/tickets/${ticket.id}/`, {
         ticket_status: status.id,
       });
       setTicketStatus(status);
@@ -226,7 +226,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
             Status
           </Text>
           <EnumSelect<TicketStatus>
-            endpoint="/api/ticket-statuses"
+            endpoint="/api/ticket-statuses/"
             value={ticketStatus}
             onChange={upsertTicketStatus}
             mapResult={(status) => ({
