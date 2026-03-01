@@ -58,7 +58,7 @@ export function TicketBulkCreateModal({ opened, onClose, contactIds, onSuccess }
       <Stack gap="md">
         {/* Ticket Type */}
         <SearchSelect<TicketType>
-          endpoint="/api/ticket-types"
+          endpoint="/api/ticket-types/"
           label="Ticket Type"
           placeholder="Select ticket type"
           limit={10}

@@ -98,7 +98,7 @@ export default function TicketActions({ ticket, event, contact }: TicketActionsP
         {event && contact && (
           <Tooltip label="Update Event Participation">
             <SearchSelect<CommitmentStatus>
-              endpoint="/api/commitment-statuses"
+              endpoint="/api/commitment-statuses/"
               label="Event Commitment"
               placeholder="Select commitment status"
               limit={10}
