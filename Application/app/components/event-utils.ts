@@ -1,3 +1,5 @@
+import { Contact } from "./ContactTable";
+
 export interface Event {
   id: number;
   event_status: string;
@@ -26,3 +28,31 @@ export function getStatusColor(status: string) {
       return "gray";
   }
 }
+
+export interface EventParticipation {
+  contact: Contact;
+  created_at: string;
+  modified_at: string;
+  id: number;
+  status: string;
+  status_display: string;
+}
+
+export const getEventParticipationStatusColor = (status: string) => {
+  switch (status) {
+    case "UNKNOWN":
+      return "gray";
+    case "MAYBE":
+      return "gray";
+    case "COMMITTED":
+      return "blue";
+    case "REJECTED":
+      return "red";
+    case "ATTENDED":
+      return "green";
+    case "NO_SHOW":
+      return "red";
+    default:
+      return "DimGray";
+  }
+};

@@ -195,18 +195,15 @@ class EventParticipationViewSet(viewsets.ModelViewSet):
         Upsert: If a participation exists for event+contact, update it.
         Otherwise, create a new participation.
         """
-        event_id = request.data.get("event")
-        contact_id = request.data.get("contact")
-        status_value = request.data.get("status")
 
-        if not event_id or not contact_id:
-            return Response(
-                {"detail": "event and contact are required"},
-                status=rest_status.HTTP_400_BAD_REQUEST,
-            )
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        # Try to fetch existing participation
-        participation = EventParticipation.objects.filter(event_id=event_id, contact_id=contact_id).first()
+        # Extract the instances from validated data
+        event = serializer.validated_data["event"]
+        contact = serializer.validated_data["contact"]
+        status_value = serializer.validated_data.get("status")
+        participation = EventParticipation.objects.filter(event=event, contact=contact).first()
 
         if participation:
             self.check_object_permissions(request, participation)
@@ -216,8 +213,8 @@ class EventParticipationViewSet(viewsets.ModelViewSet):
             created = False
         else:
             participation = EventParticipation.objects.create(
-                event_id=event_id,
-                contact_id=contact_id,
+                event=event,
+                contact=contact,
                 status=status_value,
             )
             created = True
