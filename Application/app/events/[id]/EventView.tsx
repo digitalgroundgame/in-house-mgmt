@@ -5,8 +5,12 @@ import PaginationBar, {
   incrementPageSearchParam,
 } from "@/app/components/pagination/PaginationBar";
 import { formatContactInfo } from "@/app/components/contact-utils";
-import { Event } from "@/app/components/event-utils";
-import { BackendPaginatedResults, useBackend } from "@/app/lib/api";
+import {
+  Event,
+  EventParticipation,
+  getEventParticipationStatusColor,
+} from "@/app/components/event-utils";
+import { BackendPaginatedResults, useBackend, useBackendMutation } from "@/app/lib/api";
 import {
   Text,
   Paper,
@@ -23,10 +27,27 @@ import {
   TextInput,
   Group,
   MultiSelect,
+  Button,
+  Modal,
+  Select,
+  Combobox,
+  useCombobox,
 } from "@mantine/core";
 import { IconSearch } from "@tabler/icons-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { useDisclosure } from "@mantine/hooks";
+import getCookie from "@/app/utils/cookie";
+
+const EVENT_PARTICIPATION_STATUSES = [
+  "UNKNOWN",
+  "MAYBE",
+  "COMMITED",
+  "REJECTED",
+  "ATTENDED",
+  "NO_SHOW",
+] as const;
+type EventParticipationStatus = (typeof EVENT_PARTICIPATION_STATUSES)[number];
 
 export default function EventView({ event }: { event: Event | undefined }) {
   return (
@@ -63,7 +84,9 @@ function EventViewMetadata({ event }: { event: Event }) {
           <Text c="dimmed" size="sm">
             Event Status
           </Text>
-          <Badge color={getStatusColor(event.status_display)}>{event.status_display}</Badge>
+          <Badge color={getEventParticipationStatusColor(event.status_display)}>
+            {event.status_display}
+          </Badge>
         </Box>
         <Divider />
         <Box mt={4} mb={4}>
@@ -105,38 +128,150 @@ function EventViewMetadata({ event }: { event: Event }) {
   );
 }
 
-export interface EventParticipation {
-  contact: Contact;
-  created_at: string;
-  modified_at: string;
-  id: number;
-  status: string;
-  status_display: string;
-}
+function AddParticipantModal({
+  selected,
+  opened,
+  close,
+  refresh,
+}: {
+  selected?: EventParticipation[];
+  opened: boolean;
+  close: () => void;
+  refresh: () => void;
+}) {
+  const [contactSearchQuery, setContactSearchQuery] = useState<string>();
+  const [selectedContacts, setSelectedContacts] = useState<Set<Contact>>(
+    new Set(selected?.map((ep) => ep.contact))
+  );
+  const [eventStatus, setEventStatus] = useState<EventParticipationStatus>();
+  const eventId = usePathname().split("/").pop();
+  const apiParams = new URLSearchParams();
+  if (contactSearchQuery) apiParams.append("search", contactSearchQuery);
 
-export const getStatusColor = (status: string) => {
-  switch (status) {
-    case "UNKNOWN":
-      return "gray";
-    case "MAYBE":
-      return "gray";
-    case "COMMITTED":
-      return "blue";
-    case "REJECTED":
-      return "red";
-    case "ATTENDED":
-      return "green";
-    case "NO_SHOW":
-      return "red";
-    default:
-      return "DimGray";
-  }
-};
+  const contactsSearch = useBackend<BackendPaginatedResults<Contact>>(
+    `/api/contacts/?${apiParams}`
+  );
+  const { mutate, loading, error } = useBackendMutation(`/api/participants`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": getCookie("csrftoken") ?? "",
+    },
+  });
+  const selectedContactIds: number[] = [];
+  selectedContacts.forEach((c) => selectedContactIds.push(c.id));
+  const contacts = contactsSearch.data?.results.filter((c) => !selectedContactIds.includes(c.id));
+  const combobox = useCombobox();
+  const removeContact = (c: Contact) => {
+    setSelectedContacts((prev) => {
+      const next = new Set(prev);
+      next.delete(c);
+      return next;
+    });
+  };
+
+  return (
+    <Modal opened={opened} onClose={close} title="Add Participant">
+      <LoadingOverlay visible={loading} />
+      <Stack>
+        <Combobox
+          store={combobox}
+          onOptionSubmit={(value) => {
+            const contact = contacts?.find((c) => c.id.toString() === value);
+            if (!contact) return;
+
+            setSelectedContacts((prev) => {
+              const next = new Set(prev);
+              next.add(contact);
+              return next;
+            });
+            setContactSearchQuery("");
+            combobox.closeDropdown();
+          }}
+        >
+          <Combobox.Target>
+            <TextInput
+              label="Contact"
+              placeholder="Search contacts..."
+              value={contactSearchQuery}
+              onChange={(event) => {
+                setContactSearchQuery(event.currentTarget.value);
+                combobox.openDropdown();
+              }}
+              onFocus={() => combobox.openDropdown()}
+              onClick={() => combobox.openDropdown()}
+              onBlur={() => combobox.closeDropdown()}
+            />
+          </Combobox.Target>
+
+          <Combobox.Dropdown hidden={contacts === undefined || contacts.length === 0}>
+            <Combobox.Options>
+              {contacts?.map((contact) => (
+                <Combobox.Option key={contact.id} value={contact.id.toString()}>
+                  {contact.full_name}
+                </Combobox.Option>
+              ))}
+
+              {contacts?.length === 0 && <Combobox.Empty>No contacts found</Combobox.Empty>}
+            </Combobox.Options>
+          </Combobox.Dropdown>
+        </Combobox>
+        <Select
+          label="Participation Status"
+          placeholder="Participation Status"
+          data={EVENT_PARTICIPATION_STATUSES}
+          onChange={(s, _) => setEventStatus(s as EventParticipationStatus)}
+          value={eventStatus}
+        />
+        <PaginatedTable
+          columns={["Full Name", "Discord ID"]}
+          data={Array.from(selectedContacts)}
+          transforms={[
+            (c: Contact) => <Table.Td>{c.full_name}</Table.Td>,
+            (c: Contact) => <Table.Td>{c.discord_id}</Table.Td>,
+            (c: Contact) => (
+              <Table.Td>
+                <Button color="red" onClick={() => removeContact(c)}>
+                  Remove
+                </Button>
+              </Table.Td>
+            ),
+          ]}
+          loading={false}
+          noDataText="Select a participant to proceed"
+        />
+        <Button
+          onClick={async () => {
+            await Promise.all(
+              Array.from(selectedContacts).map((c) =>
+                mutate({
+                  event_id: Number.parseInt(eventId!),
+                  status: eventStatus,
+                  contact_id: c.id,
+                })
+              )
+            );
+            if (!error) {
+              setSelectedContacts(new Set());
+              close();
+              refresh();
+            }
+          }}
+        >
+          Submit
+        </Button>
+      </Stack>
+    </Modal>
+  );
+}
 
 function EventViewContactTable({ event }: { event: Event }) {
   const currentParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState<string>();
   const [statusArray, setStatusArray] = useState<string[]>();
+  const [opened, { open, close }] = useDisclosure(false);
+
   const pageNum = currentParams.get("page");
   const apiParams = new URLSearchParams();
 
@@ -165,26 +300,40 @@ function EventViewContactTable({ event }: { event: Event }) {
     router.replace(`?${params.toString()}`, { scroll: false });
   };
 
+  const selectedData = data?.results.filter((participation) => selected.has(participation.id));
   return (
     <>
+      {opened && (
+        <AddParticipantModal
+          selected={selectedData}
+          opened={opened}
+          close={close}
+          refresh={refresh}
+        />
+      )}
       <Paper p="md" mt="sm" withBorder style={{ position: "relative" }}>
         <Stack>
-          <Group>
+          <Group grow align="flex-end">
             <TextInput
               label="Search"
               placeholder="Search by name, Discord ID, email, or phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               leftSection={<IconSearch size={16} />}
-              style={{ flex: 1 }}
             />
             <MultiSelect
               label="Participation Status"
-              data={["UNKNOWN", "MAYBE", "COMMITED", "REJECTED", "ATTENDED", "NO_SHOW"]}
+              data={EVENT_PARTICIPATION_STATUSES}
               onChange={setStatusArray}
               value={statusArray}
-              style={{ flex: 1 }}
             />
+            {selected.size === 0 ? (
+              <Button onClick={open}>Add Participant</Button>
+            ) : (
+              <Button color="green" onClick={open}>
+                Modify Selected
+              </Button>
+            )}
           </Group>
           {data && (
             <PaginatedTable
@@ -202,7 +351,9 @@ function EventViewContactTable({ event }: { event: Event }) {
                 ),
                 (ep) => (
                   <Table.Td key={ep.status}>
-                    <Badge color={getStatusColor(ep.status)}>{ep.status_display}</Badge>
+                    <Badge color={getEventParticipationStatusColor(ep.status)}>
+                      {ep.status_display}
+                    </Badge>
                   </Table.Td>
                 ),
               ]}
