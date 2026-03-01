@@ -331,7 +331,7 @@ export default function TicketPage() {
                       style={{ flex: 1 }}
                     />
                     <SearchSelect<UserResult>
-                      endpoint="/api/users"
+                      endpoint="/api/users/"
                       label="Assignee"
                       placeholder="Search users…"
                       value={assignee}

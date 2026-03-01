@@ -226,7 +226,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
             Status
           </Text>
           <EnumSelect<TicketStatus>
-            endpoint="/api/ticket-statuses"
+            endpoint="/api/ticket-statuses/"
             value={ticketStatus}
             onChange={upsertTicketStatus}
             mapResult={(status) => ({
