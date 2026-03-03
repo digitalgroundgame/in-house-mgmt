@@ -23,7 +23,7 @@ const notAdminData = [
   { link: "/events", label: "Events", icon: IconCalendarEvent },
 ];
 
-const adminOnly = [{ link: "/admin/management", label: "Management", icon: IconEyeFilled }];
+const adminOnly = [{ link: "/management", label: "Management", icon: IconEyeFilled }];
 
 export default function NavbarSimple() {
   const pathname = usePathname();
