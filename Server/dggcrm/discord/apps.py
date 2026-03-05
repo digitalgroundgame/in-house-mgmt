@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 class DiscordConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "dggcrm.discord"
+    label = "dggdiscord"
     verbose_name = "Discord Integration"
 
     def ready(self):

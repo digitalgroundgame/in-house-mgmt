@@ -74,21 +74,14 @@ class DiscordClient:
         adapter = HTTPAdapter(max_retries=RETRY_STRATEGY)
         self.session.mount("https://", adapter)
 
-    def fetch_all_member_ids(self) -> set[str]:
+    def fetch_all_members(self) -> list[dict]:
         """
-        Fetch all guild member Discord IDs (paginated).
+        Fetch all guild members with their IDs and display names.
 
-        Discord API: GET /guilds/{guild_id}/members
-        - limit: max 1000 per request
-        - after: user ID to paginate from (results sorted by user_id ascending)
-
-        Returns set of Discord user ID strings.
-
-        Retry behavior:
-        - Retries on connection errors, timeouts, and 5xx/429 responses
-        - Does NOT retry on 4xx client errors (400, 401, 403, 404)
+        Returns:
+            List of dicts: [{"id": str, "display_name": str}, ...]
         """
-        members: set[str] = set()
+        members: list[dict] = []
         after: str | None = None
         page_size = 1000
         has_more = True
@@ -101,7 +94,6 @@ class DiscordClient:
             try:
                 resp = self.session.get(url, timeout=30)
             except requests.exceptions.RequestException as e:
-                # Connection error after retries exhausted
                 logger.error(f"Network error fetching members (retries exhausted): {e}")
                 break
 
@@ -112,7 +104,13 @@ class DiscordClient:
             data = resp.json()
 
             for member in data:
-                members.add(member["user"]["id"])
+                user = member.get("user", {})
+                members.append(
+                    {
+                        "id": user.get("id"),
+                        "display_name": member.get("nick") or user.get("username") or f"Discord {user.get('id')}",
+                    }
+                )
 
             has_more = len(data) == page_size
             if has_more:
@@ -120,3 +118,9 @@ class DiscordClient:
 
         logger.info(f"Fetched {len(members)} members from guild {self.guild_id}")
         return members
+
+    def fetch_all_member_ids(self) -> set[str]:
+        """
+        Returns just the set of member IDs (for backwards compatibility)
+        """
+        return {m["id"] for m in self.fetch_all_members()}

@@ -9,7 +9,6 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 INSTALLED_APPS += [
     "dggcrm.authmock.apps.AuthMockConfig",
-    "dggcrm.discord",
 ]
 
 SOCIALACCOUNT_PROVIDERS = {
