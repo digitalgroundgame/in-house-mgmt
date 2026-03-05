@@ -3,12 +3,11 @@
 import React, { useState, useEffect } from "react";
 import { Paper, Stack, Title, Tooltip } from "@mantine/core";
 import { type Ticket } from "@/app/components/tickets/ticket-utils";
-import { type Event } from "@/app/components/event-utils";
+import { type Event, type EventParticipation } from "@/app/components/event-utils";
 import { type Contact } from "@/app/components/ContactTable";
 import { SearchSelect, SearchSelectOption } from "@/app/components/SearchSelect";
 import { apiClient } from "@/app/lib/apiClient";
 import { useUser } from "@/app/components/provider/UserContext";
-import { EventParticipation } from "@/app/events/[id]/EventView";
 
 interface CommitmentStatus {
   value: string;

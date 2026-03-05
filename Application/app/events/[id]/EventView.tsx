@@ -271,6 +271,7 @@ function EventViewContactTable({ event }: { event: Event }) {
   const [searchQuery, setSearchQuery] = useState<string>();
   const [statusArray, setStatusArray] = useState<string[]>();
   const [opened, { open, close }] = useDisclosure(false);
+  const [refreshIndex, setRefreshIndex] = useState(0);
 
   const pageNum = currentParams.get("page");
   const apiParams = new URLSearchParams();
@@ -290,6 +291,8 @@ function EventViewContactTable({ event }: { event: Event }) {
   );
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const router = useRouter();
+
+  const refresh = () => setRefreshIndex((prev) => prev + 1);
 
   const updateParam = (key: string, value?: string) => {
     const params = new URLSearchParams(currentParams.toString());

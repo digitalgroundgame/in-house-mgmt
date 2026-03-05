@@ -23,7 +23,6 @@ services:
     - traefik.http.middlewares.gzip.compress=true
     - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
     - "traefik.http.routers.http-<uuid>-nginx.entryPoints=http"
-    - "traefik.http.routers.http-<uuid>-nginx.middlewares=redirect-to-https"
     - "traefik.http.routers.http-<uuid>-nginx.rule=Host(`house.digitalgroundgame.org`) && PathPrefix(`/`)"
     - "traefik.http.routers.http-<uuid>-nginx.service=http-<uuid>-nginx"
     - "traefik.http.routers.https-<uuid>-nginx.entryPoints=https"

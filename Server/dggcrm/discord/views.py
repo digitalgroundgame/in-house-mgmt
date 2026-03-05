@@ -25,55 +25,66 @@ class SyncMembershipTagsView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     def post(self, request):
-        # Get the injected client singleton
         client = get_discord_client()
         if not client:
             return Response({"error": "Discord bot not configured"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
-        # Fetch all member IDs from Discord
-        member_ids = client.fetch_all_member_ids()
+        # Fetch all Discord members (id + display_name)
+        members = client.fetch_all_members()
+        member_ids = {m["id"] for m in members}
 
         # Get or create the membership tag
         tag_name = os.environ.get("DISCORD_MEMBERSHIP_TAG", "DGG Discord")
         tag, _ = Tag.objects.get_or_create(name=tag_name)
 
+        created = 0
+        updated = 0
+        added = 0
+
         with transaction.atomic():
-            # Fetch all contacts with discord_id in one query
-            contacts_with_discord = Contact.objects.exclude(discord_id="")
-            contacts_by_discord_id = {c.discord_id: c for c in contacts_with_discord}
+            # Fetch existing contacts by discord_id
+            existing_contacts = {c.discord_id: c for c in Contact.objects.exclude(discord_id="")}
 
-            # Fetch all existing tag assignments for this tag in one query
-            existing_assignments = set(
-                TagAssignments.objects.filter(tag=tag, contact__in=contacts_with_discord).values_list(
-                    "contact_id", flat=True
-                )
-            )
+            tag_assignments_to_add = []
 
-            # Determine which contacts need tags added/removed
-            to_add = []
-            to_remove_contact_ids = []
+            for member in members:
+                discord_id = member["id"]
+                display_name = member["display_name"]
 
-            for discord_id, contact in contacts_by_discord_id.items():
-                is_member = discord_id in member_ids
-                has_tag = contact.id in existing_assignments
+                # Get or create the Contact
+                contact = existing_contacts.get(discord_id)
+                if not contact:
+                    contact = Contact(discord_id=discord_id, full_name=display_name)
+                    contact.save()
+                    existing_contacts[discord_id] = contact
+                    created += 1
+                else:
+                    # Update full_name if changed
+                    if contact.full_name != display_name:
+                        contact.full_name = display_name
+                        contact.save(update_fields=["full_name"])
+                        updated += 1
 
-                if is_member and not has_tag:
-                    to_add.append(TagAssignments(contact=contact, tag=tag))
-                elif not is_member and has_tag:
-                    to_remove_contact_ids.append(contact.id)
+                # Check if TagAssignments already exist
+                has_tag = TagAssignments.objects.filter(tag=tag, contact=contact).exists()
+                if not has_tag:
+                    tag_assignments_to_add.append(TagAssignments(contact=contact, tag=tag))
+                    added += 1
 
-            # Bulk create new assignments
-            TagAssignments.objects.bulk_create(to_add, ignore_conflicts=True)
-            added = len(to_add)
+            # Bulk create tag assignments safely
+            TagAssignments.objects.bulk_create(tag_assignments_to_add, ignore_conflicts=True)
 
-            # Bulk delete removed assignments
-            removed, _ = TagAssignments.objects.filter(tag=tag, contact_id__in=to_remove_contact_ids).delete()
+            # Remove tag assignments for contacts no longer in the guild
+            contacts_to_remove = Contact.objects.exclude(discord_id__in=member_ids)
+            removed, _ = TagAssignments.objects.filter(tag=tag, contact__in=contacts_to_remove).delete()
 
-        logger.info(f"Sync complete: added={added}, removed={removed}")
+        logger.info(f"Sync complete: created={created}, updated={updated}, tags_added={added}, tags_removed={removed}")
 
         return Response(
             {
                 "members_fetched": len(member_ids),
+                "contacts_created": created,
+                "updated_contacts": updated,
                 "tags_added": added,
                 "tags_removed": removed,
             }
