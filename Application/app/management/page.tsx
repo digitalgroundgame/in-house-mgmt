@@ -40,15 +40,15 @@ export default function ManagementConsole() {
     try {
       const data = await apiClient.post<{
         members_fetched: number;
-        contacts_created: number;
-        updated_contacts: number;
-        tags_added: number;
-        tags_removed: number;
+        roles_fetched: number;
+        contacts: { created: number; updated: number };
+        membership_tags: { added: number; removed: number };
+        role_tags: { added: number; removed: number };
       }>("/discord/sync-membership/", {});
 
       setSyncResult({
         type: "success",
-        message: `Retrieved ${data.members_fetched} contacts, created ${data.contacts_created} new contacts, updated ${data.updated_contacts} — ${data.tags_added} tags added, ${data.tags_removed} removed.`,
+        message: `Retrieved ${data.members_fetched} members (${data.roles_fetched} roles), created ${data.contacts.created} new contacts, updated ${data.contacts.updated} — membership tags: ${data.membership_tags.added} added, ${data.membership_tags.removed} removed; role tags: ${data.role_tags.added} added, ${data.role_tags.removed} removed.`,
       });
     } catch {
       setSyncResult({
@@ -102,8 +102,9 @@ export default function ManagementConsole() {
             <Collapse in={discordSectionOpen}>
               <Stack gap="md">
                 <p style={{ color: "gray", fontSize: "0.9rem" }}>
-                  Sync Discord guild membership with contact tags. This fetches all members from the
-                  Discord server and updates the membership tag on matching contacts.
+                  Sync Discord guild membership and roles with contact tags. This fetches all
+                  members and roles from the Discord server, creates tags for Discord roles, and
+                  updates membership/role tags on matching contacts.
                 </p>
 
                 <Button

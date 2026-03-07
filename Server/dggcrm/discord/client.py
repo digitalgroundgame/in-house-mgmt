@@ -124,3 +124,82 @@ class DiscordClient:
         Returns just the set of member IDs (for backwards compatibility)
         """
         return {m["id"] for m in self.fetch_all_members()}
+
+    def fetch_all_roles(self) -> list[dict]:
+        """
+        Fetch all guild roles.
+
+        Returns:
+            List of dicts: [{"id": str, "name": str, "color": int}, ...]
+        """
+        url = f"{DISCORD_API_BASE}/guilds/{self.guild_id}/roles"
+
+        try:
+            resp = self.session.get(url, timeout=30)
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Network error fetching roles: {e}")
+            return []
+
+        if resp.status_code != 200:
+            logger.error(f"Failed to fetch roles: {resp.status_code} - {resp.text}")
+            return []
+
+        data = resp.json()
+        roles = []
+        for role in data:
+            roles.append(
+                {
+                    "id": role.get("id"),
+                    "name": role.get("name"),
+                    "color": role.get("color", 0),
+                }
+            )
+
+        logger.info(f"Fetched {len(roles)} roles from guild {self.guild_id}")
+        return roles
+
+    def fetch_all_members_with_roles(self) -> list[dict]:
+        """
+        Fetch all guild members with their IDs, display names, and role IDs.
+
+        Returns:
+            List of dicts: [{"id": str, "display_name": str, "role_ids": [str, ...]}, ...]
+        """
+        members: list[dict] = []
+        after: str | None = None
+        page_size = 1000
+        has_more = True
+
+        while has_more:
+            url = f"{DISCORD_API_BASE}/guilds/{self.guild_id}/members?limit={page_size}"
+            if after:
+                url += f"&after={after}"
+
+            try:
+                resp = self.session.get(url, timeout=30)
+            except requests.exceptions.RequestException as e:
+                logger.error(f"Network error fetching members (retries exhausted): {e}")
+                break
+
+            if resp.status_code != 200:
+                logger.error(f"Failed to fetch members: {resp.status_code} - {resp.text}")
+                break
+
+            data = resp.json()
+
+            for member in data:
+                user = member.get("user", {})
+                members.append(
+                    {
+                        "id": user.get("id"),
+                        "display_name": member.get("nick") or user.get("username") or f"Discord {user.get('id')}",
+                        "role_ids": member.get("roles", []),
+                    }
+                )
+
+            has_more = len(data) == page_size
+            if has_more:
+                after = data[-1]["user"]["id"]
+
+        logger.info(f"Fetched {len(members)} members with roles from guild {self.guild_id}")
+        return members
