@@ -96,8 +96,8 @@ class TestSyncMembershipTagsView:
         assert response.status_code == 200
         data = response.json()
         assert data["members_fetched"] == 2
-        assert data["tags_added"] == 2
-        assert data["tags_removed"] == 0
+        assert data["membership_tags"]["added"] == 2
+        assert data["membership_tags"]["removed"] == 0
 
         # Verify tags were created
         tag = Tag.objects.get(name="DGG Discord")
@@ -124,8 +124,8 @@ class TestSyncMembershipTagsView:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["tags_added"] == 0
-        assert data["tags_removed"] == 2
+        assert data["membership_tags"]["added"] == 0
+        assert data["membership_tags"]["removed"] == 2
 
         # Verify Bob and Charlie's tags were removed
         assert TagAssignments.objects.filter(contact=alice, tag=tag).exists()
@@ -155,14 +155,14 @@ class TestSyncMembershipTagsView:
         with patch_discord_client(member_ids=member_ids):
             response1 = authenticated_client.post(self.ENDPOINT)
 
-        assert response1.json()["tags_added"] == 2
+        assert response1.json()["membership_tags"]["added"] == 2
 
         # Second sync - should be idempotent
         with patch_discord_client(member_ids=member_ids):
             response2 = authenticated_client.post(self.ENDPOINT)
 
-        assert response2.json()["tags_added"] == 0
-        assert response2.json()["tags_removed"] == 0
+        assert response2.json()["membership_tags"]["added"] == 0
+        assert response2.json()["membership_tags"]["removed"] == 0
 
     def test_handles_empty_guild(self, authenticated_client, sample_contacts, patch_discord_client):
         """Handles case when no members are returned from Discord."""
@@ -178,7 +178,7 @@ class TestSyncMembershipTagsView:
         assert response.status_code == 200
         data = response.json()
         assert data["members_fetched"] == 0
-        assert data["tags_removed"] == 1
+        assert data["membership_tags"]["removed"] == 1
 
     def test_creates_tag_if_not_exists(self, authenticated_client, sample_contacts, patch_discord_client):
         """Creates the membership tag if it doesn't exist."""
@@ -189,3 +189,123 @@ class TestSyncMembershipTagsView:
 
         assert response.status_code == 200
         assert Tag.objects.filter(name="DGG Discord").exists()
+
+
+@pytest.mark.django_db
+class TestSyncMembershipRolesTags:
+    """Tests for role tag syncing in POST /api/discord/sync-membership/"""
+
+    ENDPOINT = "/api/discord/sync-membership/"
+
+    def test_creates_role_tags_from_discord_roles(self, authenticated_client, sample_contacts, patch_discord_client):
+        """Creates tags from Discord roles."""
+        roles = [
+            {"id": "111", "name": "Moderator", "color": 3447003},
+            {"id": "222", "name": "VIP", "color": 15158332},
+        ]
+        members_with_roles = [
+            {"id": "100000000000000001", "display_name": "Alice Member", "role_ids": ["111"]},
+            {"id": "100000000000000002", "display_name": "Bob Member", "role_ids": ["222"]},
+        ]
+
+        with patch_discord_client(members_with_roles=members_with_roles, roles=roles):
+            response = authenticated_client.post(self.ENDPOINT)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["roles_fetched"] == 2
+        assert data["role_tags"]["added"] == 2
+
+        assert Tag.objects.filter(name="Moderator").exists()
+        assert Tag.objects.filter(name="VIP").exists()
+
+    def test_assigns_role_tags_to_members(self, authenticated_client, sample_contacts, patch_discord_client):
+        """Assigns role tags to contacts based on their Discord roles."""
+        roles = [{"id": "111", "name": "Moderator", "color": 0}]
+        members_with_roles = [
+            {"id": "100000000000000001", "display_name": "Alice Member", "role_ids": ["111"]},
+            {"id": "100000000000000002", "display_name": "Bob Member", "role_ids": []},
+        ]
+
+        with patch_discord_client(members_with_roles=members_with_roles, roles=roles):
+            response = authenticated_client.post(self.ENDPOINT)
+
+        assert response.status_code == 200
+
+        alice, bob, _, _ = sample_contacts
+        mod_tag = Tag.objects.get(name="Moderator")
+        assert TagAssignments.objects.filter(contact=alice, tag=mod_tag).exists()
+        assert not TagAssignments.objects.filter(contact=bob, tag=mod_tag).exists()
+
+    def test_updates_role_tag_color(self, authenticated_client, patch_discord_client):
+        """Updates existing role tag color when Discord role color changes."""
+        Tag.objects.create(name="Moderator", color="#000000")
+
+        roles = [{"id": "111", "name": "Moderator", "color": 3447003}]
+        members_with_roles = []
+
+        with patch_discord_client(members_with_roles=members_with_roles, roles=roles):
+            response = authenticated_client.post(self.ENDPOINT)
+
+        assert response.status_code == 200
+
+        mod_tag = Tag.objects.get(name="Moderator")
+        assert mod_tag.color == "#349dbb"
+
+    def test_removes_role_tags_for_former_members(self, authenticated_client, sample_contacts, patch_discord_client):
+        """Removes role tags from contacts who left the guild."""
+        alice, _, _, _ = sample_contacts
+
+        mod_tag = Tag.objects.create(name="Moderator")
+        TagAssignments.objects.create(contact=alice, tag=mod_tag)
+
+        roles = [{"id": "111", "name": "Moderator", "color": 0}]
+        members_with_roles = []
+
+        with patch_discord_client(members_with_roles=members_with_roles, roles=roles):
+            response = authenticated_client.post(self.ENDPOINT)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["role_tags"]["removed"] == 1
+        assert not TagAssignments.objects.filter(contact=alice, tag=mod_tag).exists()
+
+    def test_removes_role_tags_when_role_removed_from_member(
+        self, authenticated_client, sample_contacts, patch_discord_client
+    ):
+        """Removes role tags when member no longer has that role."""
+        alice, _, _, _ = sample_contacts
+
+        mod_tag = Tag.objects.create(name="Moderator")
+        TagAssignments.objects.create(contact=alice, tag=mod_tag)
+
+        roles = [{"id": "111", "name": "Moderator", "color": 0}]
+        members_with_roles = [
+            {"id": "100000000000000001", "display_name": "Alice Member", "role_ids": []},
+        ]
+
+        with patch_discord_client(members_with_roles=members_with_roles, roles=roles):
+            response = authenticated_client.post(self.ENDPOINT)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["role_tags"]["removed"] == 1
+        assert not TagAssignments.objects.filter(contact=alice, tag=mod_tag).exists()
+
+    def test_role_tags_idempotent(self, authenticated_client, sample_contacts, patch_discord_client):
+        """Running sync twice for roles produces the same result."""
+        roles = [{"id": "111", "name": "Moderator", "color": 0}]
+        members_with_roles = [
+            {"id": "100000000000000001", "display_name": "Alice Member", "role_ids": ["111"]},
+        ]
+
+        with patch_discord_client(members_with_roles=members_with_roles, roles=roles):
+            response1 = authenticated_client.post(self.ENDPOINT)
+
+        assert response1.json()["role_tags"]["added"] == 1
+
+        with patch_discord_client(members_with_roles=members_with_roles, roles=roles):
+            response2 = authenticated_client.post(self.ENDPOINT)
+
+        assert response2.json()["role_tags"]["added"] == 0
+        assert response2.json()["role_tags"]["removed"] == 0
