@@ -9,7 +9,7 @@ from rest_framework.permissions import DjangoModelPermissions, IsAuthenticated
 from rest_framework.response import Response
 
 from ..events.models import EventParticipation
-from .models import Ticket, TicketAsks, TicketAskStatus, TicketStatus, TicketType
+from .models import Ticket, TicketAsks, TicketAskStatus, TicketStatus, TicketTemplate, TicketType
 from .permissions import (
     CanCommentOnTicketPermission,
     TicketClaimPermission,
@@ -22,6 +22,7 @@ from .serializers import (
     TicketClaimSerializer,
     TicketCommentSerializer,
     TicketSerializer,
+    TicketTemplateSerializer,
     TicketTimelineSerializer,
 )
 
@@ -384,3 +385,13 @@ class TicketStatusesViewSet(viewsets.ViewSet):
     def list(self, request):
         types = [{"value": t.value, "label": t.label} for t in TicketStatus]
         return Response(types)
+
+
+class TicketTemplateViewSet(viewsets.ModelViewSet):
+    queryset = TicketTemplate.objects.all().order_by("name")
+    serializer_class = TicketTemplateSerializer
+    permission_classes = [IsAuthenticated, DjangoModelPermissions]
+    filter_backends = [filters.OrderingFilter, filters.SearchFilter]
+    search_fields = ["name"]
+    ordering_fields = ["name", "created_at", "modified_at"]
+    ordering = ["name"]
