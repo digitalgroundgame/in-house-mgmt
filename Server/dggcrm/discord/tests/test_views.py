@@ -250,7 +250,7 @@ class TestSyncMembershipRolesTags:
         assert response.status_code == 200
 
         mod_tag = Tag.objects.get(name="Moderator")
-        assert mod_tag.color == "#349dbb"
+        assert mod_tag.color == "#3498db"
 
     def test_removes_role_tags_for_former_members(self, authenticated_client, sample_contacts, patch_discord_client):
         """Removes role tags from contacts who left the guild."""

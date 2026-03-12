@@ -8,7 +8,6 @@ import {
   Paper,
   Text,
   TextInput,
-  Select,
   Stack,
   Modal,
   MultiSelect,
@@ -28,6 +27,7 @@ import { useRouter } from "next/navigation";
 import { apiClient } from "@/app/lib/apiClient";
 import { useForm } from "@mantine/form";
 import { TicketBulkCreateModal } from "@/app/components/tickets/TicketBulkCreateModal";
+import { SearchSelect, type SearchSelectOption } from "@/app/components/SearchSelect";
 import ContactTable, {
   type Contact,
   type Group as ContactGroup,
@@ -42,7 +42,7 @@ export default function ContactsPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGroup, setSelectedGroup] = useState<string | null>("all");
-  const [selectedTag, setSelectedTag] = useState<string | null>("all");
+  const [selectedTag, setSelectedTag] = useState<SearchSelectOption<Tag> | null>(null);
   const [startDate, setStartDate] = useState<string | null>("");
   const [endDate, setEndDate] = useState<string | null>("");
   const [minEvents, setMinEvents] = useState<number | string>();
@@ -124,7 +124,7 @@ export default function ContactsPage() {
         if (startDate) params.append("start_date", startDate);
         if (endDate) params.append("end_date", endDate);
 
-        if (selectedTag && selectedTag !== "all") params.append("tag", selectedTag);
+        if (selectedTag) params.append("tag", selectedTag.id.toString());
         fetchUrl = `/contacts/?${params}`;
       }
 
@@ -152,7 +152,7 @@ export default function ContactsPage() {
   const handleReset = () => {
     setSearchQuery("");
     setSelectedGroup("all");
-    setSelectedTag("all");
+    setSelectedTag(null);
     setMaxEvents("");
     setMinEvents("");
     setMaxTickets("");
@@ -223,11 +223,6 @@ export default function ContactsPage() {
     console.log("Upload CSV clicked");
   };
 
-  const tagOptions = [
-    { value: "all", label: "Any" },
-    ...tags.map((t) => ({ value: t.id.toString(), label: t.name })),
-  ];
-
   return (
     <Container size="xl" py="xl">
       <Stack gap="md">
@@ -261,13 +256,18 @@ export default function ContactsPage() {
                 style={{ flex: 1 }}
               />
 
-              <Select
+              <SearchSelect<Tag>
+                endpoint="/tags/"
                 label="Tag"
-                placeholder="Select tag"
+                placeholder="Search tags..."
                 value={selectedTag}
                 onChange={setSelectedTag}
-                data={tagOptions}
-                style={{ minWidth: 200 }}
+                clearable
+                mapResult={(tag) => ({
+                  id: tag.id,
+                  label: tag.name,
+                  raw: tag,
+                })}
               />
             </Group>
             <Group>

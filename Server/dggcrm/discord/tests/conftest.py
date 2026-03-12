@@ -42,6 +42,11 @@ def mock_discord_client():
         client.fetch_all_members.return_value = [
             {"id": mid, "display_name": f"Member {mid}"} for mid in (member_ids or set())
         ]
+
+        # If members_with_roles not provided, derive from member_ids
+        if members_with_roles is None and member_ids:
+            members_with_roles = [{"id": mid, "display_name": f"Member {mid}", "role_ids": []} for mid in member_ids]
+
         client.fetch_all_members_with_roles.return_value = members_with_roles or []
         client.fetch_all_roles.return_value = roles or []
         return client
