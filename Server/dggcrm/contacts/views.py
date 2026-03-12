@@ -139,6 +139,8 @@ class TagViewSet(viewsets.ModelViewSet):
         IsAuthenticated,
         DjangoModelPermissions,
     ]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["name"]
 
 
 class TagAssignmentViewSet(viewsets.ModelViewSet):

@@ -357,6 +357,12 @@ class TicketTypeViewSet(viewsets.ViewSet):
 
     def list(self, request):
         types = [{"value": t.value, "label": t.label} for t in TicketType]
+        search = request.query_params.get("search", "").lower()
+        if search:
+            types = [t for t in types if search in t["label"].lower()]
+        page_size = request.query_params.get("page_size")
+        if page_size:
+            types = types[: int(page_size)]
         return Response(types)
 
 
