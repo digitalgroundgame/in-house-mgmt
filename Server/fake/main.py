@@ -7,6 +7,8 @@ from urllib.parse import urlparse
 import psycopg
 from faker import Faker
 
+from fake_templates import populate_templates, TICKET_TEMPLATES, render_template
+
 # Test Discord users from dev server for sync endpoint testing
 DISCORD_TEST_USERS = [
     {"discord_id": "135858410104160258", "username": "gioodiazz"},
@@ -99,6 +101,8 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=25, num_tickets=30
 
     c.execute("SELECT id, name FROM tags")
     tag_map = {row[1]: row[0] for row in c.fetchall()}
+
+    populate_templates(conn)
 
     # Create Discord test users first (for sync endpoint testing)
     discord_test_contact_ids = []
@@ -234,6 +238,29 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=25, num_tickets=30
     ticket_ids = []
     ticket_types = ["UNKNOWN", "INTRODUCTION", "RECRUIT", "CONFIRM"]
 
+    # Build template lookup by ticket_type
+    template_by_type = {tpl["ticket_type"]: tpl for tpl in TICKET_TEMPLATES}
+
+    # Pre-fetch contacts and events for template rendering
+    c.execute("SELECT id, full_name, discord_id FROM contacts")
+    contacts_map = {row[0]: {"id": row[0], "display_name": row[1], "discord_id": row[2]} for row in c.fetchall()}
+
+    c.execute("SELECT id, name, description, location_name, location_address, starts_at FROM events")
+    events_map = {}
+    for row in c.fetchall():
+        location_display = ""
+        if row[3]:
+            location_display = row[3]
+        if row[4]:
+            location_display = f"{location_display} ({row[4]})" if location_display else row[4]
+        events_map[row[0]] = {
+            "id": row[0],
+            "name": row[1],
+            "description": row[2] or "",
+            "location_display": location_display or "TBD",
+            "starts_at": row[5].strftime("%Y-%m-%d %H:%M") if row[5] else "TBD",
+        }
+
     # For contacts, create 1-3 tickets per ticket type to ensure bar graphs have data
     # Randomly do not create some tickets
     for contact in contact_ids:
@@ -244,10 +271,23 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=25, num_tickets=30
             # Contact id 1 always gets at least 1 ticket per type
             num_tickets_for_type = random.randint(1, 3) if contact == contact_ids[0] else random.randint(0, 3)
             for _ in range(num_tickets_for_type):
-                name = fake.catch_phrase()
-                description = generate_ticket_description(fake)
+                # Look up template for this ticket type
+                template = template_by_type.get(ticket_type)
                 event = random.choice(event_ids + [None])
-                priority = random.choice(list(range(6)))
+
+                if template and ticket_type != "UNKNOWN":
+                    # Use template
+                    contact_data = contacts_map.get(contact, {"display_name": "User", "discord_id": ""})
+                    event_data = events_map.get(event) if event else None
+                    name = render_template(template["title_template"], contact_data, event_data)
+                    description = render_template(template["description_template"], contact_data, event_data)
+                    priority = template["default_priority"]
+                else:
+                    # Use random generated content for UNKNOWN or when no template
+                    name = fake.catch_phrase()
+                    description = generate_ticket_description(fake)
+                    priority = random.choice(list(range(6)))
+
                 # 50% chance unassigned
                 assigned_to = random.choice(user_ids + [None] * len(user_ids))
                 if assigned_to is None:

@@ -46,6 +46,15 @@ class Ticket(models.Model):
         default=TicketType.UNKNOWN, choices=TicketType.choices, help_text="Type for this ticket"
     )
 
+    template = models.ForeignKey(
+        "tickets.TicketTemplate",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="tickets",
+        help_text="Template used to create this ticket",
+    )
+
     event = models.ForeignKey(
         "events.Event",
         null=True,
@@ -121,6 +130,57 @@ class Ticket(models.Model):
 
 # Using django-auditlog to keep history of tickets
 auditlog.register(Ticket)
+
+
+class TicketTemplate(models.Model):
+    """
+    Template for creating tickets with templated title and description.
+    Uses Django template syntax for dynamic content.
+    """
+
+    id = models.AutoField(primary_key=True)
+
+    name = models.CharField(max_length=100, unique=True)
+
+    title_template = models.TextField(
+        blank=True,
+        help_text="Django template for ticket title. Available context: contact, event, user",
+    )
+    description_template = models.TextField(
+        blank=True,
+        help_text="Django template for ticket description. Available context: contact, event, user",
+    )
+
+    ticket_type = models.CharField(
+        default=TicketType.UNKNOWN,
+        choices=TicketType.choices,
+        help_text="Default ticket type for tickets created from this template",
+    )
+
+    default_priority = models.PositiveSmallIntegerField(
+        choices=Ticket.Priority.choices,
+        default=Ticket.Priority.P3,
+        help_text="Default priority for tickets created from this template",
+    )
+
+    requires_contact = models.BooleanField(
+        default=False,
+        help_text="Whether tickets created from this template require a contact",
+    )
+
+    requires_event = models.BooleanField(
+        default=False,
+        help_text="Whether tickets created from this template require an event",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "ticket_templates"
+
+    def __str__(self):
+        return self.name
 
 
 class TicketComment(models.Model):
