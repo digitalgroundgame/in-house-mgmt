@@ -134,11 +134,13 @@ export default function PaginatedTable<T>(props: PaginatedTableProps<T>) {
 
         <Table.Tbody>
           {data.length === 0 && noDataText ? (
-            <Table.Tr>
-              <Text c="dimmed">{noDataText}</Text>
+            <Table.Tr key="no-data">
+              <Table.Td colSpan={columns.length}>
+                <Text c="dimmed">{noDataText}</Text>
+              </Table.Td>
             </Table.Tr>
           ) : (
-            data.map((ele) => {
+            data.map((ele, index) => {
               const id = keyFn?.(ele);
 
               return (
@@ -149,7 +151,7 @@ export default function PaginatedTable<T>(props: PaginatedTableProps<T>) {
                       : undefined
                   }
                   style={{ cursor: "pointer" }}
-                  key={id}
+                  key={id ?? `row-${index}`}
                   onClick={() => onRowClick?.(ele)}
                 >
                   {useCheckboxes && id !== undefined && (

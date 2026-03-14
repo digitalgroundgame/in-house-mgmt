@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiClient } from "@/app/lib/apiClient";
+import getCookie from "@/app/utils/cookie";
 
 export interface BackendPaginatedResults<T> {
   count: number;
@@ -78,8 +79,10 @@ export function useBackendMutation<TResponse, TBody = unknown>(
         body: body ? JSON.stringify(body) : options?.body,
         headers: {
           "Content-Type": "application/json",
+          "X-CSRFToken": getCookie("csrftoken") || "",
           ...options?.headers,
         },
+        credentials: "include",
       });
 
       if (!res.ok) {

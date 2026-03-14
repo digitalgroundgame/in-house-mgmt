@@ -95,7 +95,7 @@ class EventParticipationViewSet(viewsets.ModelViewSet):
         if contact_id:
             queryset = queryset.filter(contact_id=contact_id)
 
-        return queryset.filter(get_participation_visibility_filter(self.request.user))
+        return queryset.filter(get_participation_visibility_filter(self.request.user)).distinct()
 
     # TODO: Limit this API to organizer role or above
     @action(detail=False, methods=["get"])
@@ -188,7 +188,7 @@ class UsersInEventViewSet(viewsets.ModelViewSet):
     queryset = UsersInEvent.objects.select_related(
         "user",
         "event",
-    )
+    ).distinct()
     serializer_class = UsersInEventSerializer
     permission_classes = [IsAuthenticated, DjangoModelPermissions, EventMembershipObjectPermission]
 
