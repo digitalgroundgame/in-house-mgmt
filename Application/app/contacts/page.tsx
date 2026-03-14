@@ -135,7 +135,7 @@ export default function ContactsPage() {
         count: number;
         next: string | null;
         previous: string | null;
-      }>(fetchUrl?.replace(/^\/api/, "") || `/contacts/`);
+      }>(fetchUrl || `/contacts/`);
 
       console.log("Fetched contacts data:", data);
       setContacts(data.results);

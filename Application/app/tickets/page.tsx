@@ -96,7 +96,7 @@ export default function TicketPage() {
   ) => {
     try {
       setLoading(true);
-      let fetchPath = url?.replace(/^\/api/, "") || "/tickets";
+      let fetchPath = url || "/tickets";
 
       // Add filters if not using pagination URL
       if (!url) {

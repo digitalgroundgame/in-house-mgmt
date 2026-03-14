@@ -1,7 +1,9 @@
 import getCookie from "@/app/utils/cookie";
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`/api${path}`, {
+  const isFullUrl = path.startsWith("http://") || path.startsWith("https://");
+  const url = isFullUrl ? path : `/api${path}`;
+  const res = await fetch(url, {
     ...options,
     headers: {
       "Content-Type": "application/json",
