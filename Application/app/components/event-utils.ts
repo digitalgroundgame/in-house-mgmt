@@ -56,3 +56,11 @@ export const getEventParticipationStatusColor = (status: string) => {
       return "DimGray";
   }
 };
+
+export interface UsersInEvent {
+  id: number;
+  user: number;
+  user_username: string;
+  event: number;
+  joined_at: string;
+}
