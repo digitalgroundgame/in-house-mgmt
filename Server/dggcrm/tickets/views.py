@@ -170,7 +170,7 @@ class TicketViewSet(viewsets.ModelViewSet):
         serializer_class=TicketCommentSerializer,
         permission_classes=[
             IsAuthenticated,
-            DjangoModelPermissions,
+            # DjangoModelPermissions, The dummy user is not given this role, and it is not necessary for comments
             TicketObjectPermission,
             CanCommentOnTicketPermission,
         ],

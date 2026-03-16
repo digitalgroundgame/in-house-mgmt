@@ -18,8 +18,12 @@ import {
   SegmentedControl,
   Loader,
   Center,
+  Textarea,
+  ScrollArea,
+  Avatar,
 } from "@mantine/core";
 import { useRouter } from "next/navigation";
+import { IconSend } from "@tabler/icons-react";
 import { getStatusColor, getPriorityColor } from "./TicketTable";
 import TicketDescription from "./TicketDescription";
 import { Ticket, TicketType } from "./ticket-utils";
@@ -97,14 +101,20 @@ export default function TicketView({
         <Grid.Col span={{ base: 12, md: 8 }}>
           <Stack gap="md">
             <TitleCard ticket={ticket} />
-            {/* Status Info */}
             <TicketDescription description={ticket.description} />
-            <TicketTimeline
-              timeline={timeline}
-              loading={timelineLoading}
-              showType={showType}
-              onShowTypeChange={onShowTypeChange}
-            />
+            <Grid gutter="md">
+              <Grid.Col span={{ base: 12, md: 6 }}>
+                <TicketTimeline
+                  timeline={timeline}
+                  loading={timelineLoading}
+                  showType={showType}
+                  onShowTypeChange={onShowTypeChange}
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, md: 6 }}>
+                <TicketComments ticketId={ticket.id} />
+              </Grid.Col>
+            </Grid>
           </Stack>
         </Grid.Col>
         <Grid.Col span={{ base: 12, md: 4 }}>
@@ -465,6 +475,126 @@ function TicketTimeline({ timeline, loading, showType, onShowTypeChange }: Ticke
           ))}
         </Timeline>
       )}
+    </Paper>
+  );
+}
+
+interface CommentEntry {
+  created_at: string;
+  actor_display: string | null;
+  message: string;
+}
+
+function TicketComments({ ticketId }: { ticketId: number }) {
+  const [comments, setComments] = useState<CommentEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [commentText, setCommentText] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const fetchComments = async () => {
+    try {
+      setLoading(true);
+      const data = await apiClient.get<CommentEntry[] | { results: CommentEntry[] }>(
+        `/tickets/${ticketId}/timeline/?show=comment`
+      );
+      setComments(Array.isArray(data) ? data : (data.results ?? []));
+    } catch (err) {
+      console.error("Failed to fetch comments", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchComments();
+  }, [ticketId]);
+
+  const handleSubmit = async () => {
+    if (!commentText.trim()) return;
+    setSubmitting(true);
+    try {
+      await apiClient.post(`/tickets/${ticketId}/comment/`, {
+        message: commentText.trim(),
+        ticket: ticketId,
+      });
+      setCommentText("");
+      await fetchComments();
+    } catch (err) {
+      console.error("Failed to post comment", err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+  return (
+    <Paper p="md" withBorder>
+      <Title order={4} mb="md">
+        Comments
+      </Title>
+
+      <ScrollArea h={300} mb="md">
+        {loading ? (
+          <Center h={100}>
+            <Loader size="sm" />
+          </Center>
+        ) : comments.length === 0 ? (
+          <Text c="dimmed" size="sm" ta="center" py="xl">
+            No comments yet.
+          </Text>
+        ) : (
+          <Stack gap="sm">
+            {comments.map((c, i) => (
+              <Box key={i}>
+                <Group gap="sm" align="flex-start">
+                  <Avatar size="sm" radius="xl" color="blue">
+                    {(c.actor_display || "?")[0].toUpperCase()}
+                  </Avatar>
+                  <Box style={{ flex: 1 }}>
+                    <Group gap="xs" mb={2}>
+                      <Text size="sm" fw={600}>
+                        {c.actor_display ?? "Unknown"}
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        {formatDate(c.created_at)}
+                      </Text>
+                    </Group>
+                    <Text size="sm">{c.message}</Text>
+                  </Box>
+                </Group>
+                {i < comments.length - 1 && <Divider mt="sm" />}
+              </Box>
+            ))}
+          </Stack>
+        )}
+      </ScrollArea>
+
+      <Group align="flex-end" gap="sm">
+        <Textarea
+          placeholder="Add a comment"
+          style={{ flex: 1 }}
+          autosize
+          minRows={2}
+          maxRows={5}
+          value={commentText}
+          onChange={(e) => setCommentText(e.currentTarget.value)}
+        />
+        <Button
+          leftSection={<IconSend size={16} />}
+          loading={submitting}
+          disabled={!commentText.trim()}
+          onClick={handleSubmit}
+        >
+          Send
+        </Button>
+      </Group>
     </Paper>
   );
 }
