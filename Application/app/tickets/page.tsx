@@ -35,6 +35,11 @@ interface UserResult {
   last_name: string;
 }
 
+interface EventResult {
+  id: number;
+  name: string;
+}
+
 const openStatusValues = ["OPEN", "TODO", "IN_PROGRESS", "BLOCKED"];
 const closedStatusValues = ["COMPLETED", "CANCELED"];
 const defaultExcluded = ["COMPLETED", "CANCELED"];
@@ -58,6 +63,7 @@ export default function TicketPage() {
   const [ticketType, setTicketType] = useState<string | null>(null);
   const [assignee, setAssignee] = useState<SearchSelectOption<UserResult> | null>(null);
   const [assignedToMe, setAssignedToMe] = useState(false);
+  const [event, setEvent] = useState<SearchSelectOption<EventResult> | null>(null);
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [previousUrl, setPreviousUrl] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
@@ -89,6 +95,7 @@ export default function TicketPage() {
       priority?: string | null;
       ticketType?: string | null;
       assignee?: SearchSelectOption<UserResult> | null;
+      event?: SearchSelectOption<EventResult> | null;
       sortField?: SortField;
       sortDirection?: SortDirection;
       excludedStatuses?: string[];
@@ -110,11 +117,15 @@ export default function TicketPage() {
         const effectiveSortDirection =
           overrides?.sortDirection !== undefined ? overrides.sortDirection : sortDirection;
         const effectiveAssignee = overrides?.assignee !== undefined ? overrides.assignee : assignee;
+        const effectiveEvent = overrides?.event !== undefined ? overrides.event : event;
         const effectiveExcluded =
           overrides?.excludedStatuses !== undefined ? overrides.excludedStatuses : excludedStatuses;
 
         if (effectiveAssignee) {
           params.append("assigned_to", String(effectiveAssignee.id));
+        }
+        if (effectiveEvent) {
+          params.append("event", String(effectiveEvent.id));
         }
         if (effectivePriority !== undefined && effectivePriority !== null) {
           params.append("priority", effectivePriority);
@@ -204,12 +215,15 @@ export default function TicketPage() {
     setTicketType(null);
     setAssignedToMe(false);
     setAssignee(null);
+    setEvent(null);
     setSortField(null);
     setSortDirection(null);
     setExcludedStatuses(defaultExcluded);
     fetchTicketes(undefined, {
       priority: null,
       ticketType: null,
+      assignee: null,
+      event: null,
       sortField: null,
       sortDirection: null,
       excludedStatuses: defaultExcluded,
@@ -244,6 +258,7 @@ export default function TicketPage() {
   const buildFilterParams = () => {
     const params = new URLSearchParams();
     if (assignee) params.append("assigned_to", String(assignee.id));
+    if (event) params.append("event", String(event.id));
     if (priority) params.append("priority", priority);
     if (ticketType) params.append("type", ticketType);
     if (sortField && sortDirection) {
@@ -359,6 +374,22 @@ export default function TicketPage() {
                           ? `${user.first_name} ${user.last_name} (${user.username})`
                           : user.username,
                         raw: user,
+                      })}
+                    />
+                    <SearchSelect<EventResult>
+                      endpoint="/events"
+                      label="Event"
+                      placeholder="Search events…"
+                      value={event}
+                      onChange={(newEvent) => {
+                        setEvent(newEvent);
+                        fetchTicketes(undefined, { event: newEvent });
+                      }}
+                      clearable
+                      mapResult={(e) => ({
+                        id: e.id,
+                        label: e.name,
+                        raw: e,
                       })}
                     />
                   </Group>
