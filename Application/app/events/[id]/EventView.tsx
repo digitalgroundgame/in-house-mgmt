@@ -46,7 +46,7 @@ import getCookie from "@/app/utils/cookie";
 const EVENT_PARTICIPATION_STATUSES = [
   "UNKNOWN",
   "MAYBE",
-  "COMMITED",
+  "COMMITTED",
   "REJECTED",
   "ATTENDED",
   "NO_SHOW",
@@ -148,35 +148,52 @@ function AddParticipantModal({
   opened,
   close,
   refresh,
+  mode,
 }: {
   selected?: EventParticipation[];
   opened: boolean;
   close: () => void;
   refresh: () => void;
+  mode: "add" | "modify";
 }) {
-  const [contactSearchQuery, setContactSearchQuery] = useState<string>();
+  const [contactSearchQuery, setContactSearchQuery] = useState<string>("");
   const [selectedContacts, setSelectedContacts] = useState<Set<Contact>>(
     new Set(selected?.map((ep) => ep.contact))
   );
+  const [removedContactIds, setRemovedContactIds] = useState<Set<number>>(new Set());
   const [eventStatus, setEventStatus] = useState<EventParticipationStatus>();
+  const [submitting, setSubmitting] = useState(false);
   const eventId = usePathname().split("/").pop();
   const apiParams = new URLSearchParams();
   if (contactSearchQuery) apiParams.append("search", contactSearchQuery);
 
+  const contactToParticipationMap = new Map<number, number>();
+  if (mode === "modify" && selected) {
+    for (const ep of selected) {
+      contactToParticipationMap.set(ep.contact.id, ep.id);
+    }
+  }
+
   const contactsSearch = useBackend<BackendPaginatedResults<Contact>>(
     `/api/contacts/?${apiParams}`
   );
-  const { mutate, loading, error } = useBackendMutation(`/api/participants/`, {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": getCookie("csrftoken") ?? "",
-    },
-  });
+  const { mutate: createMutate, loading: createLoading } = useBackendMutation(
+    `/api/participants/`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": getCookie("csrftoken") ?? "",
+      },
+    }
+  );
   const selectedContactIds: number[] = [];
   selectedContacts.forEach((c) => selectedContactIds.push(c.id));
-  const contacts = contactsSearch.data?.results.filter((c) => !selectedContactIds.includes(c.id));
+  const contacts =
+    mode === "add"
+      ? contactsSearch.data?.results.filter((c) => !selectedContactIds.includes(c.id))
+      : undefined;
   const combobox = useCombobox();
   const removeContact = (c: Contact) => {
     setSelectedContacts((prev) => {
@@ -184,71 +201,146 @@ function AddParticipantModal({
       next.delete(c);
       return next;
     });
+    setRemovedContactIds((prev) => new Set(prev).add(c.id));
+  };
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      if (mode === "add") {
+        await Promise.all(
+          Array.from(selectedContacts).map((c) =>
+            createMutate({
+              event_id: Number.parseInt(eventId!),
+              status: eventStatus,
+              contact_id: c.id,
+            })
+          )
+        );
+      } else {
+        for (const c of selectedContacts) {
+          const participationId = contactToParticipationMap.get(c.id);
+          if (participationId) {
+            if (removedContactIds.has(c.id)) {
+              const response = await fetch(`/api/participants/${participationId}/`, {
+                method: "DELETE",
+                credentials: "include",
+                headers: {
+                  "X-CSRFToken": getCookie("csrftoken") ?? "",
+                },
+              });
+              if (!response.ok) {
+                notifications.show({
+                  title: "Error",
+                  message: "Failed to remove participant. Please try again.",
+                  color: "red",
+                });
+                return;
+              }
+            } else {
+              const response = await fetch(`/api/participants/${participationId}/`, {
+                method: "PATCH",
+                credentials: "include",
+                headers: {
+                  "Content-Type": "application/json",
+                  "X-CSRFToken": getCookie("csrftoken") ?? "",
+                },
+                body: JSON.stringify({ status: eventStatus }),
+              });
+              if (!response.ok) {
+                notifications.show({
+                  title: "Error",
+                  message: "Failed to update participant. Please try again.",
+                  color: "red",
+                });
+                return;
+              }
+            }
+          }
+        }
+      }
+      setSelectedContacts(new Set());
+      setRemovedContactIds(new Set());
+      close();
+      refresh();
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
-    <Modal opened={opened} onClose={close} title="Add Participant">
-      <LoadingOverlay visible={loading} />
+    <Modal
+      opened={opened}
+      onClose={close}
+      title={mode === "add" ? "Add Participant" : "Modify Selected"}
+    >
+      <LoadingOverlay visible={submitting || createLoading} />
       <Stack>
-        <Combobox
-          store={combobox}
-          onOptionSubmit={(value) => {
-            const contact = contacts?.find((c) => c.id.toString() === value);
-            if (!contact) return;
+        {mode === "add" && (
+          <Combobox
+            store={combobox}
+            onOptionSubmit={(value) => {
+              const contact = contacts?.find((c) => c.id.toString() === value);
+              if (!contact) return;
 
-            setSelectedContacts((prev) => {
-              const next = new Set(prev);
-              next.add(contact);
-              return next;
-            });
-            setContactSearchQuery("");
-            combobox.closeDropdown();
-          }}
-        >
-          <Combobox.Target>
-            <TextInput
-              label="Contact"
-              placeholder="Search contacts..."
-              value={contactSearchQuery}
-              onChange={(event) => {
-                setContactSearchQuery(event.currentTarget.value);
-                combobox.openDropdown();
-              }}
-              onFocus={() => combobox.openDropdown()}
-              onClick={() => combobox.openDropdown()}
-              onBlur={() => combobox.closeDropdown()}
-            />
-          </Combobox.Target>
+              setSelectedContacts((prev) => {
+                const next = new Set(prev);
+                next.add(contact);
+                return next;
+              });
+              setContactSearchQuery("");
+              combobox.closeDropdown();
+            }}
+          >
+            <Combobox.Target>
+              <TextInput
+                label="Contact"
+                placeholder="Search contacts..."
+                value={contactSearchQuery}
+                onChange={(event) => {
+                  setContactSearchQuery(event.currentTarget.value);
+                  combobox.openDropdown();
+                }}
+                onFocus={() => combobox.openDropdown()}
+                onClick={() => combobox.openDropdown()}
+                onBlur={() => combobox.closeDropdown()}
+              />
+            </Combobox.Target>
 
-          <Combobox.Dropdown hidden={contacts === undefined || contacts.length === 0}>
-            <Combobox.Options>
-              {contacts?.map((contact) => (
-                <Combobox.Option key={contact.id} value={contact.id.toString()}>
-                  {contact.full_name}
-                </Combobox.Option>
-              ))}
+            <Combobox.Dropdown hidden={contacts === undefined || contacts.length === 0}>
+              <Combobox.Options>
+                {contacts?.map((contact) => (
+                  <Combobox.Option key={contact.id} value={contact.id.toString()}>
+                    {contact.full_name}
+                  </Combobox.Option>
+                ))}
 
-              {contacts?.length === 0 && <Combobox.Empty>No contacts found</Combobox.Empty>}
-            </Combobox.Options>
-          </Combobox.Dropdown>
-        </Combobox>
+                {contacts?.length === 0 && <Combobox.Empty>No contacts found</Combobox.Empty>}
+              </Combobox.Options>
+            </Combobox.Dropdown>
+          </Combobox>
+        )}
         <Select
           label="Participation Status"
           placeholder="Participation Status"
           data={EVENT_PARTICIPATION_STATUSES}
-          onChange={(s, _) => setEventStatus(s as EventParticipationStatus)}
+          onChange={(s) => setEventStatus(s as EventParticipationStatus)}
           value={eventStatus}
         />
-        <PaginatedTable
-          columns={["Full Name", "Discord ID"]}
-          data={Array.from(selectedContacts)}
+        <PaginatedTable<Contact>
+          columns={["Full Name", "Discord ID", "Action"]}
+          data={
+            mode === "add"
+              ? Array.from(selectedContacts)
+              : Array.from(selectedContacts).filter((c) => !removedContactIds.has(c.id))
+          }
           transforms={[
-            (c: Contact) => <Table.Td>{c.full_name}</Table.Td>,
-            (c: Contact) => <Table.Td>{c.discord_id}</Table.Td>,
-            (c: Contact) => (
-              <Table.Td>
+            (c) => <Table.Td key="name">{c.full_name}</Table.Td>,
+            (c) => <Table.Td key="discord">{c.discord_id}</Table.Td>,
+            (c) => (
+              <Table.Td key="action">
                 <Button color="red" onClick={() => removeContact(c)}>
-                  Remove
+                  Deselect
                 </Button>
               </Table.Td>
             ),
@@ -256,24 +348,7 @@ function AddParticipantModal({
           loading={false}
           noDataText="Select a participant to proceed"
         />
-        <Button
-          onClick={async () => {
-            await Promise.all(
-              Array.from(selectedContacts).map((c) =>
-                mutate({
-                  event_id: Number.parseInt(eventId!),
-                  status: eventStatus,
-                  contact_id: c.id,
-                })
-              )
-            );
-            if (!error) {
-              setSelectedContacts(new Set());
-              close();
-              refresh();
-            }
-          }}
-        >
+        <Button onClick={handleSubmit} disabled={submitting}>
           Submit
         </Button>
       </Stack>
@@ -286,6 +361,7 @@ function EventViewContactTable({ event }: { event: Event }) {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [statusArray, setStatusArray] = useState<string[]>();
   const [opened, { open, close }] = useDisclosure(false);
+  const [modalMode, setModalMode] = useState<"add" | "modify">("add");
 
   const pageNum = currentParams.get("page");
   const apiParams = new URLSearchParams();
@@ -303,7 +379,6 @@ function EventViewContactTable({ event }: { event: Event }) {
   const {
     data,
     loading,
-    error,
     refresh: refetch,
   } = useBackend<BackendPaginatedResults<EventParticipation>>(`/api/participants/?${apiParams}`);
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -323,10 +398,11 @@ function EventViewContactTable({ event }: { event: Event }) {
     <>
       {opened && (
         <AddParticipantModal
-          selected={selectedData}
+          selected={modalMode === "add" ? undefined : selectedData}
           opened={opened}
           close={close}
           refresh={refetch}
+          mode={modalMode}
         />
       )}
       <Paper p="md" mt="sm" withBorder style={{ position: "relative" }}>
@@ -346,9 +422,22 @@ function EventViewContactTable({ event }: { event: Event }) {
               value={statusArray}
             />
             {selected.size === 0 ? (
-              <Button onClick={open}>Add Participant</Button>
+              <Button
+                onClick={() => {
+                  setModalMode("add");
+                  open();
+                }}
+              >
+                Add Participant
+              </Button>
             ) : (
-              <Button color="green" onClick={open}>
+              <Button
+                color="green"
+                onClick={() => {
+                  setModalMode("modify");
+                  open();
+                }}
+              >
                 Modify Selected
               </Button>
             )}
