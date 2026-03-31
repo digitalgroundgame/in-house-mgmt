@@ -4,10 +4,10 @@ from rest_framework.decorators import action
 from rest_framework.permissions import DjangoModelPermissions, IsAuthenticated
 from rest_framework.response import Response
 
-from dggcrm.tickets.models import TicketAsks, TicketAskStatus, TicketType
+from dggcrm.tickets.models import TicketAsks, TicketAskStatus
 
-from ..events.models import CommitmentStatus
-from ..tickets.models import TicketStatus
+from ..events.models import CommitmentStatus, EventType
+from ..tickets.models import TicketStatus, TicketType
 from .models import Contact, Tag, TagAssignments
 from .permissions import (
     CanModifyTagAssignment,
@@ -79,10 +79,13 @@ class ContactViewSet(viewsets.ModelViewSet):
         if end_date:
             date_filter &= Q(event_participations__event__starts_at__lte=end_date)
 
+        internal_ticket_filter = date_filter & ~Q(tickets__ticket_type=TicketType.INTERAL_CALL)
+        internal_event_filter = date_filter & ~Q(event_participations__event__event_type=EventType.INTERNAL)
+
         if min_tickets and min_tickets.isdigit():
             min_tickets = int(min_tickets)
             queryset = (
-                queryset.annotate(num_tickets_in_range=Count("tickets", filter=date_filter))
+                queryset.annotate(num_tickets_in_range=Count("tickets", filter=internal_ticket_filter))
                 .filter(num_tickets_in_range__gte=min_tickets)
                 .filter(tickets__ticket_status=TicketStatus.COMPLETED)
             )
@@ -92,7 +95,7 @@ class ContactViewSet(viewsets.ModelViewSet):
         if min_events and min_events.isdigit():
             min_events = int(min_events)
             queryset = (
-                queryset.annotate(num_events_in_range=Count("event_participations", filter=date_filter))
+                queryset.annotate(num_events_in_range=Count("event_participations", filter=internal_event_filter))
                 .filter(num_events_in_range__gte=min_events)
                 .filter(event_participations__status=CommitmentStatus.ATTENDED)
             )

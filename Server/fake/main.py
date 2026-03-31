@@ -160,7 +160,8 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=25, num_tickets=30
     for _ in range(num_events):
         name = fake.catch_phrase()
         description = fake.text(max_nb_chars=200)
-        event_status = random.choice(["draft", "scheduled", "completed", "canceled"])  #
+        event_status = random.choice(["draft", "scheduled", "completed", "canceled"])
+        event_type = random.choice(["genric", "internal"])
 
         location_name, location_address = "", ""
         # 50/50 chance each gets added
@@ -179,13 +180,14 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=25, num_tickets=30
         c.execute(
             """
             INSERT INTO events
-            (name, description, event_status, location_name, location_address, created_at, modified_at, starts_at, ends_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
+            (name, description, event_status, event_type, location_name, location_address, created_at, modified_at, starts_at, ends_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
             """,
             (
                 name,
                 description,
                 event_status,
+                event_type,
                 location_name,
                 location_address,
                 created_at,
@@ -236,7 +238,7 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=25, num_tickets=30
 
     # Tickets - EVERY contact gets tickets across ALL ticket types for demo purposes
     ticket_ids = []
-    ticket_types = ["UNKNOWN", "INTRODUCTION", "RECRUIT", "CONFIRM"]
+    ticket_types = ["UNKNOWN", "INTRODUCTION", "RECRUIT", "CONFIRM", "INTERNAL"]
 
     # Build template lookup by ticket_type
     template_by_type = {tpl["ticket_type"]: tpl for tpl in TICKET_TEMPLATES}

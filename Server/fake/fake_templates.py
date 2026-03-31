@@ -80,6 +80,31 @@ Please let us know if you can make it!""",
         "requires_event": True,
     },
     {
+        "name": "Internal Call Banking Template",
+        "ticket_type": "INTERNAL",
+        "title_template": "Internal Call: {{contact.display_name}}",
+        "description_template": """Internal call banking task for {{contact.display_name}}.
+
+## Instructions
+
+1. [Click to open a DM with {{contact.display_name}}](https://discord.com/users/{{contact.discord_id}}/)
+2. Copy the message below
+
+```
+Hi {{contact.display_name}},
+
+We'd like to schedule an internal call with you.
+
+Please let us know your availability!
+
+Thanks!
+```
+""",
+        "default_priority": 2,
+        "requires_contact": True,
+        "requires_event": False,
+    },
+    {
         "name": "Confirm Event Participation",
         "ticket_type": "CONFIRM",
         "title_template": "Confirm: {{event.name}}",

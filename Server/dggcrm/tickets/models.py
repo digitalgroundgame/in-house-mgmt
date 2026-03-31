@@ -19,6 +19,7 @@ class TicketType(models.TextChoices):
     INTRODUCTION = "INTRODUCTION", "Introduction"
     RECRUIT = "RECRUIT", "Recruit for event"
     CONFIRM = "CONFIRM", "Confirm event participation"
+    INTERAL_CALL = "INTERNAL", "Internal Call Banking"
     # TODO: What other types do we want?
 
 

@@ -79,6 +79,7 @@ class EventParticipationViewSet(viewsets.ModelViewSet):
         event_status = self.request.query_params.get("event_status")
         event_type = self.request.query_params.get("event_type")
         exclude_event_status = self.request.query_params.get("exclude_event_status")
+        self.request.query_params.get("")
 
         if status:
             queryset = queryset.filter(status__in=status)
