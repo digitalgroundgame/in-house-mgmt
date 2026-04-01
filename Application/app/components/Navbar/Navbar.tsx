@@ -7,6 +7,7 @@ import {
   IconUser,
   IconUsers,
   IconCalendarEvent,
+  IconPhone,
   IconEyeFilled,
   IconLogout,
   IconSwitchHorizontal,
@@ -21,6 +22,7 @@ const notAdminData = [
   { link: "/tickets", label: "Tickets", icon: IconTicket },
   { link: "/contacts", label: "Contacts", icon: IconUsers },
   { link: "/events", label: "Events", icon: IconCalendarEvent },
+  { link: "/phone-bank", label: "Internal Phone Bank", icon: IconPhone },
 ];
 
 const adminOnly = [{ link: "/management", label: "Management", icon: IconEyeFilled }];
