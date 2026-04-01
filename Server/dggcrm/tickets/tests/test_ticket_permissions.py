@@ -167,3 +167,30 @@ class TestTicketObjectPermission:
 
         perm = TicketObjectPermission()
         assert perm.has_object_permission(request, None, assigned_ticket) is True
+
+    def test_write_allowed_with_assign_ticket_permission(
+        self,
+        rf,
+        regular_user,
+        unassigned_ticket,
+        assign_ticket_permission,
+    ):
+        regular_user.user_permissions.add(assign_ticket_permission)
+
+        request = rf.post("/")
+        request.user = regular_user
+
+        perm = TicketObjectPermission()
+        assert perm.has_object_permission(request, None, unassigned_ticket) is True
+
+    def test_write_denied_without_permissions(
+        self,
+        rf,
+        regular_user,
+        assigned_ticket,
+    ):
+        request = rf.put("/")
+        request.user = regular_user
+
+        perm = TicketObjectPermission()
+        assert perm.has_object_permission(request, None, assigned_ticket) is False

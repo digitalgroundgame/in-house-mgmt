@@ -5,7 +5,7 @@ from dggcrm.contacts.models import Contact
 from dggcrm.events.models import Event
 
 from .models import Ticket, TicketAsks, TicketComment, TicketStatus, TicketTemplate, TicketType
-from .permissions import can_assign_ticket, can_change_ticket_status
+from .permissions import can_change_ticket_status
 from .template_context import build_template_context, render_ticket_from_template
 
 User = get_user_model()
@@ -32,28 +32,20 @@ class TicketSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ticket
         fields = "__all__"
-        read_only_fields = ["id", "created_at", "modified_at", "reported_by", "template"]
+        read_only_fields = [
+            "id",
+            "created_at",
+            "modified_at",
+            "reported_by",
+            "template",
+            "assigned_to",
+            "ticket_status",
+        ]
 
     def update(self, instance, validated_data):
-        request = self.context["request"]
-        user = request.user
-
-        # Field-change detection
-        assigning = "assigned_to" in validated_data and (validated_data["assigned_to"] != instance.assigned_to)
-
-        changing_status = "status" in validated_data and (validated_data["status"] != instance.status)
-
-        # ---- ASSIGN PERMISSION ----
-        if assigning:
-            if not can_assign_ticket(request.user):
-                raise serializers.ValidationError({"assigned_to": "You do not have permission to assign tickets."})
-
-        # ---- CHANGE STATUS PERMISSION ----
-        if changing_status:
-            if not can_change_ticket_status(user, instance):
-                raise serializers.ValidationError(
-                    {"status": "You may only change the status of tickets assigned to you."}
-                )
+        # Remove assigned_to and ticket_status - only editable via /assign and /status endpoints
+        validated_data.pop("assigned_to", None)
+        validated_data.pop("ticket_status", None)
 
         return super().update(instance, validated_data)
 
@@ -66,7 +58,8 @@ class TicketSerializer(serializers.ModelSerializer):
 
         fields = set()
 
-        # Base rule: model-level change permission
+        # Base rule: model-level change permission for non-field-specific edits
+        # (title, description, priority, ticket_type, contact, event)
         if user.has_perm("tickets.change_ticket"):
             fields.update(
                 {
@@ -78,20 +71,19 @@ class TicketSerializer(serializers.ModelSerializer):
                         "created_at",
                         "modified_at",
                         "reported_by",
+                        "assigned_to",
+                        "ticket_status",
                     }
                 }
             )
 
-        # Field-level overrides
-        if not user.has_perm("tickets.assign_ticket"):
-            fields.discard("assigned_to")
-        else:
+        # Field-level permissions - these fields are only editable via dedicated endpoints
+        # but we include them in editable_fields so the UI shows them as enabled
+        if user.has_perm("tickets.assign_ticket"):
             fields.add("assigned_to")
 
-        if not can_change_ticket_status(user, ticket):
-            fields.discard("status")
-        else:
-            fields.add("status")
+        if can_change_ticket_status(user, ticket):
+            fields.add("ticket_status")
 
         return sorted(fields)
 
@@ -302,3 +294,19 @@ class TicketTemplateSerializer(serializers.ModelSerializer):
             "modified_at",
         ]
         read_only_fields = ["id", "created_at", "modified_at"]
+
+
+class AssignTicketSerializer(serializers.Serializer):
+    assigned_to = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        required=False,
+        allow_null=True,
+        help_text="User ID to assign to, or null to unassign",
+    )
+
+
+class StatusUpdateSerializer(serializers.Serializer):
+    ticket_status = serializers.ChoiceField(
+        choices=TicketStatus.choices,
+        help_text="New ticket status",
+    )
