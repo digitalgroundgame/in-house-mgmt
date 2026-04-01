@@ -42,7 +42,7 @@ class EventViewSet(viewsets.ModelViewSet):
         if status:
             queryset = queryset.filter(event_status=status)
 
-        return queryset.filter(get_event_visibility_filter(self.request.user))
+        return queryset.filter(get_event_visibility_filter(self.request.user)).distinct()
 
 
 class EventParticipationViewSet(viewsets.ModelViewSet):

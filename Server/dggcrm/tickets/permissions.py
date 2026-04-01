@@ -54,6 +54,12 @@ class TicketObjectPermission(BasePermission):
         if user.has_perm("tickets.change_ticket"):
             return True
 
+        if user.has_perm("tickets.assign_ticket"):
+            return True
+
+        if user.has_perm("tickets.change_status"):
+            return True
+
         return False
 
 
@@ -133,3 +139,39 @@ def can_change_ticket_status(user, ticket):
         return True
 
     return ticket.assigned_to_id == user.id
+
+
+class CanAssignTicketPermission(BasePermission):
+    message = "You do not have permission to assign this ticket."
+
+    def has_object_permission(self, request, view, ticket):
+        user = request.user
+
+        if not user or not user.is_authenticated:
+            return False
+
+        if user.is_superuser:
+            return True
+
+        return user.has_perm("tickets.assign_ticket")
+
+
+class CanChangeTicketStatusPermission(BasePermission):
+    message = "You do not have permission to change this ticket's status."
+
+    def has_object_permission(self, request, view, ticket):
+        user = request.user
+
+        if not user or not user.is_authenticated:
+            return False
+
+        if user.is_superuser:
+            return True
+
+        if not user.has_perm("tickets.change_status"):
+            return False
+
+        if user.has_perm("tickets.change_all_statuses"):
+            return True
+
+        return ticket.assigned_to_id == user.id

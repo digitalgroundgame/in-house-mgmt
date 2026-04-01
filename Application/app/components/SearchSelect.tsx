@@ -94,7 +94,6 @@ export function SearchSelect<T = unknown>({
         }}
         onChange={(e) => {
           setQuery(e.currentTarget.value);
-          onChange(null);
         }}
         rightSection={
           loading ? (
