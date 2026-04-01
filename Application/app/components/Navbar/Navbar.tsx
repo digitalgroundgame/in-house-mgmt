@@ -8,13 +8,15 @@ import {
   IconUsers,
   IconCalendarEvent,
   IconPhone,
+  IconTicketOff,
   IconEyeFilled,
   IconLogout,
   IconSwitchHorizontal,
+  IconBuilding,
 } from "@tabler/icons-react";
-import { Code, Group, Switch } from "@mantine/core";
+import { Code, Group, NavLink, Switch } from "@mantine/core";
 import classes from "./Navbar.module.css";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { handleLogout } from "@/app/utils/oauth";
 
 const notAdminData = [
@@ -22,7 +24,11 @@ const notAdminData = [
   { link: "/tickets", label: "Tickets", icon: IconTicket },
   { link: "/contacts", label: "Contacts", icon: IconUsers },
   { link: "/events", label: "Events", icon: IconCalendarEvent },
+];
+
+const internalLinks = [
   { link: "/phone-bank", label: "Internal Phone Bank", icon: IconPhone },
+  { link: "/internal-tickets", label: "Internal Tickets", icon: IconTicketOff },
 ];
 
 const adminOnly = [{ link: "/management", label: "Management", icon: IconEyeFilled }];
@@ -31,32 +37,11 @@ export default function NavbarSimple() {
   const pathname = usePathname();
 
   const [admin, changeMode] = useState(false);
-  const [data, changeData] = useState<typeof notAdminData>(notAdminData);
-
-  useEffect(() => {
-    const assignData = () => {
-      if (admin) {
-        changeData([...notAdminData, ...adminOnly]);
-      } else {
-        changeData(notAdminData);
-      }
-    };
-    assignData();
-  }, [admin]);
+  const data = admin ? [...notAdminData, ...adminOnly] : notAdminData;
 
   const showNavbar = pathname !== "/login";
 
-  const links = data.map((item) => (
-    <Link
-      className={classes.link}
-      data-active={item.link === pathname || undefined}
-      href={item.link}
-      key={item.label}
-    >
-      <item.icon className={classes.linkIcon} stroke={1.5} />
-      <span>{item.label}</span>
-    </Link>
-  ));
+  const isInternalActive = internalLinks.some((item) => item.link === pathname);
 
   if (!showNavbar) {
     return null;
@@ -64,7 +49,38 @@ export default function NavbarSimple() {
 
   return (
     <nav className={classes.navbar}>
-      <div className={classes.navbarMain}>{links}</div>
+      <div className={classes.navbarMain}>
+        {data.map((item) => (
+          <Link
+            className={classes.link}
+            data-active={item.link === pathname || undefined}
+            href={item.link}
+            key={item.label}
+          >
+            <item.icon className={classes.linkIcon} stroke={1.5} />
+            <span>{item.label}</span>
+          </Link>
+        ))}
+
+        <NavLink
+          label="Internal"
+          leftSection={<IconBuilding size={20} stroke={1.5} className={classes.linkIcon} />}
+          defaultOpened={isInternalActive}
+          classNames={{ root: classes.navLinkRoot, children: classes.navLinkChildren }}
+        >
+          {internalLinks.map((item) => (
+            <Link
+              className={classes.link}
+              data-active={item.link === pathname || undefined}
+              href={item.link}
+              key={item.label}
+            >
+              <item.icon className={classes.linkIcon} stroke={1.5} />
+              <span>{item.label}</span>
+            </Link>
+          ))}
+        </NavLink>
+      </div>
 
       <div className={classes.footer}>
         <div>

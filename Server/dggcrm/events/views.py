@@ -32,6 +32,7 @@ class EventViewSet(viewsets.ModelViewSet):
         event_id = self.request.query_params.get("event")
         contact_id = self.request.query_params.get("contact")
         status = self.request.query_params.get("status")
+        event_type = self.request.query_params.get("event_type")
 
         if event_id:
             queryset = queryset.filter(event_id=event_id)
@@ -41,6 +42,9 @@ class EventViewSet(viewsets.ModelViewSet):
 
         if status:
             queryset = queryset.filter(event_status=status)
+
+        if event_type:
+            queryset = queryset.filter(event_type=event_type)
 
         return queryset.filter(get_event_visibility_filter(self.request.user))
 
