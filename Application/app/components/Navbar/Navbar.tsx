@@ -66,7 +66,17 @@ export default function NavbarSimple() {
           label="Internal"
           leftSection={<IconBuilding size={20} stroke={1.5} className={classes.linkIcon} />}
           defaultOpened={isInternalActive}
-          classNames={{ root: classes.navLinkRoot, children: classes.navLinkChildren }}
+          classNames={{ children: classes.navLinkChildren }}
+          styles={{
+            root: {
+              padding: "var(--mantine-spacing-xs) var(--mantine-spacing-sm)",
+              borderRadius: "var(--mantine-radius-sm)",
+              fontSize: "var(--mantine-font-size-sm)",
+              fontWeight: 500,
+              color: "var(--mantine-color-gray-7)",
+            },
+            label: { padding: 0 },
+          }}
         >
           {internalLinks.map((item) => (
             <Link

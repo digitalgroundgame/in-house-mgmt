@@ -56,19 +56,6 @@
   }
 }
 
-.navLinkRoot {
-  padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
-  border-radius: var(--mantine-radius-sm);
-  font-size: var(--mantine-font-size-sm);
-  font-weight: 500;
-  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
-
-  &[data-active] {
-    background-color: var(--mantine-color-blue-light);
-    color: var(--mantine-color-blue-light-color);
-  }
-}
-
 .navLinkChildren {
   padding-left: var(--mantine-spacing-sm);
 }
