@@ -8,9 +8,18 @@ from .models import Event, EventParticipation, UsersInEvent
 User = get_user_model()
 
 
+class NullableCharField(serializers.CharField):
+    def to_internal_value(self, value):
+        if value == "":
+            return None
+        return super().to_internal_value(value)
+
+
 class EventSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source="get_event_status_display", read_only=True)
     location_display = serializers.CharField(read_only=True)
+    location_name = NullableCharField(allow_null=True, required=False)
+    location_address = NullableCharField(allow_null=True, required=False)
 
     class Meta:
         model = Event
