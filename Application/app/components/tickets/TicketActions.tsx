@@ -75,8 +75,8 @@ export default function TicketActions({ ticket, event, contact }: TicketActionsP
     if (!event || !contact || !participation) return;
     try {
       await apiClient.post("/participants", {
-        event: event.id,
-        contact: contact.id,
+        event_id: event.id,
+        contact_id: contact.id,
         status: participation.raw?.value,
       });
       setParticipation(participation);

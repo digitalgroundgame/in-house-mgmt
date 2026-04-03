@@ -24,7 +24,7 @@ export default function TicketInfoPage() {
 
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
   const [timelineLoading, setTimelineLoading] = useState(false);
-  const [showType, setShowType] = useState<TimelineShowType>("comments");
+  const [showType, setShowType] = useState<TimelineShowType>("comment");
 
   const navigate = async (direction: "next" | "previous") => {
     setNavLoading(true);
@@ -123,6 +123,7 @@ export default function TicketInfoPage() {
           timelineLoading={timelineLoading}
           showType={showType}
           onShowTypeChange={setShowType}
+          setTimeline={setTimeline}
         />
       </div>
 

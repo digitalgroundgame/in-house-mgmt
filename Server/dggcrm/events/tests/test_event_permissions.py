@@ -180,6 +180,42 @@ class TestEventObjectPermission:
         perm = EventObjectPermission()
         assert perm.has_object_permission(self.get(rf, regular_user), None, completed_event)
 
+    def test_user_assigned_to_ticket_can_read_linked_event(
+        self,
+        rf,
+        regular_user,
+        view_event_permission,
+        completed_event,
+        assigned_ticket,
+        view_ticket_permission,
+    ):
+        """User assigned to a ticket can view the event linked to that ticket."""
+        regular_user.user_permissions.add(view_event_permission, view_ticket_permission)
+
+        # Verify the ticket is linked to the event
+        assert assigned_ticket.event_id == completed_event.id
+
+        perm = EventObjectPermission()
+        assert perm.has_object_permission(self.get(rf, regular_user), None, completed_event)
+
+    def test_user_not_assigned_to_ticket_cannot_read_unlinked_event(
+        self,
+        rf,
+        regular_user,
+        view_event_permission,
+        completed_event,
+        other_assigned_ticket,
+        view_ticket_permission,
+    ):
+        """User not assigned to a ticket cannot view an event not linked to their tickets."""
+        regular_user.user_permissions.add(view_event_permission, view_ticket_permission)
+
+        # Verify the other ticket is NOT linked to this event (different event)
+        assert other_assigned_ticket.event_id != completed_event.id
+
+        perm = EventObjectPermission()
+        assert perm.has_object_permission(self.get(rf, regular_user), None, completed_event) is False
+
     # --------------------
     # WRITE
     # --------------------

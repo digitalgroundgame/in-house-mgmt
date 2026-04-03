@@ -11,13 +11,17 @@ from rest_framework.response import Response
 from ..events.models import EventParticipation
 from .models import Ticket, TicketAsks, TicketAskStatus, TicketStatus, TicketTemplate, TicketType
 from .permissions import (
+    CanAssignTicketPermission,
+    CanChangeTicketStatusPermission,
     CanCommentOnTicketPermission,
     TicketClaimPermission,
     TicketObjectPermission,
     get_ticket_visibility_filter,
 )
 from .serializers import (
+    AssignTicketSerializer,
     BulkTicketCreateSerializer,
+    StatusUpdateSerializer,
     TicketAskSerializer,
     TicketClaimSerializer,
     TicketCommentSerializer,
@@ -162,6 +166,42 @@ class TicketViewSet(viewsets.ModelViewSet):
 
         serializer = TicketSerializer(ticket, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(
+        detail=True,
+        methods=["patch"],
+        url_path="assign",
+        url_name="assign",
+        serializer_class=AssignTicketSerializer,
+        permission_classes=[IsAuthenticated, TicketObjectPermission, CanAssignTicketPermission],
+    )
+    def assign(self, request, pk=None):
+        ticket = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        ticket.assigned_to = serializer.validated_data.get("assigned_to")
+        ticket.save(update_fields=["assigned_to"])
+
+        return Response(TicketSerializer(ticket, context={"request": request}).data)
+
+    @action(
+        detail=True,
+        methods=["patch"],
+        url_path="status",
+        url_name="status",
+        serializer_class=StatusUpdateSerializer,
+        permission_classes=[IsAuthenticated, TicketObjectPermission, CanChangeTicketStatusPermission],
+    )
+    def status(self, request, pk=None):
+        ticket = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        ticket.ticket_status = serializer.validated_data["ticket_status"]
+        ticket.save(update_fields=["ticket_status"])
+
+        return Response(TicketSerializer(ticket, context={"request": request}).data)
 
     @action(
         detail=True,

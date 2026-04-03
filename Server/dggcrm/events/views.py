@@ -46,7 +46,7 @@ class EventViewSet(viewsets.ModelViewSet):
         if event_type:
             queryset = queryset.filter(event_type=event_type)
 
-        return queryset.filter(get_event_visibility_filter(self.request.user))
+        return queryset.filter(get_event_visibility_filter(self.request.user)).distinct()
 
 
 class EventParticipationViewSet(viewsets.ModelViewSet):

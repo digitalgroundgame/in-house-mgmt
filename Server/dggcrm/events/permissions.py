@@ -12,6 +12,9 @@ def get_event_visibility_filter(user):
 
     q = Q(users__user=user)
 
+    # Events where user has an IN PROGRESS ticket
+    q |= Q(tickets__assigned_to=user, tickets__ticket_status=TicketStatus.INPROGRESS)
+
     # Limit to only scheduled events
     if not user.has_perm("events.view_any_assigned_event"):
         q &= Q(
@@ -48,10 +51,15 @@ class EventObjectPermission(BasePermission):
             if user.has_perm("events.view_all_events"):
                 return True
 
+            # Scheduled events are readable by anyone with view_event
             if event.event_status == EventStatus.SCHEDULED:
                 return True
 
-            # Assigned event read
+            # User assigned to IN PROGRESS ticket linked to this event can view it
+            if event.tickets.filter(assigned_to=user, ticket_status=TicketStatus.INPROGRESS).exists():
+                return True
+
+            # User directly assigned to event (via view_any_assigned_event permission)
             if user.has_perm("events.view_any_assigned_event"):
                 return event.users.filter(user=user).exists()
 
@@ -89,10 +97,15 @@ def get_participation_visibility_filter(user):
             event__event_status=EventStatus.SCHEDULED,
         )
 
-    # Participations tied to tickets assigned to the user
+    # Participations tied to IN PROGRESS tickets assigned to the user
+    # (matches either contact OR event to align with permission check)
     q |= Q(
         contact__tickets__assigned_to=user,
         contact__tickets__ticket_status=TicketStatus.INPROGRESS,
+    )
+    q |= Q(
+        event__tickets__assigned_to=user,
+        event__tickets__ticket_status=TicketStatus.INPROGRESS,
     )
 
     return q
@@ -156,10 +169,8 @@ def get_event_membership_visibility_filter(user):
     if user.is_superuser or user.has_perm("events.view_all_usersinevents"):
         return Q()
 
-    q = Q()
-
     # Can always read your own memberships
-    q |= Q(user=user)
+    q = Q(user=user)
 
     # Can read memberships for events you're assigned to
     if user.has_perm("events.view_usersinevent_via_event"):

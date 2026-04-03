@@ -36,6 +36,7 @@ export interface Ticket {
   priority_display?: string;
   created_at: string;
   modified_at: string;
+  editable_fields?: string[];
 }
 
 export interface TicketAsk {

@@ -3,6 +3,8 @@ from .base import *
 
 DEBUG = False
 
+APPEND_SLASH = True
+
 PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.MD5PasswordHasher",
 ]
