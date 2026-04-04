@@ -5,6 +5,7 @@ const ticketTypes = [
   { value: "INTRODUCTION", label: "Introduction" },
   { value: "RECRUIT", label: "Recruit for event" },
   { value: "CONFIRM", label: "Confirm participation" },
+  { value: "INTERNAL", label: "Internal Call Banking" },
 ];
 
 export default function TicketPage() {

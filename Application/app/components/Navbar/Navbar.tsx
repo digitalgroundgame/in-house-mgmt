@@ -26,10 +26,7 @@ const notAdminData = [
   { link: "/events", label: "Events", icon: IconCalendarEvent },
 ];
 
-const internalLinks = [
-  { link: "/phone-bank", label: "Internal Phone Bank", icon: IconPhone },
-  { link: "/internal-tickets", label: "Internal Tickets", icon: IconTicketOff },
-];
+const internalLinks = [{ link: "/phone-bank", label: "Internal Phone Bank", icon: IconPhone }];
 
 const adminOnly = [{ link: "/management", label: "Management", icon: IconEyeFilled }];
 
