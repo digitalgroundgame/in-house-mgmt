@@ -3,6 +3,11 @@ from django.conf import settings
 from django.db import models
 
 
+class EventType(models.TextChoices):
+    GENERIC = "genric", "Generic"
+    INTERNAL = "internal", "Internal"
+
+
 class EventStatus(models.TextChoices):
     DRAFT = "draft", "Draft"
     SCHEDULED = "scheduled", "Scheduled"
@@ -26,6 +31,10 @@ class Event(models.Model):
 
     starts_at = models.DateTimeField()
     ends_at = models.DateTimeField()
+
+    event_type = models.CharField(
+        default=EventType.GENERIC, choices=EventType.choices, help_text="The type of event deciedes the behavior."
+    )
 
     event_status = models.CharField(
         default=EventStatus.DRAFT, choices=EventStatus.choices, help_text="Current status of this event"

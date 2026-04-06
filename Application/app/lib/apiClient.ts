@@ -13,6 +13,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     credentials: "include",
   });
   if (!res.ok) {
+    const errorBody = await res.json().catch(() => null);
+    console.error("API error body:", errorBody);
     throw new Error(`API error: ${res.status}`);
   }
   if (res.status === 204) return undefined as T;
