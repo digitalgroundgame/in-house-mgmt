@@ -4,7 +4,7 @@ from django.db import models
 
 
 class EventType(models.TextChoices):
-    GENERIC = "genric", "Generic"
+    GENERIC = "generic", "Generic"
     INTERNAL = "internal", "Internal"
 
 
