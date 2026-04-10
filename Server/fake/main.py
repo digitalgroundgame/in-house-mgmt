@@ -161,7 +161,7 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=25, num_tickets=30
         name = fake.catch_phrase()
         description = fake.text(max_nb_chars=200)
         event_status = random.choice(["draft", "scheduled", "completed", "canceled"])
-        event_type = random.choice(["genric", "internal"])
+        event_type = random.choice(["generic", "internal"])
 
         location_name, location_address = "", ""
         # 50/50 chance each gets added
