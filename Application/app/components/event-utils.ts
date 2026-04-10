@@ -1,6 +1,6 @@
 import { Contact } from "./ContactTable";
 
-export type EventType = "genric" | "internal";
+export type EventType = "generic" | "internal";
 
 export interface Event {
   id: number;

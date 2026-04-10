@@ -1,5 +1,5 @@
 import EventTemplateView from "@/app/components/events/EventTemplateView";
 
 export default function EventsPage() {
-  return <EventTemplateView eventType="genric" title="Events" />;
+  return <EventTemplateView eventType="generic" title="Events" />;
 }
