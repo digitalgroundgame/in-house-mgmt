@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
+        migrations.AlterField(
             model_name="event",
             name="event_type",
             field=models.CharField(
