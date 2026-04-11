@@ -58,7 +58,7 @@ services:
     expose:
       - "3030"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:3030/"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3030/health"]
       interval: 5s
       timeout: 5s
       retries: 10
