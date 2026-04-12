@@ -35,9 +35,9 @@ services:
     - "traefik.http.services.https-<uuid>-nginx.loadbalancer.server.port=80"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/health"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
       start_period: 10s
     networks:
       - coolify
@@ -59,9 +59,9 @@ services:
       - "3030"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:3030/health"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
       start_period: 15s
 
   server: &server
@@ -104,9 +104,9 @@ services:
     command: /start
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/api/health/?format=text"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
       start_period: 10s
 
 
@@ -129,9 +129,9 @@ services:
       - "5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
 
 volumes:
   dggcrm_production_postgres_data:
