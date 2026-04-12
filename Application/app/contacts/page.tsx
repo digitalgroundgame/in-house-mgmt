@@ -7,7 +7,6 @@ import {
   Button,
   Paper,
   TextInput,
-  Select,
   Stack,
   Modal,
   MultiSelect,
@@ -24,7 +23,7 @@ export default function PeoplePage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string | null>('all');
-  const [selectedTag, setSelectedTag] = useState<string | null>('all');
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [previousUrl, setPreviousUrl] = useState<string | null>(null);
@@ -58,7 +57,7 @@ export default function PeoplePage() {
   // Fetch people whenever filters change (reset to first page)
   useEffect(() => {
     fetchPeople();
-  }, [searchQuery, selectedGroup, selectedTag]);
+  }, [searchQuery, selectedGroup, selectedTagIds]);
 
   const fetchGroupsAndTags = async () => {
     try {
@@ -90,7 +89,9 @@ export default function PeoplePage() {
       if (!fetchUrl) {
         const params = new URLSearchParams();
         if (searchQuery) params.append('q', searchQuery);
-        if (selectedTag && selectedTag !== 'all') params.append('tag', selectedTag);
+        for (const selectedTagId of selectedTagIds) {
+          params.append('tag', selectedTagId);
+        }
         fetchUrl = `/api/contacts/?${params}`;
       }
 
@@ -114,7 +115,7 @@ export default function PeoplePage() {
   const handleReset = () => {
     setSearchQuery('');
     setSelectedGroup('all');
-    setSelectedTag('all');
+    setSelectedTagIds([]);
   };
 
   const handleRowClick = (person: Person) => {
@@ -170,7 +171,6 @@ export default function PeoplePage() {
 
 
   const tagOptions = [
-    { value: 'all', label: 'Any' },
     ...tags.map(t => ({ value: t.id.toString(), label: t.name }))
   ];
 
@@ -210,13 +210,15 @@ export default function PeoplePage() {
                 style={{ flex: 1 }}
               />
 
-              <Select
+              <MultiSelect
                 label="Tag"
-                placeholder="Select tag"
-                value={selectedTag}
-                onChange={setSelectedTag}
+                placeholder="Select tags"
+                value={selectedTagIds}
+                onChange={setSelectedTagIds}
                 data={tagOptions}
-                style={{ minWidth: 200 }}
+                searchable
+                clearable
+                style={{ minWidth: 240 }}
               />
             </Group>
             <Group gap="sm">
