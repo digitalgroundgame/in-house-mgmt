@@ -25,7 +25,11 @@ class ContactViewSet(viewsets.ModelViewSet):
         queryset = super().get_queryset()
 
         query = self.request.query_params.get("q", "").strip()
-        tag = self.request.query_params.get("tag")
+        tag_values = [
+            value.strip()
+            for value in self.request.query_params.getlist("tag")
+            if value and value.strip()
+        ]
         
         # TODO add querying by event participation
 
@@ -38,12 +42,17 @@ class ContactViewSet(viewsets.ModelViewSet):
                 Q(note__icontains=query)
             )
 
-        if tag:
-            # allow filtering by tag id OR tag name
-            if tag.isdigit():
-                queryset = queryset.filter(taggings__tag__id=tag)
-            else:
-                queryset = queryset.filter(taggings__tag__name__iexact=tag)
+        if tag_values:
+            tag_ids = [int(value) for value in tag_values if value.isdigit()]
+            tag_names = [value for value in tag_values if not value.isdigit()]
+
+            tag_filter = Q()
+            if tag_ids:
+                tag_filter |= Q(taggings__tag__id__in=tag_ids)
+            for tag_name in tag_names:
+                tag_filter |= Q(taggings__tag__name__iexact=tag_name)
+
+            queryset = queryset.filter(tag_filter).distinct()
 
         return queryset
 
