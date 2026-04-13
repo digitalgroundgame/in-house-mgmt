@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 
 from dggcrm.contacts.models import Contact, Tag, TagAssignments
 
-from .client import get_discord_client
+from .client import DiscordFetchError, get_discord_client
 
 logger = logging.getLogger(__name__)
 
@@ -136,4 +136,7 @@ class SyncMembershipTagsView(APIView):
         client = get_discord_client()
         if not client:
             return Response({"error": "Discord bot not configured"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-        return Response(run_sync(client))
+        try:
+            return Response(run_sync(client))
+        except DiscordFetchError as e:
+            return Response({"error": str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)

@@ -1,35 +1,10 @@
 from io import StringIO
-from unittest.mock import patch
 
 import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
 
 from dggcrm.contacts.models import Contact, Tag, TagAssignments
-
-PATCH_TARGET = "dggcrm.discord.management.commands.sync_discord_members.get_discord_client"
-
-
-@pytest.fixture
-def patch_command_client(mock_discord_client):
-    def _patch(
-        member_ids=None,
-        members_with_roles=None,
-        roles=None,
-        disabled=False,
-    ):
-        client = (
-            None
-            if disabled
-            else mock_discord_client(
-                member_ids=member_ids,
-                members_with_roles=members_with_roles,
-                roles=roles,
-            )
-        )
-        return patch(PATCH_TARGET, return_value=client)
-
-    return _patch
 
 
 @pytest.fixture
@@ -44,11 +19,13 @@ def sample_contacts():
 @pytest.mark.django_db
 class TestSyncDiscordMembersCommand:
     def test_raises_error_when_discord_disabled(self, patch_command_client):
+        """Raises CommandError when Discord client is not configured."""
         with patch_command_client(disabled=True):
             with pytest.raises(CommandError, match="not configured"):
                 call_command("sync_discord_members")
 
     def test_success_output(self, patch_command_client):
+        """Outputs a summary line on successful sync."""
         stdout = StringIO()
         with patch_command_client(member_ids={"100000000000000001", "100000000000000002"}):
             call_command("sync_discord_members", stdout=stdout)
@@ -57,15 +34,18 @@ class TestSyncDiscordMembersCommand:
         assert "members_fetched=2" in stdout.getvalue()
 
     def test_creates_contacts_and_tags(self, patch_command_client):
+        """Creates contacts and assigns membership tags for Discord members."""
         with patch_command_client(member_ids={"100000000000000001", "100000000000000002"}):
             call_command("sync_discord_members", stdout=StringIO())
 
+        # "DGG Discord" is the default value of the DISCORD_MEMBERSHIP_TAG env var
         tag = Tag.objects.get(name="DGG Discord")
         assert Contact.objects.filter(discord_id="100000000000000001").exists()
         assert Contact.objects.filter(discord_id="100000000000000002").exists()
         assert TagAssignments.objects.filter(contact__discord_id="100000000000000001", tag=tag).exists()
 
-    def test_idempotent(self, patch_command_client, sample_contacts):
+    def test_idempotent(self, patch_command_client):
+        """Running the command twice produces the same result."""
         stdout = StringIO()
         with patch_command_client(member_ids={"100000000000000001", "100000000000000002"}):
             call_command("sync_discord_members", stdout=stdout)
@@ -79,6 +59,7 @@ class TestSyncDiscordMembersCommand:
         assert "membership_tags_added=0" in stdout2.getvalue()
 
     def test_removes_stale_membership_tags(self, patch_command_client, sample_contacts):
+        """Removes membership tags for contacts who are no longer in the guild."""
         alice = sample_contacts[0]
         tag = Tag.objects.create(name="DGG Discord")
         TagAssignments.objects.create(contact=alice, tag=tag)
@@ -87,3 +68,9 @@ class TestSyncDiscordMembersCommand:
             call_command("sync_discord_members", stdout=StringIO())
 
         assert not TagAssignments.objects.filter(contact=alice, tag=tag).exists()
+
+    def test_raises_command_error_on_discord_fetch_failure(self, patch_command_client):
+        """Exits non-zero and does not corrupt tag state when Discord fetch fails."""
+        with patch_command_client(fetch_error="503 Service Unavailable"):
+            with pytest.raises(CommandError, match="503 Service Unavailable"):
+                call_command("sync_discord_members")

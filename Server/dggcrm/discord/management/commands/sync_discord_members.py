@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 
-from dggcrm.discord.client import get_discord_client
+from dggcrm.discord.client import DiscordFetchError, get_discord_client
 from dggcrm.discord.views import run_sync
 
 
@@ -12,7 +12,10 @@ class Command(BaseCommand):
         if not client:
             raise CommandError("Discord bot not configured.")
 
-        result = run_sync(client)
+        try:
+            result = run_sync(client)
+        except DiscordFetchError as e:
+            raise CommandError(str(e)) from e
 
         self.stdout.write(
             f"Sync complete: members_fetched={result['members_fetched']}, "
