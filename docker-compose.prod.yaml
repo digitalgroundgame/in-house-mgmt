@@ -4,6 +4,7 @@ services:
       context: .
       dockerfile: ./compose/production/nginx/Dockerfile
     container_name: inhouse_suite_nginx
+    restart: unless-stopped
     depends_on:
       - frontend
       - server
@@ -50,6 +51,7 @@ services:
       dockerfile: ./compose/production/application/Dockerfile
     image: inhouse_suite_frontend
     container_name: inhouse_suite_frontend
+    restart: unless-stopped
     environment:
       - BACKEND_URL=${BACKEND_URL}
     env_file:
@@ -70,6 +72,7 @@ services:
       dockerfile: ./compose/production/server/Dockerfile
     image: inhouse_suite_server
     container_name: inhouse_suite_server
+    restart: unless-stopped
     volumes:
       - dggcrm_production_admin_static_files:/app/staticfiles
     depends_on:
@@ -113,6 +116,7 @@ services:
   postgres:
     image: postgres:18.1
     container_name: inhouse_suite_postgres
+    restart: unless-stopped
     volumes:
       - dggcrm_production_postgres_data:/var/lib/postgresql/18/docker
       - dggcrm_production_postgres_data_backups:/backups
