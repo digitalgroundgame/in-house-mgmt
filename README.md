@@ -224,6 +224,8 @@ A useful PR description includes:
 
 ### 5. Code review
 
+When opening your PR, use the **Request Review** feature if a specific person has context on the issue or asked for the change. Otherwise, leave it blank — anyone with write access will pick it up.
+
 Someone with write access will review your PR and may leave comments or request changes. Address each piece of feedback with either a code change or a reply explaining your reasoning. Push new commits to the same branch — the PR updates automatically. Once approved, your PR will be merged into `dev`.
 
 ### 6. Keep your branch up to date
