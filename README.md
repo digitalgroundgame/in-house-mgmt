@@ -1,9 +1,16 @@
-*This ReadMe Should be updated with the expectations shortly after being launches for issue workk*
+# DGG In-House Management
+
+An internal CRM for the DGG organization. Manages contacts, events, tickets, and Discord membership.
+
+- **Repo:** https://github.com/digitalgroundgame/in-house-mgmt
+- **Kanban board (prioritized tickets):** https://github.com/orgs/digitalgroundgame/projects/6/views/3
+
+---
 
 # How to run
 ## Docker
 
-If you prefer, it's also possible to bring up the dev stack using docker. You can run the following from the root of this repo:
+Run the following from the root of this repo to bring up the dev stack:
 
 ```
 docker compose -f docker-compose.dev.yaml up
@@ -20,6 +27,9 @@ The project uses pre-commit hooks to automatically lint and format code before e
 **Setup:**
 
 ```bash
+# Install pre-commit globally (once)
+brew install pre-commit
+
 cd Server
 python3 -m venv .venv
 source .venv/bin/activate
@@ -30,6 +40,24 @@ pre-commit install
 Once installed, the hooks will run automatically on `git commit`. If the linter fixes any files, the commit will fail so you can review the changes. Simply `git add` the fixed files and commit again.
 
 **Note:** Even without local hooks, the GitHub Actions CI will run linting checks on all PRs and block merging if they fail.
+
+You can also run linters manually without committing:
+
+**Backend** (from `Server/`, with virtualenv activated):
+
+```bash
+task lint        # check for issues
+task lint_fix    # auto-fix what's fixable
+task format      # format code
+```
+
+**Frontend** (from `Application/`):
+
+```bash
+npm run lint         # check for issues
+npm run lint:fix     # auto-fix what's fixable
+npm run format       # format code
+```
 
 If you run into build issues, you may need to tear down and rebuild the containers:
 
@@ -81,7 +109,7 @@ Before you merge a PR with DB changes, make sure that you combine your migration
 
 ## Testing
 
-Run the backend tests using Docker Compose:
+**Backend** — run via Docker Compose:
 
 ```bash
 docker compose -f docker-compose.dev.yaml run --rm server task test
@@ -91,6 +119,12 @@ For verbose output:
 
 ```bash
 docker compose -f docker-compose.dev.yaml run --rm server task test_v
+```
+
+**Frontend** (from `Application/`):
+
+```bash
+npm run test:run
 ```
 
 ## Discord Bot Setup
@@ -138,3 +172,78 @@ DISCORD_MEMBERSHIP_TAG=DGG Discord
 ```
 
 The bot token authenticates API requests to Discord. The guild ID specifies which server to fetch members from. The membership tag is the name of the tag that will be applied to contacts who are Discord members.
+
+---
+
+# Contributing
+
+## Questions and Help
+
+- **Technical questions** (setup, code, architecture): reach out to `bookis`
+- **Product questions** (what a feature should do, priority, scope): reach out to `IHaveEatenFoliage`
+
+## Git Workflow
+
+### 1. Find an issue to work on
+
+Go to the [kanban board](https://github.com/orgs/digitalgroundgame/projects/6/views/3). Tickets are prioritized — work from the top of the backlog. If something is unclear, ask in the ticket before starting.
+
+### 2. Create a branch off `dev`
+
+```bash
+git checkout dev
+git pull origin dev
+git checkout -b yourname/short-description
+```
+
+Branch names must be prefixed with your GitHub username, e.g. `jane/fix-login-redirect` or `bob/add-ticket-export`.
+
+### 3. Make your changes and commit
+
+Make focused commits with clear messages that explain what changed and why:
+
+```bash
+git add <files>
+git commit -m "Fix login redirect loop for unauthenticated users"
+```
+
+Good commit messages are short (under 72 characters), use the imperative tense ("Fix bug" not "Fixed bug"), and describe the intent, not just the mechanism.
+
+### 4. Push and open a pull request
+
+```bash
+git push origin yourname/short-description
+```
+
+Then open a Pull Request against the `dev` branch on [GitHub](https://github.com/digitalgroundgame/in-house-mgmt).
+
+In the PR description, include `Closes #123` (replacing `123` with your issue number) — GitHub will automatically close the issue when the PR is merged.
+
+A useful PR description includes:
+- What the change does and why
+- Any trade-offs or decisions worth calling out
+- How to manually test it
+
+### 5. Code review
+
+Someone with write access will review your PR and may leave comments or request changes. Address each piece of feedback with either a code change or a reply explaining your reasoning. Push new commits to the same branch — the PR updates automatically. Once approved, your PR will be merged into `dev`.
+
+### 6. Keep your branch up to date
+
+If `dev` moves forward while you're working, sync your branch to avoid conflicts:
+
+```bash
+git fetch origin
+git rebase origin/dev
+```
+
+If you hit merge conflicts, resolve them file by file, then run `git rebase --continue`. If you're not familiar with rebasing, reach out to `bookis` for help rather than guessing.
+
+## Branch structure
+
+| Branch | Purpose |
+|--------|---------|
+| `dev`  | Active development — all PRs merge here |
+| `main` | Stable production branch — only merged from `dev` |
+
+Never open PRs directly against `main`.
