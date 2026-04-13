@@ -186,7 +186,7 @@ The bot token authenticates API requests to Discord. The guild ID specifies whic
 
 ### 1. Find an issue to work on
 
-Go to the [kanban board](https://github.com/orgs/digitalgroundgame/projects/6/views/3). Tickets are prioritized — work from the top of the backlog. If something is unclear, ask in the ticket before starting.
+Go to the [kanban board](https://github.com/orgs/digitalgroundgame/projects/6/views/3). Tickets are prioritized — work from the top of the backlog. If you're new and not sure where to start, look for tickets tagged `good first issue`. When you pick one up, assign it to yourself if it isn't already and move it to **In Progress**. If something is unclear, ask in the ticket before starting.
 
 ### 2. Create a branch off `dev`
 
