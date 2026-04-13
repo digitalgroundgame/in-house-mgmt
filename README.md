@@ -207,8 +207,6 @@ git add <files>
 git commit -m "Fix login redirect loop for unauthenticated users"
 ```
 
-Good commit messages are short (under 72 characters), use the imperative tense ("Fix bug" not "Fixed bug"), and describe the intent, not just the mechanism.
-
 ### 4. Push and open a pull request
 
 ```bash
@@ -237,7 +235,7 @@ git fetch origin
 git rebase origin/dev
 ```
 
-If you hit merge conflicts, resolve them file by file, then run `git rebase --continue`. If you're not familiar with rebasing, reach out to `bookis` for help rather than guessing.
+If you hit merge conflicts, resolve them file by file, then run `git rebase --continue`.
 
 ## Branch structure
 
