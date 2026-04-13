@@ -19,6 +19,11 @@ lint_fix = "ruff check --fix ."
 format = "ruff format ."
 format_check = "ruff format --check ."
 
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+plugins = ["mypy_django_plugin.main"]
+
 [tool.ruff]
 force-exclude = true
 target-version = "py313"
