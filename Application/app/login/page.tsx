@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, Suspense } from "react";
+import { useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Paper, Stack, Title, Button, LoadingOverlay, Alert } from "@mantine/core";
 import { loginWithProvider } from "@/app/utils/oauth";
@@ -38,14 +38,6 @@ function LoginContent() {
           </Alert>
         )}
 
-        {/* <Button
-          fullWidth
-          variant="outline"
-          color="gray"
-          onClick={() => loginWithProvider("google", next)}
-        >
-          Continue with Google
-        </Button> */}
         <Button
           fullWidth
           variant="outline"
