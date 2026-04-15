@@ -8,10 +8,8 @@ import {
   IconUsers,
   IconCalendarEvent,
   IconPhone,
-  IconTicketOff,
   IconEyeFilled,
   IconLogout,
-  IconSwitchHorizontal,
   IconBuilding,
 } from "@tabler/icons-react";
 import { Code, Group, NavLink, Switch } from "@mantine/core";
@@ -93,11 +91,6 @@ export default function NavbarSimple() {
         <div>
           <Switch color="red" label="Admin Mode" onChange={() => changeMode(!admin)} />
         </div>
-
-        <a href="#" className={classes.link} onClick={(event) => event.preventDefault()}>
-          <IconSwitchHorizontal className={classes.linkIcon} stroke={1.5} />
-          <span>Change account</span>
-        </a>
 
         <Link
           className={classes.link}
