@@ -147,12 +147,6 @@ class EventParticipationViewSet(viewsets.ModelViewSet):
         Otherwise, create a new participation.
         """
 
-        if request.data.get("status") not in CommitmentStatus.values:
-            return Response(
-                {"detail": "a valid status is required."},
-                status=rest_status.HTTP_400_BAD_REQUEST,
-            )
-
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
