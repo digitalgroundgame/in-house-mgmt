@@ -19,7 +19,8 @@ import { apiClient } from "@/app/lib/apiClient";
 import { useForm } from "@mantine/form";
 import EventsTable from "@/app/components/EventsTable";
 import { type Event, type EventType } from "@/app/components/event-utils";
-import { DateTimePicker, DateTime } from "@/app/components/datetime";
+import { DateTime } from "@/app/components/datetime";
+import { DateRangePicker } from "@/app/components/datetime";
 
 interface EventTemplateViewProps {
   eventType: EventType;
@@ -37,6 +38,8 @@ export default function EventTemplateView({ eventType, title = "Events" }: Event
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [start, setStartDate] = useState<string | null>(null);
+  const [end, setEndDate] = useState<string | null>(null);
 
   const form = useForm({
     initialValues: {
@@ -192,20 +195,18 @@ export default function EventTemplateView({ eventType, title = "Events" }: Event
               placeholder="Enter event description (optional)"
               {...form.getInputProps("description")}
             />
-            <DateTimePicker
-              label="Start Date"
+
+            <DateRangePicker
+              label="Event Dates"
               required
-              value={form.values.starts_at}
-              onChange={(val) => form.setFieldValue("starts_at", val || "")}
-              error={form.errors.starts_at as string}
+              value={{ start: form.values.starts_at || null, end: form.values.ends_at || null }}
+              onChange={({ start, end }) => {
+                form.setFieldValue("starts_at", start ?? "");
+                form.setFieldValue("ends_at", end ?? "");
+              }}
+              error={(form.errors.starts_at as string) ?? (form.errors.ends_at as string)}
             />
-            <DateTimePicker
-              label="End Date"
-              required
-              value={form.values.ends_at}
-              onChange={(val) => form.setFieldValue("ends_at", val || "")}
-              error={form.errors.ends_at as string}
-            />
+
             <TextInput
               label="Location Name"
               placeholder="Enter location (optional)"
