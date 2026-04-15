@@ -145,7 +145,7 @@ function ProfileForm({ user, refresh }: ProfileFormProps) {
             </Group>
           ))}
           <Group>
-            <Button onClick={() => loginWithProvider("google")}>Connect Google</Button>
+            {/* <Button onClick={() => loginWithProvider("google")}>Connect Google</Button> */}
             <Button onClick={() => loginWithProvider("discord")}>Connect Discord</Button>
           </Group>
         </Stack>
