@@ -15,7 +15,7 @@ psycopg[c]==3.3.2
 argparse
 
 # Linting and formatting
-ruff>=0.9.0
+ruff==0.15.10
 pre-commit>=4.0.0
 
 # Testing
