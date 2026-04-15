@@ -18,19 +18,19 @@ module.exports = {
     return [
       {
         source: "/accounts/:path*",
-        destination: `${BACKEND_URL}/accounts/:path*/`,
+        destination: `${BACKEND_URL}/accounts/:path*`,
       },
       {
         source: "/api/:path*",
-        destination: `${BACKEND_URL}/api/:path*/`,
+        destination: `${BACKEND_URL}/api/:path*`,
       },
       {
         source: "/admin/:path*",
-        destination: `${BACKEND_URL}/admin/:path*/`,
+        destination: `${BACKEND_URL}/admin/:path*`,
       },
       {
         source: "/django/:path*",
-        destination: `${BACKEND_URL}/django/:path*/`,
+        destination: `${BACKEND_URL}/django/:path*`,
       },
     ];
   },
