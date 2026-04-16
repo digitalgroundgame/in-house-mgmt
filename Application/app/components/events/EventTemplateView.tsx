@@ -38,8 +38,6 @@ export default function EventTemplateView({ eventType, title = "Events" }: Event
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [start, setStartDate] = useState<string | null>(null);
-  const [end, setEndDate] = useState<string | null>(null);
 
   const form = useForm({
     initialValues: {
