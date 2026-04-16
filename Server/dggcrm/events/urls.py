@@ -9,6 +9,7 @@ from .views import (
 )
 
 router = DefaultRouter()
+router.trailing_slash = "/?"
 router.register("events", EventViewSet, basename="event")
 router.register(
     "participants",

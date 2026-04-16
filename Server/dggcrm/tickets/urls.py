@@ -11,6 +11,7 @@ from .views import (
 )
 
 router = DefaultRouter()
+router.trailing_slash = "/?"
 router.register("tickets", TicketViewSet, basename="ticket")
 router.register("ticket-types", TicketTypeViewSet, basename="ticket-types")
 router.register("ticket-statuses", TicketStatusesViewSet, basename="ticket-statuses")

@@ -74,7 +74,7 @@ export default function TicketActions({ ticket, event, contact }: TicketActionsP
   async function upsertParticipation(participation: SearchSelectOption<CommitmentStatus> | null) {
     if (!event || !contact || !participation) return;
     try {
-      await apiClient.post("/participants", {
+      await apiClient.post("/participants/", {
         event_id: event.id,
         contact_id: contact.id,
         status: participation.raw?.value,

@@ -37,7 +37,7 @@ function ProfileForm({ user, refresh }: ProfileFormProps) {
   const updateProfile = async () => {
     setError(null);
     try {
-      await apiClient.patch("/auth/user", { first_name: firstName, last_name: lastName });
+      await apiClient.patch("/auth/user/", { first_name: firstName, last_name: lastName });
     } catch {
       setError("Failed to update profile");
     }
