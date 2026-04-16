@@ -1,4 +1,6 @@
 # ruff: noqa: F403
+import sentry_sdk
+
 from .base import *
 
 DEBUG = True  # TODO: Change
@@ -48,3 +50,12 @@ SOCIALACCOUNT_PROVIDERS = {
 
 SITE_ID = 1
 ACCOUNT_DEFAULT_HTTP_PROTOCOL = "https"
+
+SENTRY_DSN = env("SENTRY_DSN", default="")
+
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment="production",
+        traces_sample_rate=env.float("SENTRY_TRACES_SAMPLE_RATE", default=0.2),
+    )

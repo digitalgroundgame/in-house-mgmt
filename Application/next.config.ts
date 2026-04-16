@@ -1,19 +1,15 @@
+import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  /* config options here */
-};
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8080";
 
-// Warning if accidently ran in production
 if (!process.env.BACKEND_URL) {
   console.warn("BACKEND_URL not set, falling back to http://localhost:8080");
 } else {
   console.warn(`BACKEND_URL set to ${BACKEND_URL}`);
 }
 
-module.exports = {
+const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
@@ -36,4 +32,10 @@ module.exports = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  silent: !process.env.SENTRY_AUTH_TOKEN,
+  widenClientFileUpload: true,
+});
