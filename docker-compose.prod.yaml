@@ -15,8 +15,12 @@ services:
     labels:
     - traefik.enable=true
     - traefik.docker.network=coolify
-    - "traefik.http.routers.inhouse-nginx.rule=Host(`house.digitalgroundgame.org`) && PathPrefix(`/`)"
-    - traefik.http.routers.inhouse-nginx.entryPoints=http
+    - "traefik.http.routers.inhouse-nginx-http.rule=Host(`house.digitalgroundgame.org`) && PathPrefix(`/`)"
+    - traefik.http.routers.inhouse-nginx-http.entryPoints=http
+    - "traefik.http.routers.inhouse-nginx-https.rule=Host(`house.digitalgroundgame.org`) && PathPrefix(`/`)"
+    - traefik.http.routers.inhouse-nginx-https.entryPoints=https
+    - traefik.http.routers.inhouse-nginx-https.tls=true
+    - traefik.http.routers.inhouse-nginx-https.tls.certresolver=letsencrypt
     - traefik.http.services.inhouse-nginx.loadbalancer.server.port=80
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/health"]
