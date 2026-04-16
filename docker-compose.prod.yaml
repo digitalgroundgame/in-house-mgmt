@@ -21,6 +21,7 @@ services:
     - coolify.serviceName=nginx
     - coolify.environmentName=production
     - traefik.enable=true
+    - traefik.docker.network=coolify
     - traefik.http.middlewares.gzip.compress=true
     - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
     - "traefik.http.routers.http-<uuid>-nginx.entryPoints=http"
@@ -42,9 +43,6 @@ services:
       start_period: 10s
     logging:
       driver: journald
-    networks:
-      - coolify
-      - default
 
 
   frontend:
@@ -149,7 +147,3 @@ volumes:
   dggcrm_production_postgres_data:
   dggcrm_production_postgres_data_backups:
   dggcrm_production_admin_static_files:
-
-networks:
-  coolify:
-    external: true
