@@ -14,6 +14,7 @@ services:
       - dggcrm_production_admin_static_files:/app/staticfiles
     labels:
     - traefik.enable=true
+    - traefik.docker.network=coolify
     - "traefik.http.routers.inhouse-nginx.rule=Host(`house.digitalgroundgame.org`) && PathPrefix(`/`)"
     - traefik.http.routers.inhouse-nginx.entryPoints=http
     - traefik.http.services.inhouse-nginx.loadbalancer.server.port=80
