@@ -22,7 +22,6 @@ import {
   ScrollArea,
   Avatar,
 } from "@mantine/core";
-import { useRouter } from "next/navigation";
 import { IconSend } from "@tabler/icons-react";
 import { getStatusColor, getPriorityColor } from "./TicketTable";
 import TicketDescription from "./TicketDescription";
@@ -130,15 +129,7 @@ export default function TicketView({
 }
 
 function TitleCard({ ticket }: { ticket: Ticket }) {
-  const router = useRouter();
-  return (
-    <Group justify="space-between">
-      <Title order={2}>{ticket.title}</Title>
-      <Button variant="outline" onClick={() => router.push("/tickets")}>
-        Back to List
-      </Button>
-    </Group>
-  );
+  return <Title order={2}>{ticket.title}</Title>;
 }
 
 function CallInstructionsCard({ ticket }: { ticket: Ticket }) {

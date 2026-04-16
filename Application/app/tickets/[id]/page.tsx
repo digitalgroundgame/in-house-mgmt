@@ -2,19 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { apiClient } from "@/app/lib/apiClient";
-import { Loader, Center, Text, ActionIcon } from "@mantine/core";
+import { Loader, Center, Text, Container, Group, Button } from "@mantine/core";
 import TicketView, {
   TimelineEntry,
   type TimelineShowType,
 } from "@/app/components/tickets/TicketView";
 import { type Ticket } from "@/app/components/tickets/ticket-utils";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 //import TicketView, { type TimelineShowType } from "@/app/components/tickets/TicketView";
 
 export default function TicketInfoPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   const [ticket, setTicket] = useState<Ticket | null>(null);
@@ -104,19 +103,33 @@ export default function TicketInfoPage() {
   if (!ticket) return null;
 
   return (
-    <div style={{ display: "flex", alignItems: "stretch", minHeight: "100%" }}>
-      <ActionIcon
-        variant="subtle"
-        color="gray"
-        onClick={() => navigate("previous")}
-        disabled={navLoading}
-        style={{ alignSelf: "stretch", height: "auto", width: 40, borderRadius: 0 }}
-        aria-label="Previous ticket"
-      >
-        <IconChevronLeft size={24} />
-      </ActionIcon>
+    <>
+      <Container size="xl" pt="xl" pb={0}>
+        <Group justify="space-between" wrap="wrap" gap="sm">
+          <Button
+            variant="subtle"
+            color="gray"
+            leftSection={<IconChevronLeft size={18} />}
+            onClick={() => navigate("previous")}
+            loading={navLoading}
+            aria-label="Previous ticket"
+          >
+            Previous Ticket
+          </Button>
+          <Button
+            variant="subtle"
+            color="gray"
+            rightSection={<IconChevronRight size={18} />}
+            onClick={() => navigate("next")}
+            loading={navLoading}
+            aria-label="Next ticket"
+          >
+            Next Ticket
+          </Button>
+        </Group>
+      </Container>
 
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ minWidth: 0 }}>
         <TicketView
           ticket={ticket}
           timeline={timeline}
@@ -126,17 +139,6 @@ export default function TicketInfoPage() {
           setTimeline={setTimeline}
         />
       </div>
-
-      <ActionIcon
-        variant="subtle"
-        color="gray"
-        onClick={() => navigate("next")}
-        disabled={navLoading}
-        style={{ alignSelf: "stretch", height: "auto", width: 40, borderRadius: 0 }}
-        aria-label="Next ticket"
-      >
-        <IconChevronRight size={24} />
-      </ActionIcon>
-    </div>
+    </>
   );
 }
