@@ -15,7 +15,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (!res.ok) {
     const errorBody = await res.json().catch(() => null);
     console.error("API error body:", errorBody);
-    throw new Error(`API error: ${res.status}`);
+    const detail = errorBody?.detail || `API error: ${res.status}`;
+    throw new Error(detail);
   }
   if (res.status === 204) return undefined as T;
   return res.json();
