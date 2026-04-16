@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from ..contacts.models import Contact
 from ..contacts.serializers import ContactSerializer
-from .models import Event, EventParticipation, UsersInEvent
+from .models import CommitmentStatus, Event, EventParticipation, UsersInEvent
 
 User = get_user_model()
 
@@ -35,6 +35,7 @@ class EventParticipationSerializer(serializers.ModelSerializer):
     )
     event = EventSerializer(read_only=True)
     contact = ContactSerializer(read_only=True)
+    status = serializers.ChoiceField(choices=CommitmentStatus.choices)
 
     class Meta:
         model = EventParticipation
