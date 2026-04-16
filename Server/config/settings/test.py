@@ -1,3 +1,8 @@
+import os
+
+os.environ.setdefault("SECRET_KEY", "test-secret")
+os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
+
 # ruff: noqa: F403
 from .base import *
 
