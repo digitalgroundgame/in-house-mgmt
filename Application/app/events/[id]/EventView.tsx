@@ -205,7 +205,10 @@ function AddParticipantModal({
   };
 
   const handleSubmit = async () => {
+    if (!eventStatus) return;
+
     setSubmitting(true);
+
     try {
       if (mode === "add") {
         await Promise.all(
@@ -321,10 +324,11 @@ function AddParticipantModal({
           </Combobox>
         )}
         <Select
-          label="Participation Status"
-          placeholder="Participation Status"
           data={EVENT_PARTICIPATION_STATUSES}
+          label="Participation Status"
           onChange={(s) => setEventStatus(s as EventParticipationStatus)}
+          placeholder="Participation Status"
+          required
           value={eventStatus}
         />
         <PaginatedTable<Contact>
@@ -348,7 +352,7 @@ function AddParticipantModal({
           loading={false}
           noDataText="Select a participant to proceed"
         />
-        <Button onClick={handleSubmit} disabled={submitting}>
+        <Button onClick={handleSubmit} disabled={!eventStatus || submitting}>
           Submit
         </Button>
       </Stack>
