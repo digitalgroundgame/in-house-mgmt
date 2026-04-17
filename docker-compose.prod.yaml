@@ -13,27 +13,18 @@ services:
     volumes:
       - dggcrm_production_admin_static_files:/app/staticfiles
     labels:
-    - coolify.managed=true
-    - coolify.type=service
-    - coolify.name=inhouse_suite_nginx-<uuid>
-    - coolify.resourceName=nginx
-    - coolify.projectName=inhouse_suite
-    - coolify.serviceName=nginx
-    - coolify.environmentName=production
     - traefik.enable=true
-    - traefik.http.middlewares.gzip.compress=true
-    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
-    - "traefik.http.routers.http-<uuid>-nginx.entryPoints=http"
-    - "traefik.http.routers.http-<uuid>-nginx.rule=Host(`house.digitalgroundgame.org`) && PathPrefix(`/`)"
-    - "traefik.http.routers.http-<uuid>-nginx.service=http-<uuid>-nginx"
-    - "traefik.http.routers.https-<uuid>-nginx.entryPoints=https"
-    - "traefik.http.routers.https-<uuid>-nginx.middlewares=gzip"
-    - "traefik.http.routers.https-<uuid>-nginx.rule=Host(`house.digitalgroundgame.org`) && PathPrefix(`/`)"
-    - "traefik.http.routers.https-<uuid>-nginx.service=https-<uuid>-nginx"
-    - "traefik.http.routers.https-<uuid>-nginx.tls=true"
-    - "traefik.http.routers.https-<uuid>-nginx.tls.certresolver=letsencrypt"
-    - "traefik.http.services.http-<uuid>-nginx.loadbalancer.server.port=80"
-    - "traefik.http.services.https-<uuid>-nginx.loadbalancer.server.port=80"
+    - traefik.docker.network=coolify
+    - "traefik.http.routers.inhouse-nginx-http.rule=Host(`house.digitalgroundgame.org`) && PathPrefix(`/`)"
+    - traefik.http.routers.inhouse-nginx-http.entryPoints=http
+    - "traefik.http.routers.inhouse-nginx-https.rule=Host(`house.digitalgroundgame.org`) && PathPrefix(`/`)"
+    - traefik.http.routers.inhouse-nginx-https.entryPoints=https
+    - traefik.http.routers.inhouse-nginx-https.tls=true
+    - traefik.http.routers.inhouse-nginx-https.tls.certresolver=letsencrypt
+    - traefik.http.services.inhouse-nginx.loadbalancer.server.port=80
+    networks:
+      - coolify
+      - default
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/health"]
       interval: 10s
@@ -42,9 +33,6 @@ services:
       start_period: 10s
     logging:
       driver: journald
-    networks:
-      - coolify
-      - default
 
 
   frontend:
