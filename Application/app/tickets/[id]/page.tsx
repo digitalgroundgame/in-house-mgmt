@@ -9,12 +9,12 @@ import TicketView, {
 } from "@/app/components/tickets/TicketView";
 import { type Ticket } from "@/app/components/tickets/ticket-utils";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
-import { useParams, useSearchParams } from "next/navigation";
-//import TicketView, { type TimelineShowType } from "@/app/components/tickets/TicketView";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 
 export default function TicketInfoPage() {
   const { id } = useParams<{ id: string }>();
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
