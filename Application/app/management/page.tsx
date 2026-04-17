@@ -19,16 +19,19 @@ import {
   IconBrandDiscord,
   IconRefresh,
   IconTicket,
+  IconUsers,
 } from "@tabler/icons-react";
 import { useState } from "react";
 import { apiClient } from "@/app/lib/apiClient";
 import PlaceholderSection from "@/app/components/PlaceholderSection";
 import TicketTemplatesSection from "@/app/components/TicketTemplatesSection";
+import UsersSection from "@/app/components/management/UsersSection";
 
 export default function ManagementConsole() {
   const [discordSectionOpen, setDiscordSectionOpen] = useState(false);
   const [configSectionOpen, setConfigSectionOpen] = useState(false);
   const [templatesSectionOpen, setTemplatesSectionOpen] = useState(false);
+  const [usersSectionOpen, setUsersSectionOpen] = useState(true);
 
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncResult, setSyncResult] = useState<{
@@ -86,6 +89,27 @@ export default function ManagementConsole() {
         </div>
 
         <Divider />
+
+        {/* Users Management */}
+        <Paper p="lg" withBorder>
+          <Stack gap="md">
+            <Group
+              gap="xs"
+              style={{ cursor: "pointer" }}
+              onClick={() => setUsersSectionOpen(!usersSectionOpen)}
+            >
+              <IconUsers size={24} />
+              <Title order={3}>Users</Title>
+              <ActionIcon variant="subtle">
+                {usersSectionOpen ? <IconChevronUp size={20} /> : <IconChevronDown size={20} />}
+              </ActionIcon>
+            </Group>
+
+            <Collapse in={usersSectionOpen}>
+              <UsersSection />
+            </Collapse>
+          </Stack>
+        </Paper>
 
         {/* Discord Integration */}
         <Paper p="lg" withBorder>

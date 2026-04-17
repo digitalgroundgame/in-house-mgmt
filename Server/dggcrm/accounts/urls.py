@@ -1,7 +1,19 @@
 from django.urls import path
 from health_check.views import HealthCheckView
+from rest_framework.routers import DefaultRouter
 
-from .views import CurrentUserView, SocialConnectionDeleteView, UserPreferencesView, UserSearchView
+from .views import (
+    CurrentUserView,
+    GroupListView,
+    ManagedUserViewSet,
+    SocialConnectionDeleteView,
+    ToggleUserActiveView,
+    UserPreferencesView,
+    UserSearchView,
+)
+
+router = DefaultRouter()
+router.register("management/users", ManagedUserViewSet, basename="managed-users")
 
 urlpatterns = [
     path(
@@ -10,6 +22,8 @@ urlpatterns = [
     path("auth/user/", CurrentUserView.as_view(), name="current-user"),
     path("auth/preferences/", UserPreferencesView.as_view(), name="user-preferences"),
     path("users/", UserSearchView.as_view(), name="user-search"),
+    path("management/groups/", GroupListView.as_view(), name="group-list"),
+    path("management/users/<int:pk>/toggle-active/", ToggleUserActiveView.as_view(), name="toggle-user-active"),
     path(
         "health/",
         HealthCheckView.as_view(
@@ -20,4 +34,5 @@ urlpatterns = [
             ]
         ),
     ),
+    *router.urls,
 ]

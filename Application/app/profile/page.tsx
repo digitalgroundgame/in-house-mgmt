@@ -20,6 +20,7 @@ import { loginWithProvider } from "@/app/utils/oauth";
 import { useUser, User } from "@/app/components/provider/UserContext";
 import { useTimezone } from "@/app/components/provider/TimezoneContext";
 import { getTimezoneList, getBrowserTimezone } from "@/app/utils/datetime";
+import { GroupBadge } from "@/app/components/GroupBadge";
 
 interface ProfileFormProps {
   user: User;
@@ -109,11 +110,7 @@ function ProfileForm({ user, refresh }: ProfileFormProps) {
         <Divider label="Auth Groups" />
         <Group gap="xs">
           {user.groups?.length ? (
-            user.groups.map((group) => (
-              <Badge key={group} color={group === "ADMIN" ? "red" : "blue"} variant="light">
-                {group}
-              </Badge>
-            ))
+            user.groups.map((group) => <GroupBadge key={group} group={group} />)
           ) : (
             <Text color="dimmed" size="sm">
               No group memberships

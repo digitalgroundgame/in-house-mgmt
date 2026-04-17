@@ -45,6 +45,7 @@
     "eslint-config-next": "16.1.1",
     "eslint-config-prettier": "^10.1.8",
     "jsdom": "^27.0.1",
+    "msw": "^2.13.4",
     "prettier": "^3.8.1",
     "tailwindcss": "^4",
     "typescript": "^5",
