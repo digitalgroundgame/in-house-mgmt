@@ -108,6 +108,9 @@ services:
       start_period: 10s
     logging:
       driver: journald
+    networks:
+      - coolify
+      - default
 
 
   postgres:
