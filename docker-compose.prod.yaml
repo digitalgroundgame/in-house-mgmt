@@ -69,8 +69,6 @@ services:
     restart: unless-stopped
     volumes:
       - dggcrm_production_admin_static_files:/app/staticfiles
-    depends_on:
-      - postgres
     env_file:
       - path: ./.envs/.production/.postgres
         required: false
@@ -113,35 +111,7 @@ services:
       - default
 
 
-  postgres:
-    image: postgres:18.1
-    container_name: inhouse_suite_postgres
-    restart: unless-stopped
-    volumes:
-      - dggcrm_production_postgres_data:/var/lib/postgresql/18/docker
-      - dggcrm_production_postgres_data_backups:/backups
-    env_file:
-      - path: ./.envs/.production/.postgres
-        required: false
-    environment:
-      - POSTGRES_HOST=${POSTGRES_HOST}
-      - POSTGRES_PORT=${POSTGRES_PORT}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    expose:
-      - "5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    logging:
-      driver: journald
-
 volumes:
-  dggcrm_production_postgres_data:
-  dggcrm_production_postgres_data_backups:
   dggcrm_production_admin_static_files:
 
 networks:
