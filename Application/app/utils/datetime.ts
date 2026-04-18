@@ -22,7 +22,7 @@ export interface FormatDateTimeOptions {
 }
 
 /**
- * Format a formats[style];UTC datetime string for display in the user's timezone
+ * Format a UTC datetime string for display in the user's timezone
  */
 export function formatDateTime(
   utcString: string | null | undefined,
