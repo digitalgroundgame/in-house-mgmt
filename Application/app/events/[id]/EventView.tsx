@@ -9,10 +9,14 @@ import { User } from "@/app/components/provider/types";
 import {
   Event,
   EventParticipation,
+  getStatusColor,
   getEventParticipationStatusColor,
   UsersInEvent,
 } from "@/app/components/event-utils";
 import { BackendPaginatedResults, useBackend, useBackendMutation } from "@/app/lib/api";
+import { apiClient } from "@/app/lib/apiClient";
+import { DateTimePicker } from "@/app/components/datetime";
+import { DateTime } from "@/app/components/datetime/DateTime";
 import {
   Text,
   Paper,
@@ -35,14 +39,16 @@ import {
   Combobox,
   useCombobox,
   Tabs,
+  Textarea,
+  ActionIcon,
+  Tooltip,
 } from "@mantine/core";
-import { IconSearch } from "@tabler/icons-react";
+import { IconPencil, IconSearch } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDisclosure } from "@mantine/hooks";
 import getCookie from "@/app/utils/cookie";
-import { formatDateTime } from "@/app/utils/datetime";
 
 const EVENT_PARTICIPATION_STATUSES = [
   "UNKNOWN",
@@ -64,83 +70,379 @@ export default function EventView({ event }: { event: Event | undefined }) {
 }
 
 function EventViewMain({ event }: { event: Event }) {
+  const [currentEvent, setCurrentEvent] = useState(event);
+  const [isEditing, setIsEditing] = useState(false);
+  const [summaryDraft, setSummaryDraft] = useState({
+    name: event.name,
+    description: event.description ?? "",
+  });
+  const [metadataDraft, setMetadataDraft] = useState({
+    status: event.event_status,
+    locationName: event.location_name ?? "",
+    locationAddress: event.location_address ?? "",
+    startsAt: event.starts_at,
+    endsAt: event.ends_at,
+  });
+  const [isSavingEventEdits, setIsSavingEventEdits] = useState(false);
+
+  useEffect(() => {
+    setCurrentEvent(event);
+    setSummaryDraft({
+      name: event.name,
+      description: event.description ?? "",
+    });
+    setMetadataDraft({
+      status: event.event_status,
+      locationName: event.location_name ?? "",
+      locationAddress: event.location_address ?? "",
+      startsAt: event.starts_at,
+      endsAt: event.ends_at,
+    });
+  }, [event]);
+
+  const canEditEvent = (currentEvent.editable_fields?.length ?? 0) > 0;
+
+  const updateEvent = async (payload: Partial<Event>) => {
+    const updated = await apiClient.patch<Event>(`/events/${currentEvent.id}`, payload);
+    setCurrentEvent(updated);
+    return updated;
+  };
+
+  const saveEventEdits = async () => {
+    setIsSavingEventEdits(true);
+    try {
+      await updateEvent({
+        name: summaryDraft.name,
+        description: summaryDraft.description,
+        event_status: metadataDraft.status,
+        location_name: metadataDraft.locationName,
+        location_address: metadataDraft.locationAddress,
+        starts_at: metadataDraft.startsAt,
+        ends_at: metadataDraft.endsAt,
+      });
+
+      notifications.show({
+        title: "Event updated",
+        message: "Saved event changes.",
+        color: "green",
+      });
+      setIsEditing(false);
+    } catch (error) {
+      console.error(error);
+      notifications.show({
+        title: "Save failed",
+        message: "Could not update the event details.",
+        color: "red",
+      });
+    } finally {
+      setIsSavingEventEdits(false);
+    }
+  };
+
+  const cancelEditing = () => {
+    setSummaryDraft({
+      name: currentEvent.name,
+      description: currentEvent.description ?? "",
+    });
+    setMetadataDraft({
+      status: currentEvent.event_status,
+      locationName: currentEvent.location_name ?? "",
+      locationAddress: currentEvent.location_address ?? "",
+      startsAt: currentEvent.starts_at,
+      endsAt: currentEvent.ends_at,
+    });
+    setIsEditing(false);
+  };
+
   return (
-    <Grid>
-      <GridCol span={{ base: 12, md: 8 }}>
-        <Paper withBorder p="md">
-          <Stack gap="sm">
-            <Title>{event.name}</Title>
-            <Divider />
-            <Text>{event.description}</Text>
-          </Stack>
-        </Paper>
+    <Grid align="flex-start">
+      <GridCol style={{ flex: 1, minWidth: 0 }}>
+        {canEditEvent && (
+          <Group justify="flex-end" mb="md">
+            {!isEditing ? (
+              <Tooltip label="Edit Event">
+                <ActionIcon
+                  size="md"
+                  variant="filled"
+                  onClick={() => setIsEditing(true)}
+                  aria-label="Edit Event"
+                >
+                  <IconPencil size={16} />
+                </ActionIcon>
+              </Tooltip>
+            ) : (
+              <>
+                <Button
+                  size="xs"
+                  onClick={saveEventEdits}
+                  loading={isSavingEventEdits}
+                  disabled={
+                    summaryDraft.name === currentEvent.name &&
+                    summaryDraft.description === (currentEvent.description ?? "") &&
+                    metadataDraft.status === currentEvent.event_status &&
+                    metadataDraft.locationName === (currentEvent.location_name ?? "") &&
+                    metadataDraft.locationAddress === (currentEvent.location_address ?? "") &&
+                    metadataDraft.startsAt === currentEvent.starts_at &&
+                    metadataDraft.endsAt === currentEvent.ends_at
+                  }
+                >
+                  Save
+                </Button>
+                <Button size="xs" variant="outline" color="red" onClick={cancelEditing}>
+                  Cancel
+                </Button>
+              </>
+            )}
+          </Group>
+        )}
+        <EventSummaryCard
+          event={currentEvent}
+          isEditing={isEditing}
+          summaryDraft={summaryDraft}
+          setSummaryDraft={setSummaryDraft}
+        />
         <Tabs defaultValue="participants" mt="md">
           <Tabs.List>
             <Tabs.Tab value="participants">Participants</Tabs.Tab>
             <Tabs.Tab value="users">Users</Tabs.Tab>
           </Tabs.List>
-          <Tabs.Panel value="participants">
-            <EventViewContactTable event={event} />
+          <Tabs.Panel value="participants" style={{ minWidth: "432px" }}>
+            <EventViewContactTable event={currentEvent} />
           </Tabs.Panel>
           <Tabs.Panel value="users">
-            <EventViewUsersTable event={event} />
+            <EventViewUsersTable event={currentEvent} />
           </Tabs.Panel>
         </Tabs>
       </GridCol>
-      <EventViewMetadata event={event} />
+      <GridCol style={{ flex: "0 0 239px", maxWidth: "239px", minWidth: "239px" }}>
+        <EventViewMetadata
+          event={currentEvent}
+          isEditing={isEditing}
+          metadataDraft={metadataDraft}
+          setMetadataDraft={setMetadataDraft}
+        />
+      </GridCol>
     </Grid>
   );
 }
 
-function EventViewMetadata({ event }: { event: Event }) {
+function EventSummaryCard({
+  event,
+  isEditing,
+  summaryDraft,
+  setSummaryDraft,
+}: {
+  event: Event;
+  isEditing: boolean;
+  summaryDraft: {
+    name: string;
+    description: string;
+  };
+  setSummaryDraft: React.Dispatch<
+    React.SetStateAction<{
+      name: string;
+      description: string;
+    }>
+  >;
+}) {
+  const canEditName = event.editable_fields?.includes("name") ?? false;
+  const canEditDescription = event.editable_fields?.includes("description") ?? false;
+  const descriptionText = event.description?.trim() ?? "";
+  const hasDescription = descriptionText.length > 0;
+
   return (
-    <GridCol span={{ base: 12, md: 4 }}>
-      <Paper withBorder p="sm">
-        <Box mt={4} mb={4}>
-          <Text c="dimmed" size="sm">
-            Event Status
-          </Text>
-          <Badge color={getEventParticipationStatusColor(event.status_display)}>
-            {event.status_display}
-          </Badge>
-        </Box>
-        <Divider />
-        <Box mt={4} mb={4}>
-          <Text c="dimmed" size="sm">
-            Location Name
-          </Text>
-          <Text>{event.location_name}</Text>
-        </Box>
-        <Divider />
+    <Box>
+      <Stack gap="sm">
+        {canEditName && isEditing ? (
+          <TextInput
+            value={summaryDraft.name}
+            onChange={(e) => {
+              const value = e.currentTarget.value;
+              setSummaryDraft((current) => ({ ...current, name: value }));
+            }}
+            variant="unstyled"
+            size="xl"
+            styles={{
+              input: {
+                fontSize: "var(--mantine-h1-font-size)",
+                fontWeight: 700,
+                lineHeight: "var(--mantine-h1-line-height)",
+                padding: 0,
+              },
+            }}
+          />
+        ) : (
+          <Title>{event.name}</Title>
+        )}
+        {canEditDescription && isEditing ? (
+          <>
+            <Divider />
+            <Textarea
+              value={summaryDraft.description}
+              onChange={(e) => {
+                const value = e.currentTarget.value;
+                setSummaryDraft((current) => ({ ...current, description: value }));
+              }}
+              autosize
+              minRows={5}
+              variant="unstyled"
+              styles={{
+                input: {
+                  fontSize: "var(--mantine-font-size-md)",
+                  lineHeight: "var(--mantine-line-height)",
+                  padding: 0,
+                },
+              }}
+            />
+          </>
+        ) : hasDescription ? (
+          <>
+            <Divider />
+            <Text style={{ whiteSpace: "pre-wrap" }}>{descriptionText}</Text>
+          </>
+        ) : null}
+      </Stack>
+    </Box>
+  );
+}
+
+function EventViewMetadata({
+  event,
+  isEditing,
+  metadataDraft,
+  setMetadataDraft,
+}: {
+  event: Event;
+  isEditing: boolean;
+  metadataDraft: {
+    status: string;
+    locationName: string;
+    locationAddress: string;
+    startsAt: string;
+    endsAt: string;
+  };
+  setMetadataDraft: React.Dispatch<
+    React.SetStateAction<{
+      status: string;
+      locationName: string;
+      locationAddress: string;
+      startsAt: string;
+      endsAt: string;
+    }>
+  >;
+}) {
+  const canEditStatus = event.editable_fields?.includes("event_status") ?? false;
+  const canEditLocation =
+    (event.editable_fields?.includes("location_name") ?? false) ||
+    (event.editable_fields?.includes("location_address") ?? false);
+  const canEditDates =
+    (event.editable_fields?.includes("starts_at") ?? false) ||
+    (event.editable_fields?.includes("ends_at") ?? false);
+
+  return (
+    <Paper withBorder p="sm">
+      <Box mt={4} mb={4}>
+        <Text c="dimmed" size="sm">
+          Event Status
+        </Text>
+        {canEditStatus && isEditing ? (
+          <Select
+            data={[
+              { value: "draft", label: "Draft" },
+              { value: "scheduled", label: "Scheduled" },
+              { value: "completed", label: "Completed" },
+              { value: "canceled", label: "Canceled" },
+            ]}
+            value={metadataDraft.status}
+            onChange={(value) => {
+              setMetadataDraft((current) => ({
+                ...current,
+                status: value ?? event.event_status,
+              }));
+            }}
+          />
+        ) : (
+          <Badge color={getStatusColor(event.status_display)}>{event.status_display}</Badge>
+        )}
+      </Box>
+      <Box mt={4} mb={4}>
+        {canEditLocation && isEditing ? (
+          <>
+            <Text c="dimmed" size="sm">
+              Location Name
+            </Text>
+            <TextInput
+              value={metadataDraft.locationName}
+              onChange={(e) => {
+                const value = e.currentTarget.value;
+                setMetadataDraft((current) => ({ ...current, locationName: value }));
+              }}
+              placeholder="Location name"
+            />
+          </>
+        ) : (
+          <>
+            <Text c="dimmed" size="sm">
+              Location Display
+            </Text>
+            <Text>{event.location_display}</Text>
+          </>
+        )}
+      </Box>
+      {canEditLocation && isEditing && (
         <Box mt={4} mb={4}>
           <Text c="dimmed" size="sm">
             Address
           </Text>
-          <Text mb={4}>{event.location_address}</Text>
+          <Textarea
+            value={metadataDraft.locationAddress}
+            onChange={(e) => {
+              const value = e.currentTarget.value;
+              setMetadataDraft((current) => ({ ...current, locationAddress: value }));
+            }}
+            autosize
+            minRows={2}
+            placeholder="Address"
+          />
         </Box>
-        <Divider />
-        <Box mt={4} mb={4}>
-          <Text c="dimmed" size="sm">
-            Location Display
-          </Text>
-          <Text>{event.location_display}</Text>
-        </Box>
-        <Divider />
-        <Box mt={4} mb={4}>
-          <Text c="dimmed" size="sm">
-            Start Date
-          </Text>
-          <Text>{formatDateTime(event.starts_at)}</Text>
-        </Box>
-        <Divider />
-        <Box mt={4} mb={4}>
-          <Text c="dimmed" size="sm">
-            End Date
-          </Text>
-          <Text>{formatDateTime(event.ends_at)}</Text>
-        </Box>
-      </Paper>
-    </GridCol>
+      )}
+      <Box mt={4} mb={4}>
+        <Text c="dimmed" size="sm">
+          Start Date
+        </Text>
+        {canEditDates && isEditing ? (
+          <DateTimePicker
+            value={metadataDraft.startsAt}
+            onChange={(value) =>
+              setMetadataDraft((current) => ({
+                ...current,
+                startsAt: value ?? current.startsAt,
+              }))
+            }
+          />
+        ) : (
+          <DateTime value={event.starts_at} size="sm" mt={4} />
+        )}
+      </Box>
+      <Box mt={4} mb={4}>
+        <Text c="dimmed" size="sm">
+          End Date
+        </Text>
+        {canEditDates && isEditing ? (
+          <DateTimePicker
+            value={metadataDraft.endsAt}
+            onChange={(value) =>
+              setMetadataDraft((current) => ({
+                ...current,
+                endsAt: value ?? current.endsAt,
+              }))
+            }
+          />
+        ) : (
+          <DateTime value={event.ends_at} size="sm" mt={4} />
+        )}
+      </Box>
+    </Paper>
   );
 }
 
@@ -462,8 +764,23 @@ function EventViewContactTable({ event }: { event: Event }) {
                   </Table.Td>
                 ),
                 (ep) => (
-                  <Table.Td key={ep.status}>
-                    <Badge color={getEventParticipationStatusColor(ep.status)}>
+                  <Table.Td
+                    key={ep.status}
+                    style={{
+                      whiteSpace: "nowrap",
+                      width: "1%",
+                    }}
+                  >
+                    <Badge
+                      color={getEventParticipationStatusColor(ep.status)}
+                      styles={{
+                        root: {
+                          whiteSpace: "nowrap",
+                          width: "max-content",
+                          minWidth: "max-content",
+                        },
+                      }}
+                    >
                       {ep.status_display}
                     </Badge>
                   </Table.Td>
