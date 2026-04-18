@@ -246,8 +246,8 @@ export default function EventTemplateView({ eventType, title = "Events" }: Event
               <Text size="sm" fw={500} c="dimmed">
                 Date
               </Text>
-              <DateTime value={selectedEvent.starts_at} size="sm" format="long" />
-              <DateTime value={selectedEvent.ends_at} size="sm" format="long" />
+              <DateTime value={selectedEvent.starts_at} size="sm" />
+              <DateTime value={selectedEvent.ends_at} size="sm" />
             </div>
             <div>
               <Text size="sm" fw={500} c="dimmed">

@@ -257,7 +257,6 @@ export default function EventHistory({ contactId }: { contactId: string }) {
                             size="xs"
                             c="dimmed"
                             includeTime={false}
-                            format="medium"
                           />
                         </div>
                         <Group gap={4} wrap="nowrap">

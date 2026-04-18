@@ -148,7 +148,7 @@ def render_template(template_str: str, contact: dict, event: dict | None = None)
         result = result.replace("{{event.name}}", event.get("name", "Event"))
         result = result.replace("{{event.description}}", event.get("description", ""))
         result = result.replace("{{event.location_display}}", event.get("location_display", "TBD"))
-        result = result.replace("{{event.starts_at}}", event.get("starts_at", "TBD"))
+        result = result.replace('{{event.starts_at|date:"SHORT_DATETIME_FORMAT"}}', event.get("starts_at", "TBD"))
 
     return result
 
