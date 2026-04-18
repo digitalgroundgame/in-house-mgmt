@@ -33,6 +33,7 @@ import { useUser } from "@/app/components/provider/UserContext";
 import { Event } from "@/app/components/event-utils";
 import { apiClient } from "@/app/lib/apiClient";
 import TicketActions from "@/app/components/tickets/TicketActions";
+import { formatDateTime } from "@/app/utils/datetime";
 
 export type TimelineShowType = "all" | "comment" | "audit" | "event_participation";
 
@@ -179,10 +180,10 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
   }> | null>(
     ticket.assigned_to
       ? {
-          id: ticket.assigned_to,
-          label: ticket.assigned_to_username ?? String(ticket.assigned_to),
-          raw: null,
-        }
+        id: ticket.assigned_to,
+        label: ticket.assigned_to_username ?? String(ticket.assigned_to),
+        raw: null,
+      }
       : null
   );
 
@@ -598,16 +599,6 @@ function TicketTimeline({
   const [commentText, setCommentText] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   const getEntryTitle = (entry: TimelineEntry) => {
     switch (entry.type) {
       case "audit":
@@ -696,7 +687,7 @@ function TicketTimeline({
                 {entry.actor_display ?? "System"}
               </Text>
               <Text size="xs" mt={4}>
-                {formatDate(entry.created_at)}
+                {formatDateTime(entry.created_at)}
               </Text>
             </Timeline.Item>
           ))}
@@ -775,14 +766,6 @@ function TicketComments({ ticketId }: { ticketId: number }) {
     }
   };
 
-  const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-
   return (
     <Paper p="md" withBorder>
       <Title order={4} mb="md">
@@ -812,7 +795,7 @@ function TicketComments({ ticketId }: { ticketId: number }) {
                         {c.actor_display ?? "Unknown"}
                       </Text>
                       <Text size="xs" c="dimmed">
-                        {formatDate(c.created_at)}
+                        {formatDateTime(c.created_at)}
                       </Text>
                     </Group>
                     <Text size="sm">{c.message}</Text>

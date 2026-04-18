@@ -12,26 +12,26 @@ dayjs.extend(advancedFormat);
 
 export { dayjs };
 
+export type AllowedDateFormats = 'DD/MM/YY hh:mm A'
 export interface FormatDateTimeOptions {
   /** Include time in output (default: true) */
   includeTime?: boolean;
   /** Format style: 'short', 'medium', 'long' (default: 'medium') */
-  style?: "short" | "medium" | "long";
   /** Show relative time instead (e.g., "3 hours ago") */
   relative?: boolean;
 }
 
 /**
- * Format a UTC datetime string for display in the user's timezone
+ * Format a formats[style];UTC datetime string for display in the user's timezone
  */
 export function formatDateTime(
   utcString: string | null | undefined,
-  tz: string,
+  tz: string = getBrowserTimezone(),
   options: FormatDateTimeOptions = {}
 ): string {
   if (!utcString) return "No date";
 
-  const { includeTime = true, style = "medium", relative = false } = options;
+  const { includeTime = true, relative = false } = options;
 
   const date = dayjs.utc(utcString).tz(tz);
 
@@ -39,15 +39,13 @@ export function formatDateTime(
     return date.fromNow();
   }
 
-  const formats: Record<string, { date: string; time: string }> = {
-    short: { date: "MMM D", time: "h:mm A" },
-    medium: { date: "MMM D, YYYY", time: "h:mm A" },
-    long: { date: "dddd, MMMM D, YYYY", time: "h:mm A" },
+  const fmt = {
+    date: 'MM/DD/YY',
+    time: 'hh:mm A'
   };
 
-  const fmt = formats[style];
   if (includeTime) {
-    return date.format(`${fmt.date} [at] ${fmt.time}`);
+    return date.format(`${fmt.date}, ${fmt.time}`);
   }
   return date.format(fmt.date);
 }

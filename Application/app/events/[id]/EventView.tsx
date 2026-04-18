@@ -42,6 +42,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useDisclosure } from "@mantine/hooks";
 import getCookie from "@/app/utils/cookie";
+import { formatDateTime } from "@/app/utils/datetime";
 
 const EVENT_PARTICIPATION_STATUSES = [
   "UNKNOWN",
@@ -129,14 +130,14 @@ function EventViewMetadata({ event }: { event: Event }) {
           <Text c="dimmed" size="sm">
             Start Date
           </Text>
-          <Text>{event.starts_at}</Text>
+          <Text>{formatDateTime(event.starts_at)}</Text>
         </Box>
         <Divider />
         <Box mt={4} mb={4}>
           <Text c="dimmed" size="sm">
             End Date
           </Text>
-          <Text>{event.ends_at}</Text>
+          <Text>{formatDateTime(event.ends_at)}</Text>
         </Box>
       </Paper>
     </GridCol>
@@ -597,7 +598,7 @@ function EventViewUsersTable({ event }: { event: Event }) {
                 ),
                 (user: UsersInEvent) => (
                   <Table.Td key={user.joined_at}>
-                    {new Date(user.joined_at).toLocaleString()}
+                    {formatDateTime(user.joined_at)}
                   </Table.Td>
                 ),
                 (user: UsersInEvent) => (
