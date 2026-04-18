@@ -65,7 +65,7 @@ We're hosting an upcoming event: **{{event.name}}**
 {{event.description}}
 
 📍 Location: {{event.location_display}}
-📅 Date: {{event.starts_at|date:"m/d/y, h:i A}}
+📅 Date: {{event.starts_at|date:"SHORT_DATETIME_FORMAT"}}
 
 Would you like to attend? Please let us know!
 
@@ -123,7 +123,7 @@ Just a friendly reminder about the upcoming event:
 
 {{event.name}}
 📍 {{event.location_display}}
-📅 {{event.starts_at|date:"m/d/y, h:i A}}
+📅 {{event.starts_at|date:"SHORT_DATETIME_FORMAT"}}
 
 Are you still able to attend? Please confirm your attendance.
 
