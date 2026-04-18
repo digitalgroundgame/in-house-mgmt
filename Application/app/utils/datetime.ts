@@ -12,7 +12,6 @@ dayjs.extend(advancedFormat);
 
 export { dayjs };
 
-export type AllowedDateFormats = "DD/MM/YY hh:mm A";
 export interface FormatDateTimeOptions {
   /** Include time in output (default: true) */
   includeTime?: boolean;
