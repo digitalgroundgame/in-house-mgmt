@@ -187,3 +187,81 @@ class TestDiscordClient:
 
         assert result == set()
         assert len(responses.calls) == 1  # No retry
+
+
+class TestDisplayNamePriority:
+    """Tests for display name resolution: nick > global_name > username > fallback"""
+
+    def _mock_member(self, user_id="123", nick=None, global_name=None, username=None):
+        user = {"id": user_id}
+        if global_name is not None:
+            user["global_name"] = global_name
+        if username is not None:
+            user["username"] = username
+        member = {"user": user, "roles": []}
+        if nick is not None:
+            member["nick"] = nick
+        return member
+
+    def _setup_response(self, members):
+        responses.add(
+            responses.GET,
+            f"{DISCORD_API_BASE}/guilds/123456789/members?limit=1000",
+            json=members,
+            status=200,
+        )
+
+    @responses.activate
+    def test_prefers_nick_over_global_name(self):
+        client = DiscordClient(token="test-token", guild_id=123456789)
+        self._setup_response([self._mock_member(nick="CoolNick", global_name="SpacePanda", username="xpanda_42")])
+
+        result = client.fetch_all_members()
+
+        assert result[0]["display_name"] == "CoolNick"
+
+    @responses.activate
+    def test_prefers_global_name_over_username(self):
+        client = DiscordClient(token="test-token", guild_id=123456789)
+        self._setup_response([self._mock_member(global_name="SpacePanda", username="xpanda_42")])
+
+        result = client.fetch_all_members()
+
+        assert result[0]["display_name"] == "SpacePanda"
+
+    @responses.activate
+    def test_falls_back_to_username(self):
+        client = DiscordClient(token="test-token", guild_id=123456789)
+        self._setup_response([self._mock_member(username="xpanda_42")])
+
+        result = client.fetch_all_members()
+
+        assert result[0]["display_name"] == "xpanda_42"
+
+    @responses.activate
+    def test_falls_back_to_discord_id(self):
+        client = DiscordClient(token="test-token", guild_id=123456789)
+        self._setup_response([self._mock_member(user_id="99999")])
+
+        result = client.fetch_all_members()
+
+        assert result[0]["display_name"] == "Discord 99999"
+
+    @responses.activate
+    def test_skips_null_global_name(self):
+        client = DiscordClient(token="test-token", guild_id=123456789)
+        member = {"user": {"id": "123", "global_name": None, "username": "xpanda_42"}, "roles": []}
+        self._setup_response([member])
+
+        result = client.fetch_all_members()
+
+        assert result[0]["display_name"] == "xpanda_42"
+
+    @responses.activate
+    def test_display_name_in_fetch_all_members_with_roles(self):
+        client = DiscordClient(token="test-token", guild_id=123456789)
+        self._setup_response([self._mock_member(global_name="SpacePanda", username="xpanda_42")])
+
+        result = client.fetch_all_members_with_roles()
+
+        assert result[0]["display_name"] == "SpacePanda"

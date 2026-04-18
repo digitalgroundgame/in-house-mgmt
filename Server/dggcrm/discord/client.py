@@ -108,7 +108,10 @@ class DiscordClient:
                 members.append(
                     {
                         "id": user.get("id"),
-                        "display_name": member.get("nick") or user.get("username") or f"Discord {user.get('id')}",
+                        "display_name": member.get("nick")
+                        or user.get("global_name")
+                        or user.get("username")
+                        or f"Discord {user.get('id')}",
                     }
                 )
 
@@ -192,7 +195,10 @@ class DiscordClient:
                 members.append(
                     {
                         "id": user.get("id"),
-                        "display_name": member.get("nick") or user.get("username") or f"Discord {user.get('id')}",
+                        "display_name": member.get("nick")
+                        or user.get("global_name")
+                        or user.get("username")
+                        or f"Discord {user.get('id')}",
                         "role_ids": member.get("roles", []),
                     }
                 )
