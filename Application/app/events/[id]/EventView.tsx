@@ -597,9 +597,7 @@ function EventViewUsersTable({ event }: { event: Event }) {
                   <Table.Td key={user.user_username}>{user.user_username}</Table.Td>
                 ),
                 (user: UsersInEvent) => (
-                  <Table.Td key={user.joined_at}>
-                    {formatDateTime(user.joined_at)}
-                  </Table.Td>
+                  <Table.Td key={user.joined_at}>{formatDateTime(user.joined_at)}</Table.Td>
                 ),
                 (user: UsersInEvent) => (
                   <Table.Td key={user.id}>

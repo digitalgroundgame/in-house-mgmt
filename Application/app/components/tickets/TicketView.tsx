@@ -180,10 +180,10 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
   }> | null>(
     ticket.assigned_to
       ? {
-        id: ticket.assigned_to,
-        label: ticket.assigned_to_username ?? String(ticket.assigned_to),
-        raw: null,
-      }
+          id: ticket.assigned_to,
+          label: ticket.assigned_to_username ?? String(ticket.assigned_to),
+          raw: null,
+        }
       : null
   );
 

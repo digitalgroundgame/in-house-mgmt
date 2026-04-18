@@ -12,7 +12,7 @@ dayjs.extend(advancedFormat);
 
 export { dayjs };
 
-export type AllowedDateFormats = 'DD/MM/YY hh:mm A'
+export type AllowedDateFormats = "DD/MM/YY hh:mm A";
 export interface FormatDateTimeOptions {
   /** Include time in output (default: true) */
   includeTime?: boolean;
@@ -40,8 +40,8 @@ export function formatDateTime(
   }
 
   const fmt = {
-    date: 'MM/DD/YY',
-    time: 'hh:mm A'
+    date: "MM/DD/YY",
+    time: "hh:mm A",
   };
 
   if (includeTime) {
