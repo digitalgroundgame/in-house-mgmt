@@ -18,7 +18,7 @@ CSRF_TRUSTED_ORIGINS = env.list(
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-ACCOUNT_SIGNUP_FIELDS = ["email", "username"]
+ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]
 ACCOUNT_EMAIL_VERIFICATION = "optional"
 
 INSTALLED_APPS += [
