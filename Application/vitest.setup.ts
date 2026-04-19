@@ -40,3 +40,10 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/home",
   useSearchParams: () => new URLSearchParams(),
 }));
+
+// Mock Mantine notifications
+vi.mock("@mantine/notifications", () => ({
+  notifications: {
+    show: vi.fn(),
+  },
+}));

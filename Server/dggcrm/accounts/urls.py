@@ -4,6 +4,7 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     CurrentUserView,
+    DiscordIDViewSet,
     GroupListView,
     ManagedUserViewSet,
     SocialConnectionDeleteView,
@@ -14,6 +15,7 @@ from .views import (
 
 router = DefaultRouter()
 router.register("management/users", ManagedUserViewSet, basename="managed-users")
+router.register("management/discord-ids", DiscordIDViewSet, basename="discord-ids")
 
 urlpatterns = [
     path(

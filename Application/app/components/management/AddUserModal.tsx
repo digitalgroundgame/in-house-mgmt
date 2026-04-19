@@ -19,10 +19,11 @@ interface Props {
 
 interface CreateUserPayload {
   username: string;
-  email: string;
+  email?: string;
   first_name?: string;
   last_name?: string;
   groups: string[];
+  discord_id?: string;
 }
 
 export default function AddUserModal({ opened, onClose, onSuccess, groups }: Props) {
@@ -31,6 +32,7 @@ export default function AddUserModal({ opened, onClose, onSuccess, groups }: Pro
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+  const [discordId, setDiscordId] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -41,6 +43,7 @@ export default function AddUserModal({ opened, onClose, onSuccess, groups }: Pro
       setFirstName("");
       setLastName("");
       setSelectedGroups([]);
+      setDiscordId("");
       setErrors({});
     }
   }, [opened]);
@@ -54,9 +57,7 @@ export default function AddUserModal({ opened, onClose, onSuccess, groups }: Pro
       newErrors.username = "Username must be at least 3 characters";
     }
 
-    if (!email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       newErrors.email = "Please enter a valid email address";
     }
 
@@ -70,19 +71,25 @@ export default function AddUserModal({ opened, onClose, onSuccess, groups }: Pro
     setLoading(true);
     const payload: CreateUserPayload = {
       username: username.trim(),
-      email: email.trim(),
       groups: selectedGroups,
     };
 
+    if (email.trim()) {
+      payload.email = email.trim();
+    }
     if (firstName.trim()) {
       payload.first_name = firstName.trim();
     }
     if (lastName.trim()) {
       payload.last_name = lastName.trim();
     }
+    if (discordId.trim()) {
+      payload.discord_id = discordId.trim();
+    }
 
     try {
-      await apiClient.post("/management/users/", payload);
+      await apiClient.post<{ id: number }>("/management/users/", payload);
+
       notifications.show({
         title: "Success",
         message: `User "${username}" created successfully`,
@@ -95,10 +102,10 @@ export default function AddUserModal({ opened, onClose, onSuccess, groups }: Pro
       if (err instanceof Error) {
         if (err.message.includes("already exists")) {
           errorMessage = err.message;
-        } else if (err.message.includes("400")) {
-          errorMessage = "Invalid data provided. Please check your input.";
         } else if (err.message.includes("403")) {
           errorMessage = "You do not have permission to create users.";
+        } else {
+          errorMessage = err.message;
         }
       }
       notifications.show({
@@ -126,15 +133,24 @@ export default function AddUserModal({ opened, onClose, onSuccess, groups }: Pro
           description="Used for login. Must be unique."
         />
 
-        <TextInput
-          label="Email"
-          placeholder="user@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.currentTarget.value)}
-          error={errors.email}
-          required
-          description="Primary email address for this user"
-        />
+        <Stack gap="xs">
+          <TextInput
+            label="Discord ID"
+            placeholder="123456789012345678"
+            value={discordId}
+            onChange={(e) => setDiscordId(e.currentTarget.value)}
+            description="Link a Discord account for OAuth login"
+          />
+
+          <TextInput
+            label="Email"
+            placeholder="user@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.currentTarget.value)}
+            error={errors.email}
+            description="Or enter an email address"
+          />
+        </Stack>
 
         <Group grow>
           <TextInput
