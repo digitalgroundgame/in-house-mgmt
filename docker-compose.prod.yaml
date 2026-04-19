@@ -3,7 +3,6 @@ services:
     build:
       context: .
       dockerfile: ./compose/production/nginx/Dockerfile
-    container_name: inhouse_suite_nginx
     restart: unless-stopped
     depends_on:
       - frontend
@@ -15,13 +14,13 @@ services:
     labels:
     - traefik.enable=true
     - traefik.docker.network=coolify
-    - "traefik.http.routers.inhouse-nginx-http.rule=Host(`house2.digitalgroundgame.org`) && PathPrefix(`/`)"
-    - traefik.http.routers.inhouse-nginx-http.entryPoints=http
-    - "traefik.http.routers.inhouse-nginx-https.rule=Host(`house2.digitalgroundgame.org`) && PathPrefix(`/`)"
-    - traefik.http.routers.inhouse-nginx-https.entryPoints=https
-    - traefik.http.routers.inhouse-nginx-https.tls=true
-    - traefik.http.routers.inhouse-nginx-https.tls.certresolver=letsencrypt
-    - traefik.http.services.inhouse-nginx.loadbalancer.server.port=80
+    - "traefik.http.routers.house2-nginx-http.rule=Host(`house2.digitalgroundgame.org`) && PathPrefix(`/`)"
+    - traefik.http.routers.house2-nginx-http.entryPoints=http
+    - "traefik.http.routers.house2-nginx-https.rule=Host(`house2.digitalgroundgame.org`) && PathPrefix(`/`)"
+    - traefik.http.routers.house2-nginx-https.entryPoints=https
+    - traefik.http.routers.house2-nginx-https.tls=true
+    - traefik.http.routers.house2-nginx-https.tls.certresolver=letsencrypt
+    - traefik.http.services.house2-nginx.loadbalancer.server.port=80
     networks:
       - coolify
       - default
@@ -40,7 +39,6 @@ services:
       context: .
       dockerfile: ./compose/production/application/Dockerfile
     image: inhouse_suite_frontend
-    container_name: inhouse_suite_frontend
     restart: unless-stopped
     environment:
       - BACKEND_URL=${BACKEND_URL}
@@ -65,7 +63,6 @@ services:
       context: .
       dockerfile: ./compose/production/server/Dockerfile
     image: inhouse_suite_server
-    container_name: inhouse_suite_server
     restart: unless-stopped
     volumes:
       - dggcrm_production_admin_static_files:/app/staticfiles
