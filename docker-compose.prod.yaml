@@ -1,12 +1,12 @@
 services:
-  nginx:
+  inhouse_suite_nginx:
     build:
       context: .
       dockerfile: ./compose/production/nginx/Dockerfile
     restart: unless-stopped
     depends_on:
-      - frontend
-      - server
+      - inhouse_suite_frontend
+      - inhouse_suite_server
     # ports:
     #   - "80:80"
     volumes:
@@ -34,7 +34,7 @@ services:
       driver: journald
 
 
-  frontend:
+  inhouse_suite_frontend:
     build:
       context: .
       dockerfile: ./compose/production/application/Dockerfile
@@ -58,7 +58,7 @@ services:
     logging:
       driver: journald
 
-  server: &server
+  inhouse_suite_server: &server
     build:
       context: .
       dockerfile: ./compose/production/server/Dockerfile
@@ -104,8 +104,8 @@ services:
     logging:
       driver: journald
     networks:
-      - coolify
-      - default
+      coolify:
+      default:
 
 
 volumes:
