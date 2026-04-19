@@ -20,6 +20,24 @@ This will build and deploy the frontend, as well as automatically populate the D
 
 Updating docker-compose.dev.yaml to have `RUN_CREATE_DB=0` will skip the test data DB population.
 
+## Production Deployment
+
+Production deploys are intended to be configured in Coolify rather than by hardcoding
+host-specific routing in `docker-compose.prod.yaml`.
+
+For the `nginx` service:
+
+- Set the public domain in Coolify's `Domains` UI for the service.
+- Do not hardcode Traefik `Host(...)` rules in the compose file.
+
+For the Django backend runtime env in Coolify:
+
+- Set `ALLOWED_HOSTS` to the production hostname(s).
+- Set `CSRF_TRUSTED_ORIGINS` to the full production origin(s), including scheme, for example `https://example.com`.
+
+This keeps the repo deployment-agnostic while leaving environment-specific routing and
+origin trust in Coolify-managed configuration.
+
 ## Pre-commit Hooks (Recommended)
 
 The project uses pre-commit hooks to automatically lint and format code before each commit.
