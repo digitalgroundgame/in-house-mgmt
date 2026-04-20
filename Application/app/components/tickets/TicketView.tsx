@@ -33,7 +33,7 @@ import { useUser } from "@/app/components/provider/UserContext";
 import { Event } from "@/app/components/event-utils";
 import { apiClient } from "@/app/lib/apiClient";
 import TicketActions from "@/app/components/tickets/TicketActions";
-import { formatDateTime } from "@/app/utils/datetime";
+import { formatBackendProvidedDateTime } from "@/app/utils/datetime";
 
 export type TimelineShowType = "all" | "comment" | "audit" | "event_participation";
 
@@ -687,7 +687,7 @@ function TicketTimeline({
                 {entry.actor_display ?? "System"}
               </Text>
               <Text size="xs" mt={4}>
-                {formatDateTime(entry.created_at)}
+                {formatBackendProvidedDateTime(entry.created_at)}
               </Text>
             </Timeline.Item>
           ))}
@@ -795,7 +795,7 @@ function TicketComments({ ticketId }: { ticketId: number }) {
                         {c.actor_display ?? "Unknown"}
                       </Text>
                       <Text size="xs" c="dimmed">
-                        {formatDateTime(c.created_at)}
+                        {formatBackendProvidedDateTime(c.created_at)}
                       </Text>
                     </Group>
                     <Text size="sm">{c.message}</Text>

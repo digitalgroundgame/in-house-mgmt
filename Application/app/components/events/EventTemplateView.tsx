@@ -21,6 +21,7 @@ import EventsTable from "@/app/components/EventsTable";
 import { type Event, type EventType } from "@/app/components/event-utils";
 import { DateTime } from "@/app/components/datetime";
 import { DateRangePicker } from "@/app/components/datetime";
+import { toUTC } from "@/app/utils/datetime";
 
 interface EventTemplateViewProps {
   eventType: EventType;
@@ -92,7 +93,14 @@ export default function EventTemplateView({ eventType, title = "Events" }: Event
   const handleSubmitEvent = async (values: typeof form.values) => {
     setSubmitting(true);
     try {
-      await apiClient.post("/events/", { ...values, event_type: eventType });
+      const startTime = toUTC(new Date(values.starts_at));
+      const endTime = toUTC(new Date(values.ends_at));
+      await apiClient.post("/events/", {
+        ...values,
+        event_type: eventType,
+        starts_at: startTime,
+        ends_at: endTime,
+      });
       setAddModalOpen(false);
       form.reset();
       fetchEvents();
