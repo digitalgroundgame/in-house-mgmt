@@ -146,8 +146,7 @@ export default function UsersSection({ onUserCreated }: Props) {
   const handleToggleActive = async (user: ManagedUser) => {
     try {
       const result = await apiClient.post<{ is_active: boolean }>(
-        `/management/users/${user.id}/toggle-active/`,
-        {}
+        `/management/users/${user.id}/toggle-active/`
       );
       setUsers((prev) =>
         prev.map((u) => (u.id === user.id ? { ...u, is_active: result.is_active } : u))
