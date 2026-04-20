@@ -26,7 +26,7 @@ import { IconSend } from "@tabler/icons-react";
 import { getStatusColor, getPriorityColor } from "./TicketTable";
 import TicketDescription from "./TicketDescription";
 import { Ticket, TicketType } from "./ticket-utils";
-import ContactSearch, { Contact } from "@/app/components/ContactSearch";
+import { Contact } from "@/app/components/ContactSearch";
 import { SearchSelect, SearchSelectOption } from "@/app/components/SearchSelect";
 import { EnumSelect, EnumSelectOption } from "@/app/components/EnumSelect";
 import { useUser } from "@/app/components/provider/UserContext";
@@ -57,6 +57,7 @@ interface TicketViewProps {
   showType: TimelineShowType;
   onShowTypeChange: (value: TimelineShowType) => void;
   setTimeline?: React.Dispatch<React.SetStateAction<TimelineEntry[]>>;
+  onUpdate: () => void;
 }
 
 export default function TicketView({
@@ -66,6 +67,7 @@ export default function TicketView({
   showType,
   onShowTypeChange,
   setTimeline,
+  onUpdate,
 }: TicketViewProps) {
   const [contact, setContact] = useState<Contact | null>(null);
   const [event, setEvent] = useState<Event | null>(null);
@@ -115,7 +117,7 @@ export default function TicketView({
         </Grid.Col>
         <Grid.Col span={{ base: 12, md: 4 }}>
           <Stack gap="md">
-            <TicketMetadataCard ticket={ticket} />
+            <TicketMetadataCard ticket={ticket} onUpdate={onUpdate} />
             <TicketActions
               ticket={ticket}
               contact={contact ?? undefined}
@@ -161,7 +163,7 @@ function CallInstructionsCard({ ticket }: { ticket: Ticket }) {
   );
 }
 
-function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
+function TicketMetadataCard({ ticket, onUpdate }: { ticket: Ticket; onUpdate: () => void }) {
   const [loading, setLoading] = useState(false);
   const isClaimed = Boolean(ticket.assigned_to);
   const { user } = useUser();
@@ -229,7 +231,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
       } else {
         await apiClient.post(`/tickets/${ticket.id}/claim/`, {});
       }
-      window.location.reload();
+      onUpdate();
     } catch (err) {
       console.error(err);
       alert("Failed to update ticket claim status");
@@ -245,7 +247,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
         ticket_status: status.id,
       });
       setTicketStatus(status);
-      window.location.reload();
+      onUpdate();
     } catch (err) {
       console.error(err);
       alert("Error updating status");
@@ -260,7 +262,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
         assigned_to: option?.raw?.id ?? null,
       });
       setAssignedTo(option);
-      window.location.reload();
+      onUpdate();
     } catch (err) {
       console.error(err);
       alert("Error updating assigned_to");
@@ -275,7 +277,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
         contact: option?.raw?.id ?? null,
       });
       setContact(option);
-      window.location.reload();
+      onUpdate();
     } catch (err) {
       console.error(err);
       alert("Error updating contact");
@@ -288,7 +290,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
         event: option?.raw?.id ?? null,
       });
       setEvent(option);
-      window.location.reload();
+      onUpdate();
     } catch (err) {
       console.error(err);
       alert("Error updating event");
@@ -302,7 +304,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
         priority: option.id,
       });
       setPriority(option);
-      window.location.reload();
+      onUpdate();
     } catch (err) {
       console.error(err);
       alert("Error updating priority");
@@ -316,7 +318,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
         ticket_type: option.id,
       });
       setTicketType(option);
-      window.location.reload();
+      onUpdate();
     } catch (err) {
       console.error(err);
       alert("Error updating ticket type");
@@ -549,7 +551,7 @@ interface TicketTimelineProps {
   showType: TimelineShowType;
   onShowTypeChange: (value: TimelineShowType) => void;
   ticketId: number;
-  onRefresh?: () => void;
+  onUpdate?: () => void;
   setTimeline?: React.Dispatch<React.SetStateAction<TimelineEntry[]>>;
 }
 
@@ -642,6 +644,7 @@ function TicketTimeline({
         `/tickets/${ticketId}/timeline/?show=${showType}`
       );
       setTimeline?.(Array.isArray(data) ? data : (data.results ?? []));
+      onUpdate?.();
     } catch (err) {
       console.error("Failed to post comment", err);
     } finally {

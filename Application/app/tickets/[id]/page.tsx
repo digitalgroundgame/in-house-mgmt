@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { apiClient } from "@/app/lib/apiClient";
 import { Loader, Center, Text, Container, Group, Button } from "@mantine/core";
 import TicketView, {
@@ -15,6 +15,9 @@ export default function TicketInfoPage() {
   const { id } = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  const ticketAbortControllerRef = useRef<AbortController | null>(null);
+  const timelineAbortControllerRef = useRef<AbortController | null>(null);
 
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,45 +47,74 @@ export default function TicketInfoPage() {
     }
   };
 
-  useEffect(() => {
+  const fetchTicket = useCallback(async () => {
     if (!id) return;
 
-    const fetchTicket = async () => {
-      try {
-        setLoading(true);
-        const data = await apiClient.get<Ticket>(`/tickets/${id}`);
-        setTicket(data);
-      } catch (err) {
-        console.error(err);
-        setError(`${err}`);
-      } finally {
+    ticketAbortControllerRef.current?.abort();
+    ticketAbortControllerRef.current = new AbortController();
+
+    try {
+      setTicket((prevTicket) => {
+        if (!prevTicket) setLoading(true);
+        return prevTicket;
+      });
+
+      const data = await apiClient.get<Ticket>(`/tickets/${id}`, {
+        signal: ticketAbortControllerRef.current.signal,
+      });
+      setTicket(data);
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") {
+        return;
+      }
+      console.error(err);
+      setError(`${err}`);
+    } finally {
+      if (ticketAbortControllerRef.current?.signal.aborted === false) {
         setLoading(false);
       }
-    };
-
-    fetchTicket();
+    }
   }, [id]);
 
-  useEffect(() => {
+  const fetchTimeline = useCallback(async () => {
     if (!id) return;
 
-    const fetchTimeline = async () => {
-      try {
-        setTimelineLoading(true);
-        const data = await apiClient.get<{ results?: TimelineEntry[] } | TimelineEntry[]>(
-          `/tickets/${id}/timeline/?show=${showType}`
-        );
-        const entries = Array.isArray(data) ? data : (data.results ?? []);
-        setTimeline(entries);
-      } catch (err) {
-        console.error(err);
-      } finally {
+    timelineAbortControllerRef.current?.abort();
+    timelineAbortControllerRef.current = new AbortController();
+
+    try {
+      setTimelineLoading(true);
+      const data = await apiClient.get<{ results?: TimelineEntry[] } | TimelineEntry[]>(
+        `/tickets/${id}/timeline/?show=${showType}`,
+        { signal: timelineAbortControllerRef.current.signal }
+      );
+      const entries = Array.isArray(data) ? data : (data.results ?? []);
+      setTimeline(entries);
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") {
+        return;
+      }
+      console.error(err);
+    } finally {
+      if (timelineAbortControllerRef.current?.signal.aborted === false) {
         setTimelineLoading(false);
       }
-    };
-
-    fetchTimeline();
+    }
   }, [id, showType]);
+
+  const onUpdate = async () => {
+    await Promise.all([fetchTicket(), fetchTimeline()]);
+  };
+
+  useEffect(() => {
+    fetchTicket();
+    return () => ticketAbortControllerRef.current?.abort();
+  }, [fetchTicket]);
+
+  useEffect(() => {
+    fetchTimeline();
+    return () => timelineAbortControllerRef.current?.abort();
+  }, [fetchTimeline]);
 
   if (loading) {
     return (
@@ -137,6 +169,7 @@ export default function TicketInfoPage() {
           showType={showType}
           onShowTypeChange={setShowType}
           setTimeline={setTimeline}
+          onUpdate={onUpdate}
         />
       </div>
     </>
