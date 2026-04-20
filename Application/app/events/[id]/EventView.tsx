@@ -16,7 +16,6 @@ import {
 import { BackendPaginatedResults, useBackend, useBackendMutation } from "@/app/lib/api";
 import { apiClient } from "@/app/lib/apiClient";
 import { DateTimePicker } from "@/app/components/datetime";
-import { DateTime } from "@/app/components/datetime/DateTime";
 import {
   Text,
   Paper,
@@ -49,6 +48,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDisclosure } from "@mantine/hooks";
 import getCookie from "@/app/utils/cookie";
+import { formatDateTime } from "@/app/utils/datetime";
 
 const EVENT_PARTICIPATION_STATUSES = [
   "UNKNOWN",
@@ -338,6 +338,16 @@ function EventViewMetadata({
   const canEditDates =
     (event.editable_fields?.includes("starts_at") ?? false) ||
     (event.editable_fields?.includes("ends_at") ?? false);
+  const metadataInputStyles = {
+    input: {
+      fontSize: "var(--mantine-font-size-md)",
+      fontWeight: 400,
+      lineHeight: "var(--mantine-line-height)",
+      fontFamily: "var(--mantine-font-family)",
+      color: "var(--mantine-color-text)",
+      padding: 0,
+    },
+  } as const;
 
   return (
     <Paper withBorder p="sm">
@@ -360,6 +370,9 @@ function EventViewMetadata({
                 status: value ?? event.event_status,
               }));
             }}
+            variant="unstyled"
+            size="md"
+            styles={metadataInputStyles}
           />
         ) : (
           <Badge color={getStatusColor(event.status_display)}>{event.status_display}</Badge>
@@ -378,6 +391,9 @@ function EventViewMetadata({
                 setMetadataDraft((current) => ({ ...current, locationName: value }));
               }}
               placeholder="Location name"
+              variant="unstyled"
+              size="md"
+              styles={metadataInputStyles}
             />
           </>
         ) : (
@@ -403,6 +419,9 @@ function EventViewMetadata({
             autosize
             minRows={2}
             placeholder="Address"
+            variant="unstyled"
+            size="md"
+            styles={metadataInputStyles}
           />
         </Box>
       )}
@@ -413,6 +432,11 @@ function EventViewMetadata({
         {canEditDates && isEditing ? (
           <DateTimePicker
             value={metadataDraft.startsAt}
+            valueFormat="MM/DD/YY, hh:mm A"
+            timePickerProps={{ format: "12h" }}
+            variant="unstyled"
+            size="md"
+            styles={metadataInputStyles}
             onChange={(value) =>
               setMetadataDraft((current) => ({
                 ...current,
@@ -421,7 +445,7 @@ function EventViewMetadata({
             }
           />
         ) : (
-          <DateTime value={event.starts_at} size="sm" mt={4} />
+          <Text>{formatDateTime(event.starts_at)}</Text>
         )}
       </Box>
       <Box mt={4} mb={4}>
@@ -431,6 +455,11 @@ function EventViewMetadata({
         {canEditDates && isEditing ? (
           <DateTimePicker
             value={metadataDraft.endsAt}
+            valueFormat="MM/DD/YY, hh:mm A"
+            timePickerProps={{ format: "12h" }}
+            variant="unstyled"
+            size="md"
+            styles={metadataInputStyles}
             onChange={(value) =>
               setMetadataDraft((current) => ({
                 ...current,
@@ -439,7 +468,7 @@ function EventViewMetadata({
             }
           />
         ) : (
-          <DateTime value={event.ends_at} size="sm" mt={4} />
+          <Text>{formatDateTime(event.ends_at)}</Text>
         )}
       </Box>
     </Paper>
