@@ -9,10 +9,14 @@ import { User } from "@/app/components/provider/types";
 import {
   Event,
   EventParticipation,
+  getStatusColor,
   getEventParticipationStatusColor,
   UsersInEvent,
 } from "@/app/components/event-utils";
 import { BackendPaginatedResults, useBackend, useBackendMutation } from "@/app/lib/api";
+import { apiClient } from "@/app/lib/apiClient";
+import { DateTimePicker } from "@/app/components/datetime";
+import { type UseFormReturnType, useForm } from "@mantine/form";
 import {
   Text,
   Paper,
@@ -35,8 +39,11 @@ import {
   Combobox,
   useCombobox,
   Tabs,
+  Textarea,
+  ActionIcon,
+  Tooltip,
 } from "@mantine/core";
-import { IconSearch } from "@tabler/icons-react";
+import { IconPencil, IconSearch } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -54,6 +61,28 @@ const EVENT_PARTICIPATION_STATUSES = [
 ] as const;
 type EventParticipationStatus = (typeof EVENT_PARTICIPATION_STATUSES)[number];
 
+interface EventEditFormValues {
+  name: string;
+  description: string;
+  status: string;
+  locationName: string;
+  locationAddress: string;
+  startsAt: string;
+  endsAt: string;
+}
+
+function getEventFormValues(event: Event): EventEditFormValues {
+  return {
+    name: event.name,
+    description: event.description ?? "",
+    status: event.event_status,
+    locationName: event.location_name ?? "",
+    locationAddress: event.location_address ?? "",
+    startsAt: event.starts_at,
+    endsAt: event.ends_at,
+  };
+}
+
 export default function EventView({ event }: { event: Event | undefined }) {
   return (
     <Container py="xl" size="xl">
@@ -64,83 +93,305 @@ export default function EventView({ event }: { event: Event | undefined }) {
 }
 
 function EventViewMain({ event }: { event: Event }) {
+  const [currentEvent, setCurrentEvent] = useState(event);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSavingEventEdits, setIsSavingEventEdits] = useState(false);
+  const form = useForm<EventEditFormValues>({
+    initialValues: getEventFormValues(event),
+  });
+
+  const canEditEvent = (currentEvent.editable_fields?.length ?? 0) > 0;
+
+  const updateEvent = async (payload: Partial<Event>): Promise<Event> => {
+    const updated = await apiClient.patch<Event>(`/events/${currentEvent.id}`, payload);
+    setCurrentEvent(updated);
+    return updated;
+  };
+
+  const saveEventEdits = async () => {
+    setIsSavingEventEdits(true);
+    try {
+      const updated = await updateEvent({
+        name: form.values.name,
+        description: form.values.description,
+        event_status: form.values.status,
+        location_name: form.values.locationName,
+        location_address: form.values.locationAddress,
+        starts_at: form.values.startsAt,
+        ends_at: form.values.endsAt,
+      });
+      const values = getEventFormValues(updated);
+      form.setValues(values);
+      form.resetDirty(values);
+
+      notifications.show({
+        title: "Event updated",
+        message: "Saved event changes.",
+        color: "green",
+      });
+      setIsEditing(false);
+    } catch (error) {
+      console.error(error);
+      notifications.show({
+        title: "Save failed",
+        message: "Could not update the event details.",
+        color: "red",
+      });
+    } finally {
+      setIsSavingEventEdits(false);
+    }
+  };
+
+  const cancelEditing = () => {
+    const values = getEventFormValues(currentEvent);
+    form.setValues(values);
+    form.resetDirty(values);
+    setIsEditing(false);
+  };
+
   return (
-    <Grid>
-      <GridCol span={{ base: 12, md: 8 }}>
-        <Paper withBorder p="md">
-          <Stack gap="sm">
-            <Title>{event.name}</Title>
-            <Divider />
-            <Text>{event.description}</Text>
-          </Stack>
-        </Paper>
+    <Grid align="flex-start">
+      <GridCol style={{ flex: 1, minWidth: 0 }}>
+        {canEditEvent && (
+          <Group justify="flex-end" mb="md">
+            {!isEditing ? (
+              <Tooltip label="Edit Event">
+                <ActionIcon
+                  size="md"
+                  variant="filled"
+                  onClick={() => setIsEditing(true)}
+                  aria-label="Edit Event"
+                >
+                  <IconPencil size={16} />
+                </ActionIcon>
+              </Tooltip>
+            ) : (
+              <>
+                <Button
+                  size="xs"
+                  onClick={saveEventEdits}
+                  loading={isSavingEventEdits}
+                  disabled={!form.isDirty()}
+                >
+                  Save
+                </Button>
+                <Button size="xs" variant="outline" color="red" onClick={cancelEditing}>
+                  Cancel
+                </Button>
+              </>
+            )}
+          </Group>
+        )}
+        <EventSummaryCard event={currentEvent} isEditing={isEditing} form={form} />
         <Tabs defaultValue="participants" mt="md">
           <Tabs.List>
             <Tabs.Tab value="participants">Participants</Tabs.Tab>
             <Tabs.Tab value="users">Users</Tabs.Tab>
           </Tabs.List>
-          <Tabs.Panel value="participants">
-            <EventViewContactTable event={event} />
+          <Tabs.Panel value="participants" style={{ minWidth: "432px" }}>
+            <EventViewContactTable event={currentEvent} />
           </Tabs.Panel>
           <Tabs.Panel value="users">
-            <EventViewUsersTable event={event} />
+            <EventViewUsersTable event={currentEvent} />
           </Tabs.Panel>
         </Tabs>
       </GridCol>
-      <EventViewMetadata event={event} />
+      <GridCol style={{ flex: "0 0 239px", maxWidth: "239px", minWidth: "239px" }}>
+        <EventViewMetadata event={currentEvent} isEditing={isEditing} form={form} />
+      </GridCol>
     </Grid>
   );
 }
 
-function EventViewMetadata({ event }: { event: Event }) {
+function EventSummaryCard({
+  event,
+  isEditing,
+  form,
+}: {
+  event: Event;
+  isEditing: boolean;
+  form: UseFormReturnType<EventEditFormValues>;
+}) {
+  const canEditName = event.editable_fields?.includes("name") ?? false;
+  const canEditDescription = event.editable_fields?.includes("description") ?? false;
+  const descriptionText = event.description?.trim() ?? "";
+  const hasDescription = descriptionText.length > 0;
+
   return (
-    <GridCol span={{ base: 12, md: 4 }}>
-      <Paper withBorder p="sm">
-        <Box mt={4} mb={4}>
-          <Text c="dimmed" size="sm">
-            Event Status
-          </Text>
-          <Badge color={getEventParticipationStatusColor(event.status_display)}>
-            {event.status_display}
-          </Badge>
-        </Box>
-        <Divider />
-        <Box mt={4} mb={4}>
-          <Text c="dimmed" size="sm">
-            Location Name
-          </Text>
-          <Text>{event.location_name}</Text>
-        </Box>
-        <Divider />
+    <Box>
+      <Stack gap="sm">
+        {canEditName && isEditing ? (
+          <TextInput
+            {...form.getInputProps("name")}
+            variant="unstyled"
+            size="xl"
+            styles={{
+              input: {
+                fontSize: "var(--mantine-h1-font-size)",
+                fontWeight: 700,
+                lineHeight: "var(--mantine-h1-line-height)",
+                padding: 0,
+              },
+            }}
+          />
+        ) : (
+          <Title>{event.name}</Title>
+        )}
+        {canEditDescription && isEditing ? (
+          <>
+            <Divider />
+            <Textarea
+              {...form.getInputProps("description")}
+              autosize
+              minRows={5}
+              variant="unstyled"
+              styles={{
+                input: {
+                  fontSize: "var(--mantine-font-size-md)",
+                  lineHeight: "var(--mantine-line-height)",
+                  padding: 0,
+                },
+              }}
+            />
+          </>
+        ) : hasDescription ? (
+          <>
+            <Divider />
+            <Text style={{ whiteSpace: "pre-wrap" }}>{descriptionText}</Text>
+          </>
+        ) : null}
+      </Stack>
+    </Box>
+  );
+}
+
+function EventViewMetadata({
+  event,
+  isEditing,
+  form,
+}: {
+  event: Event;
+  isEditing: boolean;
+  form: UseFormReturnType<EventEditFormValues>;
+}) {
+  const canEditStatus = event.editable_fields?.includes("event_status") ?? false;
+  const canEditLocation =
+    (event.editable_fields?.includes("location_name") ?? false) ||
+    (event.editable_fields?.includes("location_address") ?? false);
+  const canEditDates =
+    (event.editable_fields?.includes("starts_at") ?? false) ||
+    (event.editable_fields?.includes("ends_at") ?? false);
+  const metadataInputStyles = {
+    input: {
+      fontSize: "var(--mantine-font-size-md)",
+      fontWeight: 400,
+      lineHeight: "var(--mantine-line-height)",
+      fontFamily: "var(--mantine-font-family)",
+      color: "var(--mantine-color-text)",
+      padding: 0,
+    },
+  } as const;
+
+  return (
+    <Paper withBorder p="sm">
+      <Box mt={4} mb={4}>
+        <Text c="dimmed" size="sm">
+          Event Status
+        </Text>
+        {canEditStatus && isEditing ? (
+          <Select
+            data={[
+              { value: "draft", label: "Draft" },
+              { value: "scheduled", label: "Scheduled" },
+              { value: "completed", label: "Completed" },
+              { value: "canceled", label: "Canceled" },
+            ]}
+            value={form.values.status}
+            onChange={(value) => form.setFieldValue("status", value ?? event.event_status)}
+            variant="unstyled"
+            size="md"
+            styles={metadataInputStyles}
+          />
+        ) : (
+          <Badge color={getStatusColor(event.status_display)}>{event.status_display}</Badge>
+        )}
+      </Box>
+      <Box mt={4} mb={4}>
+        {canEditLocation && isEditing ? (
+          <>
+            <Text c="dimmed" size="sm">
+              Location Name
+            </Text>
+            <TextInput
+              {...form.getInputProps("locationName")}
+              placeholder="Location name"
+              variant="unstyled"
+              size="md"
+              styles={metadataInputStyles}
+            />
+          </>
+        ) : (
+          <>
+            <Text c="dimmed" size="sm">
+              Location Display
+            </Text>
+            <Text>{event.location_display}</Text>
+          </>
+        )}
+      </Box>
+      {canEditLocation && isEditing && (
         <Box mt={4} mb={4}>
           <Text c="dimmed" size="sm">
             Address
           </Text>
-          <Text mb={4}>{event.location_address}</Text>
+          <Textarea
+            {...form.getInputProps("locationAddress")}
+            autosize
+            minRows={2}
+            placeholder="Address"
+            variant="unstyled"
+            size="md"
+            styles={metadataInputStyles}
+          />
         </Box>
-        <Divider />
-        <Box mt={4} mb={4}>
-          <Text c="dimmed" size="sm">
-            Location Display
-          </Text>
-          <Text>{event.location_display}</Text>
-        </Box>
-        <Divider />
-        <Box mt={4} mb={4}>
-          <Text c="dimmed" size="sm">
-            Start Date
-          </Text>
+      )}
+      <Box mt={4} mb={4}>
+        <Text c="dimmed" size="sm">
+          Start Date
+        </Text>
+        {canEditDates && isEditing ? (
+          <DateTimePicker
+            value={form.values.startsAt}
+            valueFormat="MM/DD/YY, hh:mm A"
+            timePickerProps={{ format: "12h" }}
+            variant="unstyled"
+            size="md"
+            styles={metadataInputStyles}
+            onChange={(value) => form.setFieldValue("startsAt", value ?? form.values.startsAt)}
+          />
+        ) : (
           <Text>{formatDateTime(event.starts_at)}</Text>
-        </Box>
-        <Divider />
-        <Box mt={4} mb={4}>
-          <Text c="dimmed" size="sm">
-            End Date
-          </Text>
+        )}
+      </Box>
+      <Box mt={4} mb={4}>
+        <Text c="dimmed" size="sm">
+          End Date
+        </Text>
+        {canEditDates && isEditing ? (
+          <DateTimePicker
+            value={form.values.endsAt}
+            valueFormat="MM/DD/YY, hh:mm A"
+            timePickerProps={{ format: "12h" }}
+            variant="unstyled"
+            size="md"
+            styles={metadataInputStyles}
+            onChange={(value) => form.setFieldValue("endsAt", value ?? form.values.endsAt)}
+          />
+        ) : (
           <Text>{formatDateTime(event.ends_at)}</Text>
-        </Box>
-      </Paper>
-    </GridCol>
+        )}
+      </Box>
+    </Paper>
   );
 }
 
@@ -462,8 +713,23 @@ function EventViewContactTable({ event }: { event: Event }) {
                   </Table.Td>
                 ),
                 (ep) => (
-                  <Table.Td key={ep.status}>
-                    <Badge color={getEventParticipationStatusColor(ep.status)}>
+                  <Table.Td
+                    key={ep.status}
+                    style={{
+                      whiteSpace: "nowrap",
+                      width: "1%",
+                    }}
+                  >
+                    <Badge
+                      color={getEventParticipationStatusColor(ep.status)}
+                      styles={{
+                        root: {
+                          whiteSpace: "nowrap",
+                          width: "max-content",
+                          minWidth: "max-content",
+                        },
+                      }}
+                    >
                       {ep.status_display}
                     </Badge>
                   </Table.Td>

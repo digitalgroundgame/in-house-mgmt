@@ -24,6 +24,26 @@ def get_event_visibility_filter(user):
     return q
 
 
+def can_change_event(user, event):
+    if not user or not user.is_authenticated:
+        return False
+
+    # Superuser bypass
+    if user.is_superuser:
+        return True
+
+    # Global edit
+    if user.has_perm("events.change_all_events"):
+        return True
+
+    # Assigned edit
+    if user.has_perm("events.change_assigned_event"):
+        return event.users.filter(user=user).exists()
+
+    # Default deny
+    return False
+
+
 class EventObjectPermission(BasePermission):
     """
     Unified object-level permission for Events.
@@ -66,18 +86,7 @@ class EventObjectPermission(BasePermission):
             return False
 
         # ---------- WRITE ----------
-        if not user.has_perm("events.change_event"):
-            return False
-
-        # Global edit
-        if user.has_perm("events.change_all_events"):
-            return True
-
-        # Assigned edit
-        if user.has_perm("events.change_assigned_event"):
-            return event.users.filter(user=user).exists()
-
-        return False
+        return can_change_event(user, event)
 
 
 def get_participation_visibility_filter(user):

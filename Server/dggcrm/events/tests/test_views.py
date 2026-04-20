@@ -1,7 +1,7 @@
 import pytest
 from rest_framework.test import APIClient
 
-from dggcrm.events.models import CommitmentStatus, EventParticipation
+from dggcrm.events.models import CommitmentStatus, EventParticipation, EventStatus
 
 ENDPOINT = "/api/participants/"
 
@@ -66,3 +66,92 @@ class TestParticipationCreate:
         assert response.status_code == 200
         scheduled_participation.refresh_from_db()
         assert scheduled_participation.status == CommitmentStatus.ATTENDED
+
+
+@pytest.mark.django_db
+class TestEventEditWorkflow:
+    def setup_method(self):
+        self.client = APIClient()
+
+    def test_event_detail_includes_editable_fields_for_assigned_editor(
+        self,
+        regular_user,
+        scheduled_event,
+        assigned_scheduled_event,
+        view_event_permission,
+        change_event_permission,
+        change_assigned_event_permission,
+    ):
+        regular_user.user_permissions.add(
+            view_event_permission,
+            change_event_permission,
+            change_assigned_event_permission,
+        )
+        self.client.force_authenticate(user=regular_user)
+
+        response = self.client.get(f"/api/events/{scheduled_event.id}/")
+
+        assert response.status_code == 200
+        assert sorted(response.data["editable_fields"]) == [
+            "description",
+            "ends_at",
+            "event_status",
+            "location_address",
+            "location_name",
+            "name",
+            "starts_at",
+        ]
+
+    def test_event_detail_includes_no_editable_fields_without_edit_permission(
+        self,
+        regular_user,
+        scheduled_event,
+        assigned_scheduled_event,
+        view_event_permission,
+    ):
+        regular_user.user_permissions.add(view_event_permission)
+        self.client.force_authenticate(user=regular_user)
+
+        response = self.client.get(f"/api/events/{scheduled_event.id}/")
+
+        assert response.status_code == 200
+        assert response.data["editable_fields"] == []
+
+    def test_patch_updates_event_status_for_assigned_editor(
+        self,
+        regular_user,
+        scheduled_event,
+        assigned_scheduled_event,
+        change_event_permission,
+        change_assigned_event_permission,
+    ):
+        regular_user.user_permissions.add(
+            change_event_permission,
+            change_assigned_event_permission,
+        )
+        self.client.force_authenticate(user=regular_user)
+
+        response = self.client.patch(
+            f"/api/events/{scheduled_event.id}/",
+            {"event_status": EventStatus.COMPLETED},
+        )
+
+        assert response.status_code == 200
+        scheduled_event.refresh_from_db()
+        assert scheduled_event.event_status == EventStatus.COMPLETED
+        assert response.data["event_status"] == EventStatus.COMPLETED
+
+    def test_patch_denied_without_edit_permission(
+        self,
+        regular_user,
+        scheduled_event,
+        assigned_scheduled_event,
+    ):
+        self.client.force_authenticate(user=regular_user)
+
+        response = self.client.patch(
+            f"/api/events/{scheduled_event.id}/",
+            {"event_status": EventStatus.COMPLETED},
+        )
+
+        assert response.status_code == 403
