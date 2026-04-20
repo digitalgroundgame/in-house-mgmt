@@ -39,10 +39,13 @@ export default function AddUserModal({ opened, onClose, onSuccess, availableGrou
     },
 
     validate: {
-      username: (value) => (!value.trim() ? "Username is required" : null),
+      username: (value) => {
+        if (!value.trim()) return "Username is required";
+        if (value.trim().length < 3) return "Username must be at least 3 characters";
+        return null;
+      },
       email: (value) => {
         if (!value.trim()) return "Email is required";
-        if (value.trim().length < 3) return "Username must be at least 3 characters";
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Please enter a valid email address";
         return null;
       },
