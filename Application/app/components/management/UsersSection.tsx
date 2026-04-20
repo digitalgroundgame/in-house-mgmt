@@ -62,7 +62,6 @@ const PAGE_SIZE = 10;
 export default function UsersSection({ onUserCreated }: Props) {
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
@@ -70,10 +69,10 @@ export default function UsersSection({ onUserCreated }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [hasFirstLoad, setHasFirstLoad] = useState(false);
 
   const fetchUsers = useCallback(async () => {
     try {
-      setLoading(true);
       const params = new URLSearchParams({
         page: String(page),
         page_size: String(PAGE_SIZE),
@@ -88,7 +87,7 @@ export default function UsersSection({ onUserCreated }: Props) {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load users");
     } finally {
-      setLoading(false);
+      setHasFirstLoad(true);
     }
   }, [page, searchQuery]);
 
@@ -171,7 +170,7 @@ export default function UsersSection({ onUserCreated }: Props) {
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
-  if (loading && users.length === 0) {
+  if (!hasFirstLoad) {
     return (
       <Box py="xl" style={{ textAlign: "center" }}>
         <Loader />
@@ -336,7 +335,7 @@ export default function UsersSection({ onUserCreated }: Props) {
         opened={addModalOpen}
         onClose={() => setAddModalOpen(false)}
         onSuccess={handleUserCreated}
-        groups={groups}
+        availableGroups={groups}
       />
     </Stack>
   );

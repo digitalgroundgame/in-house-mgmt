@@ -40,7 +40,7 @@ describe("AddUserModal", () => {
     opened: true,
     onClose: vi.fn(),
     onSuccess: vi.fn(),
-    groups: mockGroups,
+    availableGroups: mockGroups,
   };
 
   it("renders when opened", () => {

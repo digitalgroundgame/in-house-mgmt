@@ -4,6 +4,7 @@ import { Modal, Stack, TextInput, Button, Group, MultiSelect } from "@mantine/co
 import { useState, useEffect } from "react";
 import { notifications } from "@mantine/notifications";
 import { apiClient } from "@/app/lib/apiClient";
+import { useForm } from "@mantine/form";
 
 interface Group {
   id: number;
@@ -14,7 +15,7 @@ interface Props {
   opened: boolean;
   onClose: () => void;
   onSuccess?: () => void;
-  groups: Group[];
+  availableGroups: Group[];
 }
 
 interface CreateUserPayload {
@@ -25,67 +26,52 @@ interface CreateUserPayload {
   groups: string[];
 }
 
-export default function AddUserModal({ opened, onClose, onSuccess, groups }: Props) {
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+export default function AddUserModal({ opened, onClose, onSuccess, availableGroups }: Props) {
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const form = useForm({
+    initialValues: {
+      username: "",
+      email: "",
+      firstName: "",
+      lastName: "",
+      selectedGroups: [] as string[],
+    },
+
+    validate: {
+      username: (value) => {
+        if (!value.trim()) return "Username is required";
+        if (value.trim().length < 3) return "Username must be at least 3 characters";
+        return null;
+      },
+      email: (value) => {
+        if (!value.trim()) return "Email is required";
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Please enter a valid email address";
+        return null;
+      },
+    },
+  });
 
   useEffect(() => {
-    if (opened) {
-      setUsername("");
-      setEmail("");
-      setFirstName("");
-      setLastName("");
-      setSelectedGroups([]);
-      setErrors({});
-    }
+    if (opened) form.reset();
+    //eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opened]);
 
-  const validate = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!username.trim()) {
-      newErrors.username = "Username is required";
-    } else if (username.length < 3) {
-      newErrors.username = "Username must be at least 3 characters";
-    }
-
-    if (!email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      newErrors.email = "Please enter a valid email address";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async () => {
-    if (!validate()) return;
-
+  const handleSubmit = async (values: typeof form.values) => {
     setLoading(true);
     const payload: CreateUserPayload = {
-      username: username.trim(),
-      email: email.trim(),
-      groups: selectedGroups,
+      username: values.username.trim(),
+      email: values.email.trim(),
+      groups: values.selectedGroups,
+      ...(values.firstName.trim() && { first_name: values.firstName.trim() }),
+      ...(values.lastName.trim() && { last_name: values.lastName.trim() }),
     };
-
-    if (firstName.trim()) {
-      payload.first_name = firstName.trim();
-    }
-    if (lastName.trim()) {
-      payload.last_name = lastName.trim();
-    }
 
     try {
       await apiClient.post("/management/users/", payload);
       notifications.show({
         title: "Success",
-        message: `User "${username}" created successfully`,
+        message: `User "${payload.username}" created successfully`,
         color: "green",
       });
       onSuccess?.();
@@ -111,7 +97,7 @@ export default function AddUserModal({ opened, onClose, onSuccess, groups }: Pro
     }
   };
 
-  const groupOptions = groups.map((g) => ({ value: g.name, label: g.name }));
+  const groupOptions = availableGroups.map((g) => ({ value: g.name, label: g.name }));
 
   return (
     <Modal opened={opened} onClose={onClose} title="Add New User" size="md" centered>
@@ -119,36 +105,30 @@ export default function AddUserModal({ opened, onClose, onSuccess, groups }: Pro
         <TextInput
           label="Username"
           placeholder="Enter username"
-          value={username}
-          onChange={(e) => setUsername(e.currentTarget.value)}
-          error={errors.username}
           required
           description="Used for login. Must be unique."
+          {...form.getInputProps("username")}
         />
 
         <TextInput
           label="Email"
           placeholder="user@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.currentTarget.value)}
-          error={errors.email}
           required
           description="Primary email address for this user"
+          {...form.getInputProps("email")}
         />
 
         <Group grow>
           <TextInput
             label="First Name"
             placeholder="First name"
-            value={firstName}
-            onChange={(e) => setFirstName(e.currentTarget.value)}
+            {...form.getInputProps("firstName")}
           />
 
           <TextInput
             label="Last Name"
             placeholder="Last name"
-            value={lastName}
-            onChange={(e) => setLastName(e.currentTarget.value)}
+            {...form.getInputProps("lastName")}
           />
         </Group>
 
@@ -156,8 +136,7 @@ export default function AddUserModal({ opened, onClose, onSuccess, groups }: Pro
           label="Groups"
           placeholder="Select groups"
           data={groupOptions}
-          value={selectedGroups}
-          onChange={setSelectedGroups}
+          {...form.getInputProps("selectedGroups")}
           clearable
           description="Assign group memberships. Default is no group."
         />
@@ -166,7 +145,7 @@ export default function AddUserModal({ opened, onClose, onSuccess, groups }: Pro
           <Button variant="default" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} loading={loading}>
+          <Button onClick={() => form.onSubmit(handleSubmit)()} loading={loading}>
             Create User
           </Button>
         </Group>

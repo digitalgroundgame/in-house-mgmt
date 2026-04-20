@@ -78,7 +78,7 @@ beforeEach(() => {
       });
     }),
     http.get("/api/management/groups/", () => HttpResponse.json(mockGroups)),
-    http.patch("/api/management/users/:id/", async ({ params, request }) => {
+    http.patch<{ id: string }>("/api/management/users/:id/", async ({ params, request }) => {
       const body = (await request.json()) as { groups: string[] };
       const user = mockUsers.find((u) => u.id === Number(params.id));
       if (user) {
@@ -86,7 +86,7 @@ beforeEach(() => {
       }
       return HttpResponse.json({ ...user, groups: body.groups });
     }),
-    http.post("/api/management/users/:id/toggle-active/", async ({ params }) => {
+    http.post<{ id: string }>("/api/management/users/:id/toggle-active/", async ({ params }) => {
       const user = mockUsers.find((u) => u.id === Number(params.id));
       if (user) {
         user.is_active = !user.is_active;
