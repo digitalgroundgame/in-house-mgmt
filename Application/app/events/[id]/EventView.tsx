@@ -102,7 +102,7 @@ function EventViewMain({ event }: { event: Event }) {
 
   const canEditEvent = (currentEvent.editable_fields?.length ?? 0) > 0;
 
-  const updateEvent = async (payload: Partial<Event>) => {
+  const updateEvent = async (payload: Partial<Event>): Promise<Event> => {
     const updated = await apiClient.patch<Event>(`/events/${currentEvent.id}`, payload);
     setCurrentEvent(updated);
     return updated;
