@@ -16,6 +16,7 @@ import {
 import { BackendPaginatedResults, useBackend, useBackendMutation } from "@/app/lib/api";
 import { apiClient } from "@/app/lib/apiClient";
 import { DateTimePicker } from "@/app/components/datetime";
+import { type UseFormReturnType, useForm } from "@mantine/form";
 import {
   Text,
   Paper,
@@ -45,7 +46,7 @@ import {
 import { IconPencil, IconSearch } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useDisclosure } from "@mantine/hooks";
 import getCookie from "@/app/utils/cookie";
 import { formatDateTime } from "@/app/utils/datetime";
@@ -60,6 +61,28 @@ const EVENT_PARTICIPATION_STATUSES = [
 ] as const;
 type EventParticipationStatus = (typeof EVENT_PARTICIPATION_STATUSES)[number];
 
+interface EventEditFormValues {
+  name: string;
+  description: string;
+  status: string;
+  locationName: string;
+  locationAddress: string;
+  startsAt: string;
+  endsAt: string;
+}
+
+function getEventFormValues(event: Event): EventEditFormValues {
+  return {
+    name: event.name,
+    description: event.description ?? "",
+    status: event.event_status,
+    locationName: event.location_name ?? "",
+    locationAddress: event.location_address ?? "",
+    startsAt: event.starts_at,
+    endsAt: event.ends_at,
+  };
+}
+
 export default function EventView({ event }: { event: Event | undefined }) {
   return (
     <Container py="xl" size="xl">
@@ -72,33 +95,10 @@ export default function EventView({ event }: { event: Event | undefined }) {
 function EventViewMain({ event }: { event: Event }) {
   const [currentEvent, setCurrentEvent] = useState(event);
   const [isEditing, setIsEditing] = useState(false);
-  const [summaryDraft, setSummaryDraft] = useState({
-    name: event.name,
-    description: event.description ?? "",
-  });
-  const [metadataDraft, setMetadataDraft] = useState({
-    status: event.event_status,
-    locationName: event.location_name ?? "",
-    locationAddress: event.location_address ?? "",
-    startsAt: event.starts_at,
-    endsAt: event.ends_at,
-  });
   const [isSavingEventEdits, setIsSavingEventEdits] = useState(false);
-
-  useEffect(() => {
-    setCurrentEvent(event);
-    setSummaryDraft({
-      name: event.name,
-      description: event.description ?? "",
-    });
-    setMetadataDraft({
-      status: event.event_status,
-      locationName: event.location_name ?? "",
-      locationAddress: event.location_address ?? "",
-      startsAt: event.starts_at,
-      endsAt: event.ends_at,
-    });
-  }, [event]);
+  const form = useForm<EventEditFormValues>({
+    initialValues: getEventFormValues(event),
+  });
 
   const canEditEvent = (currentEvent.editable_fields?.length ?? 0) > 0;
 
@@ -111,15 +111,18 @@ function EventViewMain({ event }: { event: Event }) {
   const saveEventEdits = async () => {
     setIsSavingEventEdits(true);
     try {
-      await updateEvent({
-        name: summaryDraft.name,
-        description: summaryDraft.description,
-        event_status: metadataDraft.status,
-        location_name: metadataDraft.locationName,
-        location_address: metadataDraft.locationAddress,
-        starts_at: metadataDraft.startsAt,
-        ends_at: metadataDraft.endsAt,
+      const updated = await updateEvent({
+        name: form.values.name,
+        description: form.values.description,
+        event_status: form.values.status,
+        location_name: form.values.locationName,
+        location_address: form.values.locationAddress,
+        starts_at: form.values.startsAt,
+        ends_at: form.values.endsAt,
       });
+      const values = getEventFormValues(updated);
+      form.setValues(values);
+      form.resetDirty(values);
 
       notifications.show({
         title: "Event updated",
@@ -140,17 +143,9 @@ function EventViewMain({ event }: { event: Event }) {
   };
 
   const cancelEditing = () => {
-    setSummaryDraft({
-      name: currentEvent.name,
-      description: currentEvent.description ?? "",
-    });
-    setMetadataDraft({
-      status: currentEvent.event_status,
-      locationName: currentEvent.location_name ?? "",
-      locationAddress: currentEvent.location_address ?? "",
-      startsAt: currentEvent.starts_at,
-      endsAt: currentEvent.ends_at,
-    });
+    const values = getEventFormValues(currentEvent);
+    form.setValues(values);
+    form.resetDirty(values);
     setIsEditing(false);
   };
 
@@ -176,15 +171,7 @@ function EventViewMain({ event }: { event: Event }) {
                   size="xs"
                   onClick={saveEventEdits}
                   loading={isSavingEventEdits}
-                  disabled={
-                    summaryDraft.name === currentEvent.name &&
-                    summaryDraft.description === (currentEvent.description ?? "") &&
-                    metadataDraft.status === currentEvent.event_status &&
-                    metadataDraft.locationName === (currentEvent.location_name ?? "") &&
-                    metadataDraft.locationAddress === (currentEvent.location_address ?? "") &&
-                    metadataDraft.startsAt === currentEvent.starts_at &&
-                    metadataDraft.endsAt === currentEvent.ends_at
-                  }
+                  disabled={!form.isDirty()}
                 >
                   Save
                 </Button>
@@ -195,12 +182,7 @@ function EventViewMain({ event }: { event: Event }) {
             )}
           </Group>
         )}
-        <EventSummaryCard
-          event={currentEvent}
-          isEditing={isEditing}
-          summaryDraft={summaryDraft}
-          setSummaryDraft={setSummaryDraft}
-        />
+        <EventSummaryCard event={currentEvent} isEditing={isEditing} form={form} />
         <Tabs defaultValue="participants" mt="md">
           <Tabs.List>
             <Tabs.Tab value="participants">Participants</Tabs.Tab>
@@ -215,12 +197,7 @@ function EventViewMain({ event }: { event: Event }) {
         </Tabs>
       </GridCol>
       <GridCol style={{ flex: "0 0 239px", maxWidth: "239px", minWidth: "239px" }}>
-        <EventViewMetadata
-          event={currentEvent}
-          isEditing={isEditing}
-          metadataDraft={metadataDraft}
-          setMetadataDraft={setMetadataDraft}
-        />
+        <EventViewMetadata event={currentEvent} isEditing={isEditing} form={form} />
       </GridCol>
     </Grid>
   );
@@ -229,21 +206,11 @@ function EventViewMain({ event }: { event: Event }) {
 function EventSummaryCard({
   event,
   isEditing,
-  summaryDraft,
-  setSummaryDraft,
+  form,
 }: {
   event: Event;
   isEditing: boolean;
-  summaryDraft: {
-    name: string;
-    description: string;
-  };
-  setSummaryDraft: React.Dispatch<
-    React.SetStateAction<{
-      name: string;
-      description: string;
-    }>
-  >;
+  form: UseFormReturnType<EventEditFormValues>;
 }) {
   const canEditName = event.editable_fields?.includes("name") ?? false;
   const canEditDescription = event.editable_fields?.includes("description") ?? false;
@@ -255,11 +222,7 @@ function EventSummaryCard({
       <Stack gap="sm">
         {canEditName && isEditing ? (
           <TextInput
-            value={summaryDraft.name}
-            onChange={(e) => {
-              const value = e.currentTarget.value;
-              setSummaryDraft((current) => ({ ...current, name: value }));
-            }}
+            {...form.getInputProps("name")}
             variant="unstyled"
             size="xl"
             styles={{
@@ -278,11 +241,7 @@ function EventSummaryCard({
           <>
             <Divider />
             <Textarea
-              value={summaryDraft.description}
-              onChange={(e) => {
-                const value = e.currentTarget.value;
-                setSummaryDraft((current) => ({ ...current, description: value }));
-              }}
+              {...form.getInputProps("description")}
               autosize
               minRows={5}
               variant="unstyled"
@@ -309,27 +268,11 @@ function EventSummaryCard({
 function EventViewMetadata({
   event,
   isEditing,
-  metadataDraft,
-  setMetadataDraft,
+  form,
 }: {
   event: Event;
   isEditing: boolean;
-  metadataDraft: {
-    status: string;
-    locationName: string;
-    locationAddress: string;
-    startsAt: string;
-    endsAt: string;
-  };
-  setMetadataDraft: React.Dispatch<
-    React.SetStateAction<{
-      status: string;
-      locationName: string;
-      locationAddress: string;
-      startsAt: string;
-      endsAt: string;
-    }>
-  >;
+  form: UseFormReturnType<EventEditFormValues>;
 }) {
   const canEditStatus = event.editable_fields?.includes("event_status") ?? false;
   const canEditLocation =
@@ -363,13 +306,8 @@ function EventViewMetadata({
               { value: "completed", label: "Completed" },
               { value: "canceled", label: "Canceled" },
             ]}
-            value={metadataDraft.status}
-            onChange={(value) => {
-              setMetadataDraft((current) => ({
-                ...current,
-                status: value ?? event.event_status,
-              }));
-            }}
+            value={form.values.status}
+            onChange={(value) => form.setFieldValue("status", value ?? event.event_status)}
             variant="unstyled"
             size="md"
             styles={metadataInputStyles}
@@ -385,11 +323,7 @@ function EventViewMetadata({
               Location Name
             </Text>
             <TextInput
-              value={metadataDraft.locationName}
-              onChange={(e) => {
-                const value = e.currentTarget.value;
-                setMetadataDraft((current) => ({ ...current, locationName: value }));
-              }}
+              {...form.getInputProps("locationName")}
               placeholder="Location name"
               variant="unstyled"
               size="md"
@@ -411,11 +345,7 @@ function EventViewMetadata({
             Address
           </Text>
           <Textarea
-            value={metadataDraft.locationAddress}
-            onChange={(e) => {
-              const value = e.currentTarget.value;
-              setMetadataDraft((current) => ({ ...current, locationAddress: value }));
-            }}
+            {...form.getInputProps("locationAddress")}
             autosize
             minRows={2}
             placeholder="Address"
@@ -431,18 +361,13 @@ function EventViewMetadata({
         </Text>
         {canEditDates && isEditing ? (
           <DateTimePicker
-            value={metadataDraft.startsAt}
+            value={form.values.startsAt}
             valueFormat="MM/DD/YY, hh:mm A"
             timePickerProps={{ format: "12h" }}
             variant="unstyled"
             size="md"
             styles={metadataInputStyles}
-            onChange={(value) =>
-              setMetadataDraft((current) => ({
-                ...current,
-                startsAt: value ?? current.startsAt,
-              }))
-            }
+            onChange={(value) => form.setFieldValue("startsAt", value ?? form.values.startsAt)}
           />
         ) : (
           <Text>{formatDateTime(event.starts_at)}</Text>
@@ -454,18 +379,13 @@ function EventViewMetadata({
         </Text>
         {canEditDates && isEditing ? (
           <DateTimePicker
-            value={metadataDraft.endsAt}
+            value={form.values.endsAt}
             valueFormat="MM/DD/YY, hh:mm A"
             timePickerProps={{ format: "12h" }}
             variant="unstyled"
             size="md"
             styles={metadataInputStyles}
-            onChange={(value) =>
-              setMetadataDraft((current) => ({
-                ...current,
-                endsAt: value ?? current.endsAt,
-              }))
-            }
+            onChange={(value) => form.setFieldValue("endsAt", value ?? form.values.endsAt)}
           />
         ) : (
           <Text>{formatDateTime(event.ends_at)}</Text>
