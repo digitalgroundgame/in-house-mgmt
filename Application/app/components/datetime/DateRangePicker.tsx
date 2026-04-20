@@ -75,11 +75,9 @@ export function DateRangePicker({
     if (!value.start && !value.end) return placeholder;
     const startText = formatDateTime(value.start, timezone, {
       includeTime: true,
-      style: "short",
     });
     const endText = formatDateTime(value.end, timezone, {
       includeTime: true,
-      style: "short",
     });
     return `${startText} - ${endText}`;
   };

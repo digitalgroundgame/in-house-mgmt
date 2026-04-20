@@ -65,7 +65,7 @@ We're hosting an upcoming event: **{{event.name}}**
 {{event.description}}
 
 📍 Location: {{event.location_display}}
-📅 Date: {{event.starts_at}}
+📅 Date: {{event.starts_at|date:"SHORT_DATETIME_FORMAT"}}
 
 Would you like to attend? Please let us know!
 
@@ -123,7 +123,7 @@ Just a friendly reminder about the upcoming event:
 
 {{event.name}}
 📍 {{event.location_display}}
-📅 {{event.starts_at}}
+📅 {{event.starts_at|date:"SHORT_DATETIME_FORMAT"}}
 
 Are you still able to attend? Please confirm your attendance.
 
@@ -148,7 +148,7 @@ def render_template(template_str: str, contact: dict, event: dict | None = None)
         result = result.replace("{{event.name}}", event.get("name", "Event"))
         result = result.replace("{{event.description}}", event.get("description", ""))
         result = result.replace("{{event.location_display}}", event.get("location_display", "TBD"))
-        result = result.replace("{{event.starts_at}}", event.get("starts_at", "TBD"))
+        result = result.replace('{{event.starts_at|date:"SHORT_DATETIME_FORMAT"}}', event.get("starts_at", "TBD"))
 
     return result
 

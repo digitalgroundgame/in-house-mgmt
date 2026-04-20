@@ -87,8 +87,8 @@ def get_contact_context(contact) -> dict:
             "phone": contact.phone or "",
             "note": contact.note or "",
             "display_name": str(contact),
-            "created_at": contact.created_at.isoformat() if contact.created_at else "",
-            "modified_at": contact.modified_at.isoformat() if contact.modified_at else "",
+            "created_at": contact.created_at,
+            "modified_at": contact.modified_at,
         }
     }
 
@@ -100,7 +100,6 @@ def get_event_context(event) -> dict:
     """
     if event is None:
         return {}
-
     return {
         "event": {
             "id": event.id,
@@ -109,11 +108,11 @@ def get_event_context(event) -> dict:
             "location_name": event.location_name or "",
             "location_address": event.location_address or "",
             "location_display": event.location_display,
-            "starts_at": event.starts_at.isoformat() if event.starts_at else "",
-            "ends_at": event.ends_at.isoformat() if event.ends_at else "",
+            "starts_at": event.starts_at,
+            "ends_at": event.ends_at,
             "status": event.event_status or "",
-            "created_at": event.created_at.isoformat() if event.created_at else "",
-            "modified_at": event.modified_at.isoformat() if event.modified_at else "",
+            "created_at": event.created_at,
+            "modified_at": event.modified_at,
         }
     }
 
