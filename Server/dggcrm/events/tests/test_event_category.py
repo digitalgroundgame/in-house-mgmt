@@ -133,3 +133,100 @@ class TestEventCategoryFiltering:
         response = self.client.get(f"/api/contacts/?event_category_id={other_event_category.id}&min_events=1")
         assert response.status_code == 200
         assert response.data["count"] == 0
+
+
+@pytest.mark.django_db
+class TestEventCategoryPermissions:
+    def setup_method(self):
+        self.client = APIClient()
+        self.client.handler.enforce_trailing_slash = False
+
+    def test_regular_user_can_list_categories(self, regular_user, event_category):
+        self.client.force_authenticate(user=regular_user)
+        response = self.client.get("/api/event-categories/")
+        assert response.status_code == 200
+        assert response.data["count"] == 1
+
+    def test_regular_user_can_filter_events_by_category(
+        self,
+        regular_user,
+        event_category,
+        scheduled_event,
+        assigned_scheduled_event,
+    ):
+        scheduled_event.category = event_category
+        scheduled_event.save()
+
+        self.client.force_authenticate(user=regular_user)
+        response = self.client.get(f"/api/events/?category_id={event_category.id}")
+        assert response.status_code == 200
+        assert response.data["count"] == 1
+        assert response.data["results"][0]["id"] == scheduled_event.id
+
+    def test_regular_user_filter_by_category_excludes_unassigned_events(
+        self,
+        regular_user,
+        event_category,
+        scheduled_event,
+        completed_event,
+        assigned_scheduled_event,
+    ):
+        scheduled_event.category = event_category
+        scheduled_event.save()
+        completed_event.category = event_category
+        completed_event.save()
+
+        self.client.force_authenticate(user=regular_user)
+        response = self.client.get(f"/api/events/?category_id={event_category.id}")
+        assert response.status_code == 200
+        assert response.data["count"] == 1
+        assert response.data["results"][0]["id"] == scheduled_event.id
+
+    def test_regular_user_filter_by_category_no_match(
+        self,
+        regular_user,
+        other_event_category,
+        scheduled_event,
+        assigned_scheduled_event,
+    ):
+        self.client.force_authenticate(user=regular_user)
+        response = self.client.get(f"/api/events/?category_id={other_event_category.id}")
+        assert response.status_code == 200
+        assert response.data["count"] == 0
+
+    def test_regular_user_cannot_create_category(self, regular_user):
+        self.client.force_authenticate(user=regular_user)
+        response = self.client.post("/api/event-categories/", {"name": "Phone Banking"})
+        assert response.status_code == 403
+
+    def test_regular_user_cannot_update_category(self, regular_user, event_category):
+        self.client.force_authenticate(user=regular_user)
+        response = self.client.patch(f"/api/event-categories/{event_category.id}/", {"name": "Updated"})
+        assert response.status_code == 403
+
+    def test_regular_user_cannot_delete_category(self, regular_user, event_category):
+        self.client.force_authenticate(user=regular_user)
+        response = self.client.delete(f"/api/event-categories/{event_category.id}/")
+        assert response.status_code == 403
+
+    def test_user_with_add_permission_can_create(self, regular_user, add_eventcategory_permission):
+        regular_user.user_permissions.add(add_eventcategory_permission)
+        self.client.force_authenticate(user=regular_user)
+        response = self.client.post("/api/event-categories/", {"name": "Phone Banking"})
+        assert response.status_code == 201
+
+    def test_user_with_change_permission_can_update(
+        self, regular_user, event_category, change_eventcategory_permission
+    ):
+        regular_user.user_permissions.add(change_eventcategory_permission)
+        self.client.force_authenticate(user=regular_user)
+        response = self.client.patch(f"/api/event-categories/{event_category.id}/", {"name": "Updated"})
+        assert response.status_code == 200
+
+    def test_user_with_delete_permission_can_delete(
+        self, regular_user, event_category, delete_eventcategory_permission
+    ):
+        regular_user.user_permissions.add(delete_eventcategory_permission)
+        self.client.force_authenticate(user=regular_user)
+        response = self.client.delete(f"/api/event-categories/{event_category.id}/")
+        assert response.status_code == 204

@@ -243,3 +243,18 @@ def change_all_usersinevents_permission(db):
 @pytest.fixture
 def change_usersinevent_via_event_permission(db):
     return Permission.objects.get(codename="change_usersinevent_via_event")
+
+
+@pytest.fixture
+def add_eventcategory_permission(db):
+    return Permission.objects.get(codename="add_eventcategory")
+
+
+@pytest.fixture
+def change_eventcategory_permission(db):
+    return Permission.objects.get(codename="change_eventcategory")
+
+
+@pytest.fixture
+def delete_eventcategory_permission(db):
+    return Permission.objects.get(codename="delete_eventcategory")
