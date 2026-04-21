@@ -11,6 +11,7 @@ import {
   Stack,
   Modal,
   MultiSelect,
+  Select,
   ActionIcon,
   NumberInput,
 } from "@mantine/core";
@@ -27,7 +28,6 @@ import { useRouter } from "next/navigation";
 import { apiClient } from "@/app/lib/apiClient";
 import { useForm } from "@mantine/form";
 import { TicketBulkCreateModal } from "@/app/components/tickets/TicketBulkCreateModal";
-import { SearchSelect, type SearchSelectOption } from "@/app/components/SearchSelect";
 import ContactTable, {
   type Contact,
   type Group as ContactGroup,
@@ -42,7 +42,8 @@ export default function ContactsPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGroup, setSelectedGroup] = useState<string | null>("all");
-  const [selectedTag, setSelectedTag] = useState<SearchSelectOption<Tag> | null>(null);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [tagMode, setTagMode] = useState<"any" | "all">("any");
   const [startDate, setStartDate] = useState<string | null>("");
   const [endDate, setEndDate] = useState<string | null>("");
   const [minEvents, setMinEvents] = useState<number | string>();
@@ -84,7 +85,8 @@ export default function ContactsPage() {
   }, [
     searchQuery,
     selectedGroup,
-    selectedTag,
+    selectedTagIds,
+    tagMode,
     minEvents,
     minTickets,
     maxEvents,
@@ -124,7 +126,10 @@ export default function ContactsPage() {
         if (startDate) params.append("start_date", startDate);
         if (endDate) params.append("end_date", endDate);
 
-        if (selectedTag) params.append("tag", selectedTag.id.toString());
+        if (selectedTagIds.length > 0) {
+          params.append("tag_ids", selectedTagIds.join(","));
+          params.append("tag_mode", tagMode);
+        }
         fetchUrl = `/contacts/?${params}`;
       }
 
@@ -152,7 +157,8 @@ export default function ContactsPage() {
   const handleReset = () => {
     setSearchQuery("");
     setSelectedGroup("all");
-    setSelectedTag(null);
+    setSelectedTagIds([]);
+    setTagMode("any");
     setMaxEvents("");
     setMinEvents("");
     setMaxTickets("");
@@ -256,19 +262,41 @@ export default function ContactsPage() {
                 style={{ flex: 1 }}
               />
 
-              <SearchSelect<Tag>
-                endpoint="/tags/"
-                label="Tag"
-                placeholder="Search tags..."
-                value={selectedTag}
-                onChange={setSelectedTag}
-                clearable
-                mapResult={(tag) => ({
-                  id: tag.id,
-                  label: tag.name,
-                  raw: tag,
-                })}
-              />
+              <Group gap={0} align="flex-end">
+                <Select
+                  label="Tags"
+                  data={[
+                    { value: "any", label: "Any of" },
+                    { value: "all", label: "All of" },
+                  ]}
+                  value={tagMode}
+                  onChange={(v) => setTagMode((v as "any" | "all") || "any")}
+                  allowDeselect={false}
+                  styles={{
+                    input: {
+                      borderTopRightRadius: 0,
+                      borderBottomRightRadius: 0,
+                      borderRight: "none",
+                      width: 100,
+                    },
+                  }}
+                />
+                <MultiSelect
+                  data={tags.map((t) => ({ value: String(t.id), label: t.name }))}
+                  value={selectedTagIds}
+                  onChange={setSelectedTagIds}
+                  placeholder="Search tags..."
+                  searchable
+                  clearable
+                  style={{ minWidth: 200 }}
+                  styles={{
+                    input: {
+                      borderTopLeftRadius: 0,
+                      borderBottomLeftRadius: 0,
+                    },
+                  }}
+                />
+              </Group>
             </Group>
             <Group>
               <>
