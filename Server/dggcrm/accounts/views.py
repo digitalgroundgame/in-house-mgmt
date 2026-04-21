@@ -1,3 +1,4 @@
+from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialAccount
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -9,8 +10,9 @@ from rest_framework.viewsets import GenericViewSet
 
 from config.pagination import StandardPagination
 
-from .models import UserPreferences
+from .models import DiscordID, UserPreferences
 from .serializers import (
+    DiscordIDSerializer,
     GroupSerializer,
     ManagedUserSerializer,
     SocialAccountSerializer,
@@ -99,7 +101,7 @@ class ManagedUserViewSet(
 
     def get_queryset(self):
         User = get_user_model()
-        return User.objects.all().order_by("username")
+        return User.objects.all().order_by("username").prefetch_related("discord_ids")
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -119,16 +121,53 @@ class ManagedUserViewSet(
 
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = UpdateUserSerializer(data=request.data, partial=True)
+        serializer = UpdateUserSerializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
 
-        instance.groups.clear()
-        for group_name in serializer.validated_data.get("groups", []):
-            try:
-                group = Group.objects.get(name=group_name)
-                instance.groups.add(group)
-            except Group.DoesNotExist:
-                pass
+        new_email = serializer.validated_data.get("email")
+        if "email" in request.data:
+            has_discord = DiscordID.objects.filter(user=instance).exists()
+            if not has_discord and (new_email is None or new_email == ""):
+                return Response(
+                    {"detail": ["Cannot remove email. User would have no authentication method."]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            instance.email = new_email if new_email else ""
+            instance.save(update_fields=["email"])
+            EmailAddress.objects.filter(user=instance, primary=True).delete()
+            if new_email:
+                EmailAddress.objects.create(
+                    user=instance,
+                    email=new_email,
+                    primary=True,
+                    verified=True,
+                )
+
+        new_discord_id = serializer.validated_data.get("discord_id")
+        if "discord_id" in request.data:
+            has_email = EmailAddress.objects.filter(user=instance, primary=True).exists()
+            if not has_email and (new_discord_id is None or new_discord_id.strip() == ""):
+                return Response(
+                    {"detail": ["Cannot remove Discord ID. User would have no authentication method."]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            DiscordID.objects.filter(user=instance).delete()
+            if new_discord_id.strip():
+                DiscordID.objects.create(
+                    user=instance,
+                    discord_id=new_discord_id.strip(),
+                    active=True,
+                )
+
+        groups = serializer.validated_data.get("groups")
+        if groups is not None:
+            instance.groups.clear()
+            for group_name in groups:
+                try:
+                    group = Group.objects.get(name=group_name)
+                    instance.groups.add(group)
+                except Group.DoesNotExist:
+                    pass
 
         return Response(ManagedUserSerializer(instance).data, status=status.HTTP_200_OK)
 
@@ -158,3 +197,35 @@ class ToggleUserActiveView(APIView):
             {"id": user.id, "username": user.username, "is_active": user.is_active},
             status=status.HTTP_200_OK,
         )
+
+
+class DiscordIDViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    GenericViewSet,
+):
+    permission_classes = [IsAdminUser]
+    serializer_class = DiscordIDSerializer
+    pagination_class = StandardPagination
+
+    def get_queryset(self):
+        user_id = self.request.query_params.get("user")
+        if user_id:
+            return DiscordID.objects.filter(user_id=user_id)
+        return DiscordID.objects.all()
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        user = instance.user
+        has_email = EmailAddress.objects.filter(user=user, primary=True).exists()
+        has_other_discord = DiscordID.objects.filter(user=user).exclude(pk=instance.pk).exists()
+        if not has_email and not has_other_discord:
+            return Response(
+                {"detail": ["Cannot remove Discord ID. User would have no authentication method."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        instance.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

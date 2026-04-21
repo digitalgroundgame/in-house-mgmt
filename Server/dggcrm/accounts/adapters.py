@@ -5,6 +5,8 @@ from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.contrib.auth import get_user_model
 from django.shortcuts import redirect
 
+from .models import DiscordID
+
 
 class SocialLoginForbidden(Exception):
     """Raised when a social login is not allowed (non-existing user)."""
@@ -18,17 +20,31 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
     def pre_social_login(self, request, sociallogin):
         """
         Only allow social login for users that already exist.
-        Match against ANY verified email on the account.
+        Primary check: DiscordID table (for Discord provider)
+        Secondary check: verified email addresses
         """
         if sociallogin.is_existing:
             return
+
+        provider = sociallogin.account.provider
+        uid = str(sociallogin.account.uid)
+
+        if provider == "discord":
+            try:
+                discord_id = DiscordID.objects.select_related("user").get(
+                    discord_id=uid,
+                    active=True,
+                )
+                sociallogin.connect(request, discord_id.user)
+                return
+            except DiscordID.DoesNotExist:
+                pass
 
         email = sociallogin.account.extra_data.get("email")
         if not email:
             request.session.flush()
             raise ImmediateHttpResponse(redirect("/login?social_error=no_email"))
 
-        # First check user table's email, then check EmailAddress table
         User = get_user_model()
         if User.objects.filter(email=email).exists():
             user = User.objects.get(email=email)
@@ -40,11 +56,9 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
                 )
                 user = email_address.user
             except EmailAddress.DoesNotExist as err:
-                # No verified email anywhere in the system
                 request.session.flush()
                 raise ImmediateHttpResponse(redirect(f"/login?social_error=no_user&email={email}")) from err
 
-        # Link this social account to the owning user
         sociallogin.connect(request, user)
 
     def is_open_for_signup(self, request, sociallogin):
