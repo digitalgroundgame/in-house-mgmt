@@ -60,16 +60,13 @@ export default function EventsTable({
                       </Text>
                     )}
                   </Table.Td>
-                  <Table.Td>
-                    <Text size="sm">{event.status_display}</Text>
+                  <Table.Td style={{ whiteSpace: "normal" }}>
+                    <Text size="sm" style={{ whiteSpace: "normal", overflowWrap: "anywhere" }}>
+                      {event.status_display}
+                    </Text>
                   </Table.Td>
                   <Table.Td>
-                    <DateRange
-                      start={event.starts_at}
-                      end={event.ends_at}
-                      size="sm"
-                      format="medium"
-                    />
+                    <DateRange start={event.starts_at} end={event.ends_at} size="sm" />
                   </Table.Td>
                   <Table.Td>
                     <Text size="sm">{event.location_display}</Text>

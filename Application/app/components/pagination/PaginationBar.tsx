@@ -3,11 +3,11 @@ import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { ReadonlyURLSearchParams } from "next/navigation";
 
 export function incrementPageSearchParam(searchParams: ReadonlyURLSearchParams): string {
-  return (Number.parseInt(searchParams.get("page") ?? "0") + 1).toString();
+  return (Number.parseInt(searchParams.get("page") ?? "1") + 1).toString();
 }
 
 export function decrementPageSearchParam(searchParams: ReadonlyURLSearchParams): string {
-  return (Number.parseInt(searchParams.get("page") ?? "0") - 1).toString();
+  return (Number.parseInt(searchParams.get("page") ?? "1") - 1).toString();
 }
 
 export default function PaginationBar({

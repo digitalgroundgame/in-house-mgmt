@@ -7,6 +7,7 @@ export interface Event {
   event_type: EventType;
   event_status: string;
   status_display: string;
+  editable_fields?: string[];
   name: string;
   description: string | null;
   location_name: string | null;
