@@ -79,6 +79,8 @@ class ContactViewSet(viewsets.ModelViewSet):
             date_filter &= Q(event_participations__event__ends_at__gte=start_date)
         if end_date:
             date_filter &= Q(event_participations__event__starts_at__lte=end_date)
+        if start_date or end_date:
+            queryset = queryset.filter(date_filter)
 
         internal_ticket_filter = date_filter & ~Q(tickets__ticket_type=TicketType.INTERAL_CALL)
         internal_event_filter = date_filter & ~Q(event_participations__event__event_type=EventType.INTERNAL)
