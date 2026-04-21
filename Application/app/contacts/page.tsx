@@ -13,28 +13,23 @@ import {
   MultiSelect,
   ActionIcon,
   Select,
-  RangeSlider,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import {
   IconPlus,
-  IconFileUpload,
   IconSearch,
   IconChevronLeft,
   IconChevronRight,
   IconCalendar,
 } from "@tabler/icons-react";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/app/lib/apiClient";
 import { useForm } from "@mantine/form";
 import { TicketBulkCreateModal } from "@/app/components/tickets/TicketBulkCreateModal";
 import { SearchSelect, type SearchSelectOption } from "@/app/components/SearchSelect";
-import ContactTable, {
-  type Contact,
-  type Group as ContactGroup,
-  type Tag,
-} from "@/app/components/ContactTable";
+import DebouncedRangeSliderInput from "@/app/components/DebouncedRangeSliderInput";
+import ContactTable, { type Contact, type Tag } from "@/app/components/ContactTable";
 import { type EventCategory } from "@/app/components/event-utils";
 import "./page.css";
 
@@ -44,7 +39,6 @@ export default function ContactsPage() {
   const [bulkTicketModalOpen, setBulkTicketModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedGroup, setSelectedGroup] = useState<string | null>("all");
   const [selectedTag, setSelectedTag] = useState<SearchSelectOption<Tag> | null>(null);
   const [startDate, setStartDate] = useState<string | null>("");
   const [endDate, setEndDate] = useState<string | null>("");
@@ -52,8 +46,6 @@ export default function ContactsPage() {
   const [ticketRange, setTicketRange] = useState<[number, number]>([0, 20]);
   const [debouncedEventRange, setDebouncedEventRange] = useState<[number, number]>([0, 20]);
   const [debouncedTicketRange, setDebouncedTicketRange] = useState<[number, number]>([0, 20]);
-  const eventRangeTimer = useRef<ReturnType<typeof setTimeout>>(null);
-  const ticketRangeTimer = useRef<ReturnType<typeof setTimeout>>(null);
   const [tags, setTags] = useState<Tag[]>([]);
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [previousUrl, setPreviousUrl] = useState<string | null>(null);
@@ -80,37 +72,6 @@ export default function ContactsPage() {
     },
   });
 
-  const handleEventRangeChange = useCallback((value: [number, number]) => {
-    setEventRange(value);
-    if (eventRangeTimer.current) clearTimeout(eventRangeTimer.current);
-    eventRangeTimer.current = setTimeout(() => setDebouncedEventRange(value), 300);
-  }, []);
-
-  const handleTicketRangeChange = useCallback((value: [number, number]) => {
-    setTicketRange(value);
-    if (ticketRangeTimer.current) clearTimeout(ticketRangeTimer.current);
-    ticketRangeTimer.current = setTimeout(() => setDebouncedTicketRange(value), 300);
-  }, []);
-
-  // Fetch groups and tags on component mount
-  useEffect(() => {
-    fetchGroupsAndTags();
-  }, []);
-
-  // Fetch contacts whenever filters change (reset to first page)
-  useEffect(() => {
-    fetchContacts();
-  }, [
-    searchQuery,
-    selectedGroup,
-    selectedTag,
-    debouncedEventRange,
-    debouncedTicketRange,
-    startDate,
-    endDate,
-    selectedCategoryId,
-  ]);
-
   const fetchGroupsAndTags = async () => {
     try {
       const tagsData = await apiClient.get<Tag[] | { results: Tag[] }>("/tags/");
@@ -132,56 +93,76 @@ export default function ContactsPage() {
     }
   };
 
-  const fetchContacts = async (url?: string) => {
-    try {
-      setLoading(true);
+  const fetchContacts = useCallback(
+    async (url?: string) => {
+      try {
+        setLoading(true);
 
-      let fetchUrl = url;
+        let fetchUrl = url;
 
-      // If no URL provided, build the initial query
-      if (!fetchUrl) {
-        const params = new URLSearchParams();
-        if (searchQuery) params.append("search", searchQuery);
-        if (debouncedEventRange[0] > 0)
-          params.append("min_events", debouncedEventRange[0].toString());
-        if (debouncedEventRange[1] < 20)
-          params.append("max_events", debouncedEventRange[1].toString());
-        if (debouncedTicketRange[0] > 0)
-          params.append("min_tickets", debouncedTicketRange[0].toString());
-        if (debouncedTicketRange[1] < 20)
-          params.append("max_tickets", debouncedTicketRange[1].toString());
-        if (startDate) params.append("start_date", startDate);
-        if (endDate) params.append("end_date", endDate);
-        if (selectedCategoryId) params.append("event_category_id", selectedCategoryId);
+        // If no URL provided, build the initial query
+        if (!fetchUrl) {
+          const params = new URLSearchParams();
+          if (searchQuery) params.append("search", searchQuery);
+          if (debouncedEventRange[0] > 0)
+            params.append("min_events", debouncedEventRange[0].toString());
+          if (debouncedEventRange[1] < 20)
+            params.append("max_events", debouncedEventRange[1].toString());
+          if (debouncedTicketRange[0] > 0)
+            params.append("min_tickets", debouncedTicketRange[0].toString());
+          if (debouncedTicketRange[1] < 20)
+            params.append("max_tickets", debouncedTicketRange[1].toString());
+          if (startDate) params.append("start_date", startDate);
+          if (endDate) params.append("end_date", endDate);
+          if (selectedCategoryId) params.append("event_category_id", selectedCategoryId);
 
-        if (selectedTag) params.append("tag", selectedTag.id.toString());
-        fetchUrl = `/contacts/?${params}`;
+          if (selectedTag) params.append("tag", selectedTag.id.toString());
+          fetchUrl = `/contacts/?${params}`;
+        }
+
+        console.log("Fetch URL:", fetchUrl);
+
+        const data = await apiClient.get<{
+          results: Contact[];
+          count: number;
+          next: string | null;
+          previous: string | null;
+        }>(fetchUrl || `/contacts/`);
+
+        console.log("Fetched contacts data:", data);
+        setContacts(data.results);
+        setTotalCount(data.count);
+        setNextUrl(data.next);
+        setPreviousUrl(data.previous);
+      } catch (error) {
+        console.error("Error fetching contacts:", error);
+      } finally {
+        setLoading(false);
       }
+    },
+    [
+      debouncedEventRange,
+      debouncedTicketRange,
+      endDate,
+      searchQuery,
+      selectedCategoryId,
+      selectedTag,
+      startDate,
+    ]
+  );
 
-      console.log("Fetch URL:", fetchUrl);
+  // Fetch groups and tags on component mount
+  useEffect(() => {
+    fetchGroupsAndTags();
+  }, []);
 
-      const data = await apiClient.get<{
-        results: Contact[];
-        count: number;
-        next: string | null;
-        previous: string | null;
-      }>(fetchUrl || `/contacts/`);
-
-      console.log("Fetched contacts data:", data);
-      setContacts(data.results);
-      setTotalCount(data.count);
-      setNextUrl(data.next);
-      setPreviousUrl(data.previous);
-    } catch (error) {
-      console.error("Error fetching contacts:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Fetch contacts whenever filters change (reset to first page)
+  useEffect(() => {
+    fetchContacts();
+  }, [fetchContacts]);
 
   const handleReset = () => {
     setSearchQuery("");
-    setSelectedGroup("all");
     setSelectedTag(null);
     setEventRange([0, 20]);
     setTicketRange([0, 20]);
@@ -244,14 +225,13 @@ export default function ContactsPage() {
   const toggleRowSelection = (id: number) => {
     setSelectedRows((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
-  };
-
-  const handleUploadCSV = () => {
-    // TODO: Open CSV upload modal
-    console.log("Upload CSV clicked");
   };
 
   return (
@@ -260,18 +240,9 @@ export default function ContactsPage() {
         {/* Header with title and action buttons */}
         <Group justify="space-between">
           <Title order={2}>Contacts</Title>
-          <Group gap="sm">
-            <Button leftSection={<IconPlus size={16} />} onClick={handleAddContact}>
-              Add contact
-            </Button>
-            {/*      <Button
-              variant="outline"
-              leftSection={<IconFileUpload size={16} />}
-              onClick={handleUploadCSV}
-            >
-              Upload CSV
-            </Button> */}
-          </Group>
+          <Button leftSection={<IconPlus size={16} />} onClick={handleAddContact}>
+            Add contact
+          </Button>
         </Group>
 
         {/* Filters */}
@@ -325,34 +296,26 @@ export default function ContactsPage() {
                 clearable
               />
 
-              <Stack gap={2} style={{ width: 180 }} pb={10}>
-                <Text size="sm" fw={500}>
-                  # of Events Attended
-                </Text>
-                <RangeSlider
-                  min={0}
-                  max={20}
-                  minRange={0}
-                  value={eventRange}
-                  onChange={handleEventRangeChange}
-                  size="sm"
-                  label={(v) => (v === 20 ? "20+" : v)}
-                />
-              </Stack>
-              <Stack gap={2} style={{ width: 180 }} pb={10}>
-                <Text size="sm" fw={500}>
-                  # of Closed Tickets
-                </Text>
-                <RangeSlider
-                  min={0}
-                  max={20}
-                  minRange={0}
-                  value={ticketRange}
-                  onChange={handleTicketRangeChange}
-                  size="sm"
-                  label={(v) => (v === 20 ? "20+" : v)}
-                />
-              </Stack>
+              <DebouncedRangeSliderInput
+                label="# of Events Attended"
+                min={0}
+                max={20}
+                minRange={0}
+                value={eventRange}
+                onChange={setEventRange}
+                onDebouncedChange={setDebouncedEventRange}
+                labelFormatter={(v) => (v === 20 ? "20+" : v)}
+              />
+              <DebouncedRangeSliderInput
+                label="# of Closed Tickets"
+                min={0}
+                max={20}
+                minRange={0}
+                value={ticketRange}
+                onChange={setTicketRange}
+                onDebouncedChange={setDebouncedTicketRange}
+                labelFormatter={(v) => (v === 20 ? "20+" : v)}
+              />
               <Button variant="outline" onClick={handleReset} ml="auto">
                 Reset
               </Button>
