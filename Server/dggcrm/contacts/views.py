@@ -85,6 +85,10 @@ class ContactViewSet(viewsets.ModelViewSet):
 
         if event_category_id:
             internal_event_filter &= Q(event_participations__event__category_id=event_category_id)
+            queryset = queryset.filter(
+                event_participations__event__category_id=event_category_id,
+                event_participations__status=CommitmentStatus.ATTENDED,
+            )
 
         if min_tickets and min_tickets.isdigit():
             min_tickets = int(min_tickets)
