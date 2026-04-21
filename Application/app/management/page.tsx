@@ -180,7 +180,7 @@ export default function ManagementConsole() {
           </Stack>
         </Paper>
 
-        {/* Event Types */}
+        {/* Event Categories */}
         <Paper p="lg" withBorder>
           <Stack gap="md">
             <Group
@@ -189,7 +189,7 @@ export default function ManagementConsole() {
               onClick={() => setEventTypesSectionOpen(!eventTypesSectionOpen)}
             >
               <IconCategory2 size={24} />
-              <Title order={3}>Event Types</Title>
+              <Title order={3}>Event Categories</Title>
               <ActionIcon variant="subtle">
                 {eventTypesSectionOpen ? (
                   <IconChevronUp size={20} />

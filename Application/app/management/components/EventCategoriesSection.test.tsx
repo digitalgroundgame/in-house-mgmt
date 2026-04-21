@@ -41,10 +41,9 @@ afterEach(() => {
 });
 
 describe("EventCategoriesSection", () => {
-  it("renders the section title and add button", async () => {
+  it("renders the add button", async () => {
     render(<EventCategoriesSection />);
-    expect(screen.getByText("Event Types")).toBeInTheDocument();
-    expect(screen.getByText("Add Event Type")).toBeInTheDocument();
+    expect(screen.getByText("Add Event Category")).toBeInTheDocument();
   });
 
   it("displays categories after loading", async () => {
@@ -62,7 +61,7 @@ describe("EventCategoriesSection", () => {
     render(<EventCategoriesSection />);
     await waitFor(() => {
       expect(
-        screen.getByText("No event types configured. Create one to get started.")
+        screen.getByText("No event categories configured. Create one to get started.")
       ).toBeInTheDocument();
     });
   });

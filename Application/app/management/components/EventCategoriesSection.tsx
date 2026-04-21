@@ -1,7 +1,6 @@
 import {
   Paper,
   Stack,
-  Title,
   Table,
   Group,
   Button,
@@ -11,7 +10,7 @@ import {
   ActionIcon,
   Modal,
 } from "@mantine/core";
-import { IconPlus, IconEdit, IconTrash } from "@tabler/icons-react";
+import { IconPlus, IconEdit } from "@tabler/icons-react";
 import { useState, useEffect } from "react";
 import { apiClient } from "@/app/lib/apiClient";
 
@@ -29,7 +28,6 @@ export default function EventCategoriesSection() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<EventCategory | null>(null);
   const [saving, setSaving] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -85,38 +83,15 @@ export default function EventCategoriesSection() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this event type?")) return;
-    setDeleteError(null);
-    try {
-      await apiClient.delete(`/event-categories/${id}/`);
-      loadCategories();
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      if (message.includes("409")) {
-        setDeleteError("Cannot delete an event type that is assigned to events.");
-      } else {
-        console.error("Failed to delete event category", e);
-      }
-    }
-  };
-
   return (
     <>
       <Paper p="md" withBorder>
         <Stack gap="md">
-          <Group justify="space-between">
-            <Title order={4}>Event Types</Title>
+          <Group justify="flex-end">
             <Button leftSection={<IconPlus size={16} />} onClick={openCreate} size="xs">
-              Add Event Type
+              Add Event Category
             </Button>
           </Group>
-
-          {deleteError && (
-            <Text size="sm" c="red">
-              {deleteError}
-            </Text>
-          )}
 
           {loading ? (
             <Text size="sm" c="dimmed">
@@ -124,7 +99,7 @@ export default function EventCategoriesSection() {
             </Text>
           ) : categories.length === 0 ? (
             <Text size="sm" c="dimmed">
-              No event types configured. Create one to get started.
+              No event categories configured. Create one to get started.
             </Text>
           ) : (
             <Table>
@@ -132,7 +107,7 @@ export default function EventCategoriesSection() {
                 <Table.Tr>
                   <Table.Th>Name</Table.Th>
                   <Table.Th>Description</Table.Th>
-                  <Table.Th>Actions</Table.Th>
+                  <Table.Th>Edit</Table.Th>
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
@@ -147,19 +122,9 @@ export default function EventCategoriesSection() {
                       </Text>
                     </Table.Td>
                     <Table.Td>
-                      <Group gap="xs">
-                        <ActionIcon variant="subtle" size="sm" onClick={() => openEdit(category)}>
-                          <IconEdit size={16} />
-                        </ActionIcon>
-                        <ActionIcon
-                          variant="subtle"
-                          color="red"
-                          size="sm"
-                          onClick={() => handleDelete(category.id)}
-                        >
-                          <IconTrash size={16} />
-                        </ActionIcon>
-                      </Group>
+                      <ActionIcon variant="subtle" size="sm" onClick={() => openEdit(category)}>
+                        <IconEdit size={16} />
+                      </ActionIcon>
                     </Table.Td>
                   </Table.Tr>
                 ))}
@@ -172,7 +137,7 @@ export default function EventCategoriesSection() {
       <Modal
         opened={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editingCategory ? "Edit Event Type" : "Create Event Type"}
+        title={editingCategory ? "Edit Event Category" : "Create Event Category"}
         size="md"
       >
         <Stack gap="md">
@@ -194,7 +159,7 @@ export default function EventCategoriesSection() {
               Cancel
             </Button>
             <Button onClick={handleSave} loading={saving}>
-              {editingCategory ? "Save Changes" : "Create Event Type"}
+              {editingCategory ? "Save Changes" : "Create Event Category"}
             </Button>
           </Group>
         </Stack>
