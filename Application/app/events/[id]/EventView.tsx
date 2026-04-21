@@ -340,7 +340,7 @@ function EventViewMetadata({
       </Box>
       <Box mt={4} mb={4}>
         <Text c="dimmed" size="sm">
-          Event Type
+          Event Category
         </Text>
         {canEditCategory && isEditing ? (
           <Select

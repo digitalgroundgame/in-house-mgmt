@@ -143,8 +143,8 @@ export default function EventTemplateView({ eventType, title = "Events" }: Event
               style={{ flex: 1 }}
             />
             <Select
-              label="Event Type"
-              placeholder="All types"
+              label="Event Category"
+              placeholder="All categories"
               data={categories.map((c) => ({ value: String(c.id), label: c.name }))}
               value={selectedCategoryId}
               onChange={setSelectedCategoryId}
@@ -233,8 +233,8 @@ export default function EventTemplateView({ eventType, title = "Events" }: Event
             />
 
             <Select
-              label="Event Type"
-              placeholder="Select event type (optional)"
+              label="Event Category"
+              placeholder="Select category (optional)"
               data={categories.map((c) => ({ value: String(c.id), label: c.name }))}
               clearable
               {...form.getInputProps("category_id")}

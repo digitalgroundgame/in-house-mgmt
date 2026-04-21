@@ -22,8 +22,9 @@ import {
   IconSearch,
   IconChevronLeft,
   IconChevronRight,
+  IconCalendar,
 } from "@tabler/icons-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/app/lib/apiClient";
 import { useForm } from "@mantine/form";
@@ -47,8 +48,12 @@ export default function ContactsPage() {
   const [selectedTag, setSelectedTag] = useState<SearchSelectOption<Tag> | null>(null);
   const [startDate, setStartDate] = useState<string | null>("");
   const [endDate, setEndDate] = useState<string | null>("");
-  const [eventRange, setEventRange] = useState<[number, number]>([0, 50]);
-  const [ticketRange, setTicketRange] = useState<[number, number]>([0, 50]);
+  const [eventRange, setEventRange] = useState<[number, number]>([0, 20]);
+  const [ticketRange, setTicketRange] = useState<[number, number]>([0, 20]);
+  const [debouncedEventRange, setDebouncedEventRange] = useState<[number, number]>([0, 20]);
+  const [debouncedTicketRange, setDebouncedTicketRange] = useState<[number, number]>([0, 20]);
+  const eventRangeTimer = useRef<ReturnType<typeof setTimeout>>(null);
+  const ticketRangeTimer = useRef<ReturnType<typeof setTimeout>>(null);
   const [tags, setTags] = useState<Tag[]>([]);
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [previousUrl, setPreviousUrl] = useState<string | null>(null);
@@ -75,6 +80,18 @@ export default function ContactsPage() {
     },
   });
 
+  const handleEventRangeChange = useCallback((value: [number, number]) => {
+    setEventRange(value);
+    if (eventRangeTimer.current) clearTimeout(eventRangeTimer.current);
+    eventRangeTimer.current = setTimeout(() => setDebouncedEventRange(value), 300);
+  }, []);
+
+  const handleTicketRangeChange = useCallback((value: [number, number]) => {
+    setTicketRange(value);
+    if (ticketRangeTimer.current) clearTimeout(ticketRangeTimer.current);
+    ticketRangeTimer.current = setTimeout(() => setDebouncedTicketRange(value), 300);
+  }, []);
+
   // Fetch groups and tags on component mount
   useEffect(() => {
     fetchGroupsAndTags();
@@ -87,8 +104,8 @@ export default function ContactsPage() {
     searchQuery,
     selectedGroup,
     selectedTag,
-    eventRange,
-    ticketRange,
+    debouncedEventRange,
+    debouncedTicketRange,
     startDate,
     endDate,
     selectedCategoryId,
@@ -125,10 +142,14 @@ export default function ContactsPage() {
       if (!fetchUrl) {
         const params = new URLSearchParams();
         if (searchQuery) params.append("search", searchQuery);
-        if (eventRange[0] > 0) params.append("min_events", eventRange[0].toString());
-        if (eventRange[1] < 50) params.append("max_events", eventRange[1].toString());
-        if (ticketRange[0] > 0) params.append("min_tickets", ticketRange[0].toString());
-        if (ticketRange[1] < 50) params.append("max_tickets", ticketRange[1].toString());
+        if (debouncedEventRange[0] > 0)
+          params.append("min_events", debouncedEventRange[0].toString());
+        if (debouncedEventRange[1] < 20)
+          params.append("max_events", debouncedEventRange[1].toString());
+        if (debouncedTicketRange[0] > 0)
+          params.append("min_tickets", debouncedTicketRange[0].toString());
+        if (debouncedTicketRange[1] < 20)
+          params.append("max_tickets", debouncedTicketRange[1].toString());
         if (startDate) params.append("start_date", startDate);
         if (endDate) params.append("end_date", endDate);
         if (selectedCategoryId) params.append("event_category_id", selectedCategoryId);
@@ -162,8 +183,10 @@ export default function ContactsPage() {
     setSearchQuery("");
     setSelectedGroup("all");
     setSelectedTag(null);
-    setEventRange([0, 50]);
-    setTicketRange([0, 50]);
+    setEventRange([0, 20]);
+    setTicketRange([0, 20]);
+    setDebouncedEventRange([0, 20]);
+    setDebouncedTicketRange([0, 20]);
     setStartDate("");
     setEndDate("");
     setSelectedCategoryId(null);
@@ -257,13 +280,28 @@ export default function ContactsPage() {
             <Group gap="md" align="flex-end">
               <TextInput
                 label="Search"
-                placeholder="Search by name, Discord ID, email, or phone..."
+                placeholder="Search name, Discord ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 leftSection={<IconSearch size={16} />}
-                style={{ flex: 1 }}
+                style={{ flex: 1, minWidth: 200 }}
               />
-
+              <DateInput
+                label="Start Date"
+                value={startDate}
+                onChange={setStartDate}
+                placeholder="Start Date..."
+                leftSection={<IconCalendar size={16} />}
+              />
+              <DateInput
+                label="End Date"
+                onChange={setEndDate}
+                value={endDate}
+                placeholder="End Date..."
+                leftSection={<IconCalendar size={16} />}
+              />
+            </Group>
+            <Group gap="md" align="flex-end">
               <SearchSelect<Tag>
                 endpoint="/tags/"
                 label="Tag"
@@ -279,68 +317,43 @@ export default function ContactsPage() {
               />
 
               <Select
-                label="Event Type"
-                placeholder="All types"
+                label="Event Category"
+                placeholder="All categories"
                 data={categories.map((c) => ({ value: String(c.id), label: c.name }))}
                 value={selectedCategoryId}
                 onChange={setSelectedCategoryId}
                 clearable
               />
-            </Group>
-            <Group grow>
-              <Stack gap={2}>
+
+              <Stack gap={2} style={{ width: 180 }} pb={10}>
                 <Text size="sm" fw={500}>
-                  Events Attended ({eventRange[0]}–{eventRange[1] === 50 ? "50+" : eventRange[1]})
+                  # of Events Attended
                 </Text>
                 <RangeSlider
                   min={0}
-                  max={50}
+                  max={20}
+                  minRange={0}
                   value={eventRange}
-                  onChangeEnd={setEventRange}
-                  marks={[
-                    { value: 0, label: "0" },
-                    { value: 25, label: "25" },
-                    { value: 50, label: "50+" },
-                  ]}
-                  mt="xs"
-                  mb="lg"
+                  onChange={handleEventRangeChange}
+                  size="sm"
+                  label={(v) => (v === 20 ? "20+" : v)}
                 />
               </Stack>
-              <Stack gap={2}>
+              <Stack gap={2} style={{ width: 180 }} pb={10}>
                 <Text size="sm" fw={500}>
-                  Closed Tickets ({ticketRange[0]}–{ticketRange[1] === 50 ? "50+" : ticketRange[1]})
+                  # of Closed Tickets
                 </Text>
                 <RangeSlider
                   min={0}
-                  max={50}
+                  max={20}
+                  minRange={0}
                   value={ticketRange}
-                  onChangeEnd={setTicketRange}
-                  marks={[
-                    { value: 0, label: "0" },
-                    { value: 25, label: "25" },
-                    { value: 50, label: "50+" },
-                  ]}
-                  mt="xs"
-                  mb="lg"
+                  onChange={handleTicketRangeChange}
+                  size="sm"
+                  label={(v) => (v === 20 ? "20+" : v)}
                 />
               </Stack>
-            </Group>
-            <Group>
-              <DateInput
-                label="Search Start Time"
-                value={startDate}
-                onChange={setStartDate}
-                placeholder="Start Date..."
-              />
-              <DateInput
-                label="Search End Time"
-                onChange={setEndDate}
-                value={endDate}
-                placeholder="End Date..."
-              />
-            </Group>
-            <Group gap="sm">
-              <Button variant="outline" onClick={handleReset}>
+              <Button variant="outline" onClick={handleReset} ml="auto">
                 Reset
               </Button>
             </Group>
