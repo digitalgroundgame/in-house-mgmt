@@ -12,7 +12,8 @@ import {
   Modal,
   MultiSelect,
   ActionIcon,
-  NumberInput,
+  Select,
+  RangeSlider,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import {
@@ -22,7 +23,7 @@ import {
   IconChevronLeft,
   IconChevronRight,
 } from "@tabler/icons-react";
-import { useState, useEffect, Component } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/app/lib/apiClient";
 import { useForm } from "@mantine/form";
@@ -33,6 +34,7 @@ import ContactTable, {
   type Group as ContactGroup,
   type Tag,
 } from "@/app/components/ContactTable";
+import { type EventCategory } from "@/app/components/event-utils";
 import "./page.css";
 
 export default function ContactsPage() {
@@ -45,10 +47,8 @@ export default function ContactsPage() {
   const [selectedTag, setSelectedTag] = useState<SearchSelectOption<Tag> | null>(null);
   const [startDate, setStartDate] = useState<string | null>("");
   const [endDate, setEndDate] = useState<string | null>("");
-  const [minEvents, setMinEvents] = useState<number | string>();
-  const [maxEvents, setMaxEvents] = useState<number | string>();
-  const [minTickets, setMinTickets] = useState<number | string>();
-  const [maxTickets, setMaxTickets] = useState<number | string>();
+  const [eventRange, setEventRange] = useState<[number, number]>([0, 50]);
+  const [ticketRange, setTicketRange] = useState<[number, number]>([0, 50]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [previousUrl, setPreviousUrl] = useState<string | null>(null);
@@ -57,6 +57,8 @@ export default function ContactsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+  const [categories, setCategories] = useState<EventCategory[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
   const form = useForm({
     initialValues: {
@@ -85,12 +87,11 @@ export default function ContactsPage() {
     searchQuery,
     selectedGroup,
     selectedTag,
-    minEvents,
-    minTickets,
-    maxEvents,
-    maxTickets,
+    eventRange,
+    ticketRange,
     startDate,
     endDate,
+    selectedCategoryId,
   ]);
 
   const fetchGroupsAndTags = async () => {
@@ -105,6 +106,13 @@ export default function ContactsPage() {
       console.error("Error fetching groups and tags:", error);
       setTags([]); // Ensure tags is always an array
     }
+
+    try {
+      const { results } = await apiClient.get<{ results: EventCategory[] }>("/event-categories/");
+      setCategories(results || []);
+    } catch {
+      setCategories([]);
+    }
   };
 
   const fetchContacts = async (url?: string) => {
@@ -117,12 +125,13 @@ export default function ContactsPage() {
       if (!fetchUrl) {
         const params = new URLSearchParams();
         if (searchQuery) params.append("search", searchQuery);
-        if (minEvents) params.append("min_events", minEvents.toString());
-        if (minTickets) params.append("min_tickets", minTickets.toString());
-        if (maxTickets) params.append("max_tickets", maxTickets.toString());
-        if (maxEvents) params.append("max_tickets", maxEvents.toString());
+        if (eventRange[0] > 0) params.append("min_events", eventRange[0].toString());
+        if (eventRange[1] < 50) params.append("max_events", eventRange[1].toString());
+        if (ticketRange[0] > 0) params.append("min_tickets", ticketRange[0].toString());
+        if (ticketRange[1] < 50) params.append("max_tickets", ticketRange[1].toString());
         if (startDate) params.append("start_date", startDate);
         if (endDate) params.append("end_date", endDate);
+        if (selectedCategoryId) params.append("event_category_id", selectedCategoryId);
 
         if (selectedTag) params.append("tag", selectedTag.id.toString());
         fetchUrl = `/contacts/?${params}`;
@@ -153,12 +162,11 @@ export default function ContactsPage() {
     setSearchQuery("");
     setSelectedGroup("all");
     setSelectedTag(null);
-    setMaxEvents("");
-    setMinEvents("");
-    setMaxTickets("");
-    setMinTickets("");
+    setEventRange([0, 50]);
+    setTicketRange([0, 50]);
     setStartDate("");
     setEndDate("");
+    setSelectedCategoryId(null);
     fetchContacts();
   };
 
@@ -269,46 +277,67 @@ export default function ContactsPage() {
                   raw: tag,
                 })}
               />
+
+              <Select
+                label="Event Type"
+                placeholder="All types"
+                data={categories.map((c) => ({ value: String(c.id), label: c.name }))}
+                value={selectedCategoryId}
+                onChange={setSelectedCategoryId}
+                clearable
+              />
+            </Group>
+            <Group grow>
+              <Stack gap={2}>
+                <Text size="sm" fw={500}>
+                  Events Attended ({eventRange[0]}–{eventRange[1] === 50 ? "50+" : eventRange[1]})
+                </Text>
+                <RangeSlider
+                  min={0}
+                  max={50}
+                  value={eventRange}
+                  onChangeEnd={setEventRange}
+                  marks={[
+                    { value: 0, label: "0" },
+                    { value: 25, label: "25" },
+                    { value: 50, label: "50+" },
+                  ]}
+                  mt="xs"
+                  mb="lg"
+                />
+              </Stack>
+              <Stack gap={2}>
+                <Text size="sm" fw={500}>
+                  Closed Tickets ({ticketRange[0]}–{ticketRange[1] === 50 ? "50+" : ticketRange[1]})
+                </Text>
+                <RangeSlider
+                  min={0}
+                  max={50}
+                  value={ticketRange}
+                  onChangeEnd={setTicketRange}
+                  marks={[
+                    { value: 0, label: "0" },
+                    { value: 25, label: "25" },
+                    { value: 50, label: "50+" },
+                  ]}
+                  mt="xs"
+                  mb="lg"
+                />
+              </Stack>
             </Group>
             <Group>
-              <>
-                <ContactNumberInput
-                  label="Minimum Events Attended"
-                  value={minEvents}
-                  setValue={setMinEvents}
-                  placeholder="Min Events..."
-                />
-                <ContactNumberInput
-                  label="Maximum Events Attended"
-                  value={maxEvents}
-                  setValue={setMaxEvents}
-                  placeholder="Max Events..."
-                />
-                <ContactNumberInput
-                  label="Minimum Closed Tickets"
-                  value={minTickets}
-                  setValue={setMinTickets}
-                  placeholder="Min Tickets..."
-                />
-                <ContactNumberInput
-                  label="Maximum Closed Tickets"
-                  value={maxTickets}
-                  setValue={setMaxTickets}
-                  placeholder="Max Tickets..."
-                />
-                <DateInput
-                  label="Search Start Time"
-                  value={startDate}
-                  onChange={setStartDate}
-                  placeholder="Start Date..."
-                />
-                <DateInput
-                  label="Search End Time"
-                  onChange={setEndDate}
-                  value={endDate}
-                  placeholder="End Date..."
-                />
-              </>
+              <DateInput
+                label="Search Start Time"
+                value={startDate}
+                onChange={setStartDate}
+                placeholder="Start Date..."
+              />
+              <DateInput
+                label="Search End Time"
+                onChange={setEndDate}
+                value={endDate}
+                placeholder="End Date..."
+              />
             </Group>
             <Group gap="sm">
               <Button variant="outline" onClick={handleReset}>
@@ -442,30 +471,5 @@ export default function ContactsPage() {
         }}
       />
     </Container>
-  );
-}
-
-function ContactNumberInput({
-  label,
-  value,
-  setValue,
-  placeholder,
-}: {
-  label: string;
-  value: string | number | undefined;
-  setValue: (a: string | number | undefined) => void;
-  placeholder: string | undefined;
-}) {
-  return (
-    <NumberInput
-      label={label}
-      placeholder={placeholder}
-      value={value}
-      onChange={(num) => {
-        setValue(typeof num === "number" ? num : 0);
-      }}
-      allowNegative={false}
-      style={{ flex: 1 }}
-    />
   );
 }

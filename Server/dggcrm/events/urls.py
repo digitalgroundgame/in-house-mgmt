@@ -2,6 +2,7 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     CommitmentStatusViewSet,
+    EventCategoryViewSet,
     EventParticipationViewSet,
     EventStatusViewSet,
     EventViewSet,
@@ -30,6 +31,11 @@ router.register(
     "assignments",
     UsersInEventViewSet,
     basename="assignments",
+)
+router.register(
+    "event-categories",
+    EventCategoryViewSet,
+    basename="event-categories",
 )
 
 

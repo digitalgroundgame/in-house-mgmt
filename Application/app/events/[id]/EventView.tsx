@@ -8,6 +8,7 @@ import { formatContactInfo } from "@/app/components/contact-utils";
 import { User } from "@/app/components/provider/types";
 import {
   Event,
+  EventCategory,
   EventParticipation,
   getStatusColor,
   getEventParticipationStatusColor,
@@ -46,7 +47,7 @@ import {
 import { IconPencil, IconSearch } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDisclosure } from "@mantine/hooks";
 import getCookie from "@/app/utils/cookie";
 import { formatDateTime } from "@/app/utils/datetime";
@@ -69,6 +70,7 @@ interface EventEditFormValues {
   locationAddress: string;
   startsAt: string;
   endsAt: string;
+  categoryId: string | null;
 }
 
 function getEventFormValues(event: Event): EventEditFormValues {
@@ -80,6 +82,7 @@ function getEventFormValues(event: Event): EventEditFormValues {
     locationAddress: event.location_address ?? "",
     startsAt: event.starts_at,
     endsAt: event.ends_at,
+    categoryId: event.category ? String(event.category.id) : null,
   };
 }
 
@@ -96,13 +99,23 @@ function EventViewMain({ event }: { event: Event }) {
   const [currentEvent, setCurrentEvent] = useState(event);
   const [isEditing, setIsEditing] = useState(false);
   const [isSavingEventEdits, setIsSavingEventEdits] = useState(false);
+  const [categories, setCategories] = useState<EventCategory[]>([]);
   const form = useForm<EventEditFormValues>({
     initialValues: getEventFormValues(event),
   });
 
+  useEffect(() => {
+    apiClient
+      .get<{ results: EventCategory[] }>("/event-categories/")
+      .then((data) => setCategories(data.results || []))
+      .catch(() => setCategories([]));
+  }, []);
+
   const canEditEvent = (currentEvent.editable_fields?.length ?? 0) > 0;
 
-  const updateEvent = async (payload: Partial<Event>): Promise<Event> => {
+  const updateEvent = async (
+    payload: Partial<Event> & { category_id?: string | null }
+  ): Promise<Event> => {
     const updated = await apiClient.patch<Event>(`/events/${currentEvent.id}`, payload);
     setCurrentEvent(updated);
     return updated;
@@ -119,6 +132,7 @@ function EventViewMain({ event }: { event: Event }) {
         location_address: form.values.locationAddress,
         starts_at: form.values.startsAt,
         ends_at: form.values.endsAt,
+        category_id: form.values.categoryId,
       });
       const values = getEventFormValues(updated);
       form.setValues(values);
@@ -197,7 +211,12 @@ function EventViewMain({ event }: { event: Event }) {
         </Tabs>
       </GridCol>
       <GridCol style={{ flex: "0 0 239px", maxWidth: "239px", minWidth: "239px" }}>
-        <EventViewMetadata event={currentEvent} isEditing={isEditing} form={form} />
+        <EventViewMetadata
+          event={currentEvent}
+          isEditing={isEditing}
+          form={form}
+          categories={categories}
+        />
       </GridCol>
     </Grid>
   );
@@ -269,11 +288,14 @@ function EventViewMetadata({
   event,
   isEditing,
   form,
+  categories,
 }: {
   event: Event;
   isEditing: boolean;
   form: UseFormReturnType<EventEditFormValues>;
+  categories: EventCategory[];
 }) {
+  const canEditCategory = event.editable_fields?.includes("category") ?? false;
   const canEditStatus = event.editable_fields?.includes("event_status") ?? false;
   const canEditLocation =
     (event.editable_fields?.includes("location_name") ?? false) ||
@@ -314,6 +336,25 @@ function EventViewMetadata({
           />
         ) : (
           <Badge color={getStatusColor(event.status_display)}>{event.status_display}</Badge>
+        )}
+      </Box>
+      <Box mt={4} mb={4}>
+        <Text c="dimmed" size="sm">
+          Event Type
+        </Text>
+        {canEditCategory && isEditing ? (
+          <Select
+            data={categories.map((c) => ({ value: String(c.id), label: c.name }))}
+            value={form.values.categoryId}
+            onChange={(value) => form.setFieldValue("categoryId", value)}
+            variant="unstyled"
+            size="md"
+            styles={metadataInputStyles}
+            placeholder="None"
+            clearable
+          />
+        ) : (
+          <Text>{event.category?.name ?? "None"}</Text>
         )}
       </Box>
       <Box mt={4} mb={4}>

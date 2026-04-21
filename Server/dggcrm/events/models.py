@@ -3,6 +3,22 @@ from django.conf import settings
 from django.db import models
 
 
+class EventCategory(models.Model):
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "event_categories"
+        ordering = ["name"]
+        verbose_name_plural = "Event categories"
+
+    def __str__(self):
+        return self.name
+
+
 class EventType(models.TextChoices):
     GENERIC = "generic", "Generic"
     INTERNAL = "internal", "Internal"
@@ -34,6 +50,14 @@ class Event(models.Model):
 
     event_type = models.CharField(
         default=EventType.GENERIC, choices=EventType.choices, help_text="The type of event deciedes the behavior."
+    )
+
+    category = models.ForeignKey(
+        "events.EventCategory",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="events",
     )
 
     event_status = models.CharField(
