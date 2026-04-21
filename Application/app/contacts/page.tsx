@@ -288,11 +288,13 @@ export default function ContactsPage() {
                   placeholder="Search tags..."
                   searchable
                   clearable
-                  style={{ minWidth: 200 }}
+                  style={{ minWidth: 200, maxWidth: 450 }}
                   styles={{
                     input: {
                       borderTopLeftRadius: 0,
                       borderBottomLeftRadius: 0,
+                      overflowX: "auto",
+                      flexWrap: "nowrap",
                     },
                   }}
                 />
