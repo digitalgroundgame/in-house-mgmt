@@ -2,7 +2,7 @@ services:
   nginx:
     build:
       context: .
-      dockerfile: ./compose/production/nginx/Dockerfile
+      dockerfile: ./compose/staging/nginx/Dockerfile
     container_name: inhouse_suite_nginx_staging
     restart: unless-stopped
     depends_on:
