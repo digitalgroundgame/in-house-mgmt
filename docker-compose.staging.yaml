@@ -15,13 +15,13 @@ services:
     labels:
     - traefik.enable=true
     - traefik.docker.network=coolify
-    - "traefik.http.routers.inhouse-nginx-http.rule=Host(`housestaging.digitalgroundgame.org`) && PathPrefix(`/`)"
-    - traefik.http.routers.inhouse-nginx-http.entryPoints=http
-    - "traefik.http.routers.inhouse-nginx-https.rule=Host(`housestaging.digitalgroundgame.org`) && PathPrefix(`/`)"
-    - traefik.http.routers.inhouse-nginx-https.entryPoints=https
-    - traefik.http.routers.inhouse-nginx-https.tls=true
-    - traefik.http.routers.inhouse-nginx-https.tls.certresolver=letsencrypt
-    - traefik.http.services.inhouse-nginx.loadbalancer.server.port=81
+    - "traefik.http.routers.inhouse-nginx-staging-http.rule=Host(`housestaging.digitalgroundgame.org`) && PathPrefix(`/`)"
+    - traefik.http.routers.inhouse-nginx-staging-http.entryPoints=http
+    - "traefik.http.routers.inhouse-nginx-staging-https.rule=Host(`housestaging.digitalgroundgame.org`) && PathPrefix(`/`)"
+    - traefik.http.routers.inhouse-nginx-staging-https.entryPoints=https
+    - traefik.http.routers.inhouse-nginx-staging-https.tls=true
+    - traefik.http.routers.inhouse-nginx-staging-https.tls.certresolver=letsencrypt
+    - traefik.http.services.inhouse-nginx-staging.loadbalancer.server.port=81
     networks:
       - coolify
       - default
