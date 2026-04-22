@@ -38,7 +38,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: ./compose/production/application/Dockerfile
+      dockerfile: ./compose/staging/application/Dockerfile
     image: inhouse_suite_frontend
     container_name: inhouse_suite_frontend_staging
     restart: unless-stopped
