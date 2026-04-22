@@ -63,7 +63,7 @@ services:
   server: &server
     build:
       context: .
-      dockerfile: ./compose/production/server/Dockerfile
+      dockerfile: ./compose/staging/server/Dockerfile
     image: inhouse_suite_server
     container_name: inhouse_suite_server_staging
     restart: unless-stopped
