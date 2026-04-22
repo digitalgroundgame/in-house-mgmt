@@ -252,17 +252,16 @@ export default function ContactsPage() {
         {/* Filters */}
         <Paper p="md" withBorder>
           <Stack gap="md">
-            <Group gap="md" align="flex-end">
+            <Group gap="md" align="flex-end" grow>
               <TextInput
                 label="Search"
                 placeholder="Search by name, Discord ID, email, or phone..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 leftSection={<IconSearch size={16} />}
-                style={{ flex: 1 }}
               />
 
-              <Group gap={0} align="flex-end">
+              <Group gap={0} align="flex-end" style={{ flex: 1 }}>
                 <Select
                   label="Tags"
                   data={[
@@ -288,7 +287,7 @@ export default function ContactsPage() {
                   placeholder="Search tags..."
                   searchable
                   clearable
-                  style={{ minWidth: 200, maxWidth: 450 }}
+                  style={{ flex: 1 }}
                   styles={{
                     input: {
                       borderTopLeftRadius: 0,
