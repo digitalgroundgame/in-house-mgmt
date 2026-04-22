@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: ./compose/production/nginx/Dockerfile
-    container_name: inhouse_suite_nginx
+    container_name: inhouse_suite_nginx_staging
     restart: unless-stopped
     depends_on:
       - frontend
@@ -40,7 +40,7 @@ services:
       context: .
       dockerfile: ./compose/production/application/Dockerfile
     image: inhouse_suite_frontend
-    container_name: inhouse_suite_frontend
+    container_name: inhouse_suite_frontend_staging
     restart: unless-stopped
     environment:
       - BACKEND_URL=${BACKEND_URL}
@@ -65,7 +65,7 @@ services:
       context: .
       dockerfile: ./compose/production/server/Dockerfile
     image: inhouse_suite_server
-    container_name: inhouse_suite_server
+    container_name: inhouse_suite_server_staging
     restart: unless-stopped
     volumes:
       - dggcrm_production_admin_static_files:/app/staticfiles
