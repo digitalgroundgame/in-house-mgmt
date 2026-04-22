@@ -2,7 +2,7 @@ services:
   nginx:
     build:
       context: .
-      dockerfile: ./compose/staging/nginx/Dockerfile
+      dockerfile: ./compose/production/nginx/Dockerfile
     container_name: inhouse_suite_nginx_staging
     restart: unless-stopped
     depends_on:
@@ -21,12 +21,12 @@ services:
     - traefik.http.routers.inhouse-nginx-staging-https.entryPoints=https
     - traefik.http.routers.inhouse-nginx-staging-https.tls=true
     - traefik.http.routers.inhouse-nginx-staging-https.tls.certresolver=letsencrypt
-    - traefik.http.services.inhouse-nginx-staging.loadbalancer.server.port=81
+    - traefik.http.services.inhouse-nginx-staging.loadbalancer.server.port=80
     networks:
       - coolify
       - default
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:81/health"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -38,7 +38,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: ./compose/staging/application/Dockerfile
+      dockerfile: ./compose/production/application/Dockerfile
     image: inhouse_suite_frontend
     container_name: inhouse_suite_frontend_staging
     restart: unless-stopped
@@ -50,9 +50,9 @@ services:
       - path: ./.envs/.production/.frontend
         required: false
     expose:
-      - "3031"
+      - "3030"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:3031/health"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3030/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -63,7 +63,7 @@ services:
   server: &server
     build:
       context: .
-      dockerfile: ./compose/staging/server/Dockerfile
+      dockerfile: ./compose/production/server/Dockerfile
     image: inhouse_suite_server
     container_name: inhouse_suite_server_staging
     restart: unless-stopped
@@ -96,10 +96,10 @@ services:
       - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
       - SENTRY_DSN=${SENTRY_DSN}
     expose:
-      - "8081"
+      - "8080"
     command: /start
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:8081/api/health/?format=text"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/api/health/?format=text"]
       interval: 10s
       timeout: 5s
       retries: 5
