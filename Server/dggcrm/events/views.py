@@ -5,7 +5,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import DjangoModelPermissions, IsAuthenticated
 from rest_framework.response import Response
 
-from .models import CommitmentStatus, Event, EventParticipation, EventStatus, UsersInEvent
+from .models import CommitmentStatus, Event, EventCategory, EventParticipation, EventStatus, UsersInEvent
 from .permissions import (
     EventMembershipObjectPermission,
     EventObjectPermission,
@@ -14,7 +14,7 @@ from .permissions import (
     get_event_visibility_filter,
     get_participation_visibility_filter,
 )
-from .serializers import EventParticipationSerializer, EventSerializer, UsersInEventSerializer
+from .serializers import EventCategorySerializer, EventParticipationSerializer, EventSerializer, UsersInEventSerializer
 
 
 class EventViewSet(viewsets.ModelViewSet):
@@ -33,6 +33,7 @@ class EventViewSet(viewsets.ModelViewSet):
         contact_id = self.request.query_params.get("contact")
         status = self.request.query_params.get("status")
         event_type = self.request.query_params.get("event_type")
+        category_id = self.request.query_params.get("category_id")
 
         if event_id:
             queryset = queryset.filter(event_id=event_id)
@@ -45,6 +46,9 @@ class EventViewSet(viewsets.ModelViewSet):
 
         if event_type:
             queryset = queryset.filter(event_type=event_type)
+
+        if category_id:
+            queryset = queryset.filter(category_id=category_id)
 
         return queryset.filter(get_event_visibility_filter(self.request.user)).distinct()
 
@@ -83,6 +87,7 @@ class EventParticipationViewSet(viewsets.ModelViewSet):
         event_status = self.request.query_params.get("event_status")
         event_type = self.request.query_params.get("event_type")
         exclude_event_status = self.request.query_params.get("exclude_event_status")
+        event_category_id = self.request.query_params.get("event_category_id")
         self.request.query_params.get("")
 
         if status:
@@ -91,6 +96,8 @@ class EventParticipationViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(event__event_status=event_status)
         if event_type:
             queryset = queryset.filter(event__event_type=event_type)
+        if event_category_id:
+            queryset = queryset.filter(event__category_id=event_category_id)
         if exclude_status:
             queryset = queryset.exclude(status__in=exclude_status)
         if exclude_event_status:
@@ -231,3 +238,22 @@ class UsersInEventViewSet(viewsets.ModelViewSet):
             qs = qs.filter(user_id=user_id)
 
         return qs.filter(get_event_membership_visibility_filter(self.request.user))
+
+
+class EventCategoryViewSet(viewsets.ModelViewSet):
+    queryset = EventCategory.objects.all().order_by("name")
+    serializer_class = EventCategorySerializer
+    permission_classes = [IsAuthenticated, DjangoModelPermissions]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["name"]
+    ordering_fields = ["name", "created_at"]
+    ordering = ["name"]
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.events.exists():
+            return Response(
+                {"detail": "Cannot delete an event type that is assigned to events."},
+                status=rest_status.HTTP_409_CONFLICT,
+            )
+        return super().destroy(request, *args, **kwargs)

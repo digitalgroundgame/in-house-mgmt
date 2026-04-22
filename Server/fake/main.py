@@ -102,6 +102,27 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=25, num_tickets=30
     c.execute("SELECT id, name FROM tags")
     tag_map = {row[1]: row[0] for row in c.fetchall()}
 
+    # Insert event categories
+    event_categories = [
+        ("Canvassing", "Door-to-door voter outreach and engagement"),
+        ("Phone Banking", "Calling voters to share information and gather support"),
+        ("Software Development", "Building and maintaining digital tools and platforms"),
+        ("Data Entry", "Processing and entering collected field data"),
+        ("Training", "Onboarding and skills training for volunteers"),
+        ("Community Event", "Public-facing community gatherings and town halls"),
+    ]
+    for name, description in event_categories:
+        now = datetime.now()
+        c.execute(
+            "INSERT INTO event_categories (name, description, created_at, modified_at) VALUES (%s, %s, %s, %s) "
+            "ON CONFLICT (name) DO NOTHING",
+            (name, description, now, now),
+        )
+    conn.commit()
+
+    c.execute("SELECT id FROM event_categories")
+    category_ids = [row[0] for row in c.fetchall()]
+
     populate_templates(conn)
 
     # Create Discord test users first (for sync endpoint testing)
@@ -177,11 +198,13 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=25, num_tickets=30
         starts_at = created_at + timedelta(days=random.randint(0, 30), hours=random.randint(0, 23))
         ends_at = starts_at + timedelta(hours=random.randint(1, 4))  # 1-4 hours duration
 
+        category_id = random.choice(category_ids + [None])
+
         c.execute(
             """
             INSERT INTO events
-            (name, description, event_status, event_type, location_name, location_address, created_at, modified_at, starts_at, ends_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
+            (name, description, event_status, event_type, location_name, location_address, category_id, created_at, modified_at, starts_at, ends_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
             """,
             (
                 name,
@@ -190,6 +213,7 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=25, num_tickets=30
                 event_type,
                 location_name,
                 location_address,
+                category_id,
                 created_at,
                 modified_at,
                 starts_at,

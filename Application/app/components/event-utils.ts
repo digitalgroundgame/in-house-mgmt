@@ -2,6 +2,14 @@ import { Contact } from "./ContactTable";
 
 export type EventType = "generic" | "internal";
 
+export interface EventCategory {
+  id: number;
+  name: string;
+  description: string;
+  created_at: string;
+  modified_at: string;
+}
+
 export interface Event {
   id: number;
   event_type: EventType;
@@ -15,6 +23,7 @@ export interface Event {
   location_display: string;
   starts_at: string;
   ends_at: string;
+  category: EventCategory | null;
 }
 
 export function getStatusColor(status: string) {

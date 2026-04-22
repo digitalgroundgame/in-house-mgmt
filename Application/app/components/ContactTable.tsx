@@ -14,7 +14,6 @@ import {
   HoverCard,
   Checkbox,
 } from "@mantine/core";
-import { useState } from "react";
 
 export interface Contact {
   id: number;
@@ -48,15 +47,6 @@ interface ContactTableProps {
   isSelectable?: boolean;
   selectedIds?: Set<number>;
   toggleSelect?: (id: number) => void;
-}
-
-interface AcceptanceStats {
-  contact_did: string;
-  contact_name: string;
-  accepted: number;
-  rejected: number;
-  total: number;
-  acceptance_percentage: number;
 }
 
 // TODO: Implement acceptance stats fetch when backend endpoint is available
@@ -204,7 +194,7 @@ export default function ContactTable({
 
                 return (
                   <Table.Tr
-                    key={contact.discord_id}
+                    key={contact.id}
                     bg={selected ? "var(--mantine-color-blue-light)" : undefined}
                     style={{ cursor: "pointer" }}
                     onClick={() => {

@@ -61,6 +61,7 @@ class ContactViewSet(viewsets.ModelViewSet):
         end_date = self.request.query_params.get("end_date")
         min_events = self.request.query_params.get("min_events")
         max_events = self.request.query_params.get("max_events")
+        event_category_id = self.request.query_params.get("event_category_id")
 
         if event_id:
             queryset = queryset.filter(
@@ -78,9 +79,18 @@ class ContactViewSet(viewsets.ModelViewSet):
             date_filter &= Q(event_participations__event__ends_at__gte=start_date)
         if end_date:
             date_filter &= Q(event_participations__event__starts_at__lte=end_date)
+        if start_date or end_date:
+            queryset = queryset.filter(date_filter)
 
         internal_ticket_filter = date_filter & ~Q(tickets__ticket_type=TicketType.INTERAL_CALL)
         internal_event_filter = date_filter & ~Q(event_participations__event__event_type=EventType.INTERNAL)
+
+        if event_category_id:
+            internal_event_filter &= Q(event_participations__event__category_id=event_category_id)
+            queryset = queryset.filter(
+                event_participations__event__category_id=event_category_id,
+                event_participations__status=CommitmentStatus.ATTENDED,
+            )
 
         if min_tickets and min_tickets.isdigit():
             min_tickets = int(min_tickets)

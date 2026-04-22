@@ -12,13 +12,14 @@ import {
   Textarea,
   Text,
   ActionIcon,
+  Select,
 } from "@mantine/core";
 import { IconPlus, IconSearch, IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { useState, useEffect } from "react";
 import { apiClient } from "@/app/lib/apiClient";
 import { useForm } from "@mantine/form";
 import EventsTable from "@/app/components/EventsTable";
-import { type Event, type EventType } from "@/app/components/event-utils";
+import { type Event, type EventCategory, type EventType } from "@/app/components/event-utils";
 import { DateTime } from "@/app/components/datetime";
 import { DateRangePicker } from "@/app/components/datetime";
 
@@ -38,6 +39,8 @@ export default function EventTemplateView({ eventType, title = "Events" }: Event
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [categories, setCategories] = useState<EventCategory[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
   const form = useForm({
     initialValues: {
@@ -47,6 +50,7 @@ export default function EventTemplateView({ eventType, title = "Events" }: Event
       ends_at: "",
       location_address: "",
       location_name: "",
+      category_id: null as string | null,
     },
     validate: {
       name: (value) => (!value ? "Event name is required" : null),
@@ -56,8 +60,15 @@ export default function EventTemplateView({ eventType, title = "Events" }: Event
   });
 
   useEffect(() => {
+    apiClient
+      .get<{ results: EventCategory[] }>("/event-categories/")
+      .then((data) => setCategories(data.results || []))
+      .catch(() => setCategories([]));
+  }, []);
+
+  useEffect(() => {
     fetchEvents();
-  }, [searchQuery]);
+  }, [searchQuery, selectedCategoryId]);
 
   const fetchEvents = async (url?: string) => {
     try {
@@ -68,6 +79,7 @@ export default function EventTemplateView({ eventType, title = "Events" }: Event
         const params = new URLSearchParams();
         params.append("event_type", eventType);
         if (searchQuery) params.append("search", searchQuery);
+        if (selectedCategoryId) params.append("category_id", selectedCategoryId);
         fetchPath = `/events/?${params}`;
       }
 
@@ -130,7 +142,22 @@ export default function EventTemplateView({ eventType, title = "Events" }: Event
               leftSection={<IconSearch size={16} />}
               style={{ flex: 1 }}
             />
-            <Button variant="outline" onClick={() => setSearchQuery("")} style={{ marginTop: 24 }}>
+            <Select
+              label="Event Category"
+              placeholder="All categories"
+              data={categories.map((c) => ({ value: String(c.id), label: c.name }))}
+              value={selectedCategoryId}
+              onChange={setSelectedCategoryId}
+              clearable
+            />
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSearchQuery("");
+                setSelectedCategoryId(null);
+              }}
+              style={{ marginTop: 24 }}
+            >
               Reset
             </Button>
           </Group>
@@ -205,6 +232,13 @@ export default function EventTemplateView({ eventType, title = "Events" }: Event
               error={(form.errors.starts_at as string) ?? (form.errors.ends_at as string)}
             />
 
+            <Select
+              label="Event Category"
+              placeholder="Select category (optional)"
+              data={categories.map((c) => ({ value: String(c.id), label: c.name }))}
+              clearable
+              {...form.getInputProps("category_id")}
+            />
             <TextInput
               label="Location Name"
               placeholder="Enter location (optional)"

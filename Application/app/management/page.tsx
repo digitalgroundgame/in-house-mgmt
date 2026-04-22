@@ -20,17 +20,20 @@ import {
   IconRefresh,
   IconTicket,
   IconUsers,
+  IconCategory2,
 } from "@tabler/icons-react";
 import { useState } from "react";
 import { apiClient } from "@/app/lib/apiClient";
 import PlaceholderSection from "@/app/components/PlaceholderSection";
 import TicketTemplatesSection from "@/app/components/TicketTemplatesSection";
 import UsersSection from "@/app/components/management/UsersSection";
+import EventCategoriesSection from "@/app/management/components/EventCategoriesSection";
 
 export default function ManagementConsole() {
   const [discordSectionOpen, setDiscordSectionOpen] = useState(false);
   const [configSectionOpen, setConfigSectionOpen] = useState(false);
   const [templatesSectionOpen, setTemplatesSectionOpen] = useState(false);
+  const [eventTypesSectionOpen, setEventTypesSectionOpen] = useState(false);
   const [usersSectionOpen, setUsersSectionOpen] = useState(true);
 
   const [syncLoading, setSyncLoading] = useState(false);
@@ -173,6 +176,31 @@ export default function ManagementConsole() {
 
             <Collapse in={templatesSectionOpen}>
               <TicketTemplatesSection />
+            </Collapse>
+          </Stack>
+        </Paper>
+
+        {/* Event Categories */}
+        <Paper p="lg" withBorder>
+          <Stack gap="md">
+            <Group
+              gap="xs"
+              style={{ cursor: "pointer" }}
+              onClick={() => setEventTypesSectionOpen(!eventTypesSectionOpen)}
+            >
+              <IconCategory2 size={24} />
+              <Title order={3}>Event Categories</Title>
+              <ActionIcon variant="subtle">
+                {eventTypesSectionOpen ? (
+                  <IconChevronUp size={20} />
+                ) : (
+                  <IconChevronDown size={20} />
+                )}
+              </ActionIcon>
+            </Group>
+
+            <Collapse in={eventTypesSectionOpen}>
+              <EventCategoriesSection />
             </Collapse>
           </Stack>
         </Paper>

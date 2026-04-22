@@ -93,6 +93,7 @@ class TestEventEditWorkflow:
 
         assert response.status_code == 200
         assert sorted(response.data["editable_fields"]) == [
+            "category",
             "description",
             "ends_at",
             "event_status",

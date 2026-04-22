@@ -3,7 +3,7 @@ from django.contrib.auth.models import Permission, User
 from django.utils import timezone
 
 from dggcrm.contacts.models import Contact
-from dggcrm.events.models import Event, EventParticipation, EventStatus, UsersInEvent
+from dggcrm.events.models import Event, EventCategory, EventParticipation, EventStatus, UsersInEvent
 from dggcrm.tickets.models import Ticket, TicketStatus
 
 
@@ -31,6 +31,21 @@ def other_user(db):
         username="other",
         email="other@test.com",
         password="password",
+    )
+
+
+@pytest.fixture
+def event_category(db):
+    return EventCategory.objects.create(
+        name="Canvassing",
+        description="Door-to-door outreach",
+    )
+
+
+@pytest.fixture
+def other_event_category(db):
+    return EventCategory.objects.create(
+        name="Software Development",
     )
 
 
@@ -228,3 +243,18 @@ def change_all_usersinevents_permission(db):
 @pytest.fixture
 def change_usersinevent_via_event_permission(db):
     return Permission.objects.get(codename="change_usersinevent_via_event")
+
+
+@pytest.fixture
+def add_eventcategory_permission(db):
+    return Permission.objects.get(codename="add_eventcategory")
+
+
+@pytest.fixture
+def change_eventcategory_permission(db):
+    return Permission.objects.get(codename="change_eventcategory")
+
+
+@pytest.fixture
+def delete_eventcategory_permission(db):
+    return Permission.objects.get(codename="delete_eventcategory")
