@@ -3,13 +3,17 @@ import os
 
 from django.db import transaction
 from rest_framework import status
+from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from dggcrm.contacts.models import Contact, Tag, TagAssignments
+from dggcrm.events.models import StagedEvent, StagedEventParticipation
 
 from .client import get_discord_client
+from .permissions import IsAdminOrDiscordBot
+from .serializers import RecordAttendanceSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -142,4 +146,77 @@ class SyncMembershipTagsView(APIView):
                     "removed": role_tags_removed,
                 },
             }
+        )
+
+
+class RecordAttendanceView(APIView):
+    """
+    POST /api/discord/record-attendance/
+
+    Stages attendance from the Discord bot. Creates or updates a
+    StagedEvent row keyed by discord_event_id; replaces its participants
+    with the payload's list. All participants are staged regardless of
+    whether a matching Contact exists; the response flags those without
+    a Contact so the bot can DM the organizer.
+    Idempotent: retries with the same payload are safe.
+    """
+
+    permission_classes = [IsAdminOrDiscordBot]
+    authentication_classes = [TokenAuthentication, SessionAuthentication]
+
+    def post(self, request):
+        serializer = RecordAttendanceSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        participants = data["participants"]
+        participant_discord_ids = [p["discord_id"] for p in participants]
+
+        known_discord_ids = set(
+            Contact.objects.filter(discord_id__in=participant_discord_ids).values_list("discord_id", flat=True)
+        )
+        unlinked_participants = [p for p in participants if p["discord_id"] not in known_discord_ids]
+
+        with transaction.atomic():
+            staged_event, _ = StagedEvent.objects.update_or_create(
+                discord_event_id=data["event_id"],
+                defaults={
+                    "event_name": data["event_name"],
+                    "event_tracker_discord_id": data["event_tracker"],
+                },
+            )
+            # Preserve already-imported participations: a bot retry should never
+            # un-do a downstream import. ignore_conflicts skips bulk_create rows
+            # whose (staged_event, discord_id) already exists on the imported side.
+            imported_discord_ids = set(
+                staged_event.participants.filter(imported_at__isnull=False).values_list("discord_id", flat=True)
+            )
+            staged_event.participants.filter(imported_at__isnull=True).delete()
+            StagedEventParticipation.objects.bulk_create(
+                [
+                    StagedEventParticipation(
+                        staged_event=staged_event,
+                        discord_id=p["discord_id"],
+                        discord_name=p["discord_name"],
+                        status=p["status"],
+                    )
+                    for p in participants
+                ],
+                ignore_conflicts=True,
+            )
+            # Refresh discord_name on already-imported rows so retries capture
+            # display-name changes that bulk_create's ignore_conflicts skips.
+            for p in participants:
+                if p["discord_id"] in imported_discord_ids:
+                    staged_event.participants.filter(discord_id=p["discord_id"]).update(discord_name=p["discord_name"])
+
+        return Response(
+            {
+                "event_id": staged_event.discord_event_id,
+                "total_received": len(participants),
+                "unlinked_participants": [
+                    {"discord_id": p["discord_id"], "discord_name": p["discord_name"]} for p in unlinked_participants
+                ],
+            },
+            status=status.HTTP_200_OK,
         )

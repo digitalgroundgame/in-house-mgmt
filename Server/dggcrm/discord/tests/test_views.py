@@ -309,3 +309,188 @@ class TestSyncMembershipRolesTags:
 
         assert response2.json()["role_tags"]["added"] == 0
         assert response2.json()["role_tags"]["removed"] == 0
+
+
+@pytest.mark.django_db
+class TestRecordAttendanceView:
+    ENDPOINT = "/api/discord/record-attendance/"
+
+    def _payload(self, **overrides):
+        base = {
+            "event_id": "evt-1",
+            "event_name": "Scrim Night",
+            "event_tracker": "100000000000000001",
+            "participants": [
+                {
+                    "discord_id": "100000000000000001",
+                    "discord_name": "Alice",
+                    "status": "ATTENDED",
+                },
+                {
+                    "discord_id": "100000000000000002",
+                    "discord_name": "Bob",
+                    "status": "ATTENDED",
+                },
+                {
+                    "discord_id": "999999999999999999",
+                    "discord_name": "Stranger",
+                    "status": "ATTENDED",
+                },
+            ],
+        }
+        base.update(overrides)
+        return base
+
+    def test_requires_authentication(self, api_client):
+        response = api_client.post(self.ENDPOINT, self._payload(), format="json")
+        assert response.status_code in (401, 403)
+
+    def test_rejects_non_admin_non_bot_user(self, nonadmin_client):
+        response = nonadmin_client.post(self.ENDPOINT, self._payload(), format="json")
+        assert response.status_code == 403
+
+    def test_allows_discord_bot_group_user(self, api_client, sample_contacts, db):
+        from django.contrib.auth.models import Group
+
+        bot = User.objects.create_user(username="bot-user", password="x")
+        group, _ = Group.objects.get_or_create(name="DISCORD_BOT")
+        bot.groups.add(group)
+        api_client.force_authenticate(user=bot)
+
+        response = api_client.post(self.ENDPOINT, self._payload(), format="json")
+        assert response.status_code == 200
+
+    def test_stages_all_participants_and_reports_unknowns(self, authenticated_client, sample_contacts):
+        response = authenticated_client.post(self.ENDPOINT, self._payload(), format="json")
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["event_id"] == "evt-1"
+        assert body["total_received"] == 3
+        assert body["unlinked_participants"] == [{"discord_id": "999999999999999999", "discord_name": "Stranger"}]
+
+    def test_stages_all_participants_in_db_including_unknown(self, authenticated_client, sample_contacts):
+        from dggcrm.events.models import StagedEvent
+
+        authenticated_client.post(self.ENDPOINT, self._payload(), format="json")
+
+        staged = StagedEvent.objects.get(discord_event_id="evt-1")
+        assert staged.event_name == "Scrim Night"
+        assert staged.event_tracker_discord_id == "100000000000000001"
+
+        participant_discord_ids = set(staged.participants.values_list("discord_id", flat=True))
+        assert participant_discord_ids == {
+            "100000000000000001",
+            "100000000000000002",
+            "999999999999999999",
+        }
+
+        for p in staged.participants.all():
+            assert p.imported_at is None
+
+    def test_retry_with_same_payload_is_idempotent(self, authenticated_client, sample_contacts):
+        from dggcrm.events.models import StagedEvent
+
+        first = authenticated_client.post(self.ENDPOINT, self._payload(), format="json")
+        assert first.status_code == 200
+
+        second = authenticated_client.post(self.ENDPOINT, self._payload(), format="json")
+        assert second.status_code == 200
+
+        assert StagedEvent.objects.filter(discord_event_id="evt-1").count() == 1
+        staged = StagedEvent.objects.get(discord_event_id="evt-1")
+        assert staged.event_name == "Scrim Night"
+        participant_ids = set(staged.participants.values_list("discord_id", flat=True))
+        assert participant_ids == {
+            "100000000000000001",
+            "100000000000000002",
+            "999999999999999999",
+        }
+
+    def test_retry_preserves_imported_participants(self, authenticated_client, sample_contacts):
+        from django.utils import timezone
+
+        from dggcrm.events.models import StagedEvent
+
+        authenticated_client.post(self.ENDPOINT, self._payload(), format="json")
+
+        staged = StagedEvent.objects.get(discord_event_id="evt-1")
+        imported_time = timezone.now()
+        staged.participants.filter(discord_id="100000000000000001").update(imported_at=imported_time)
+
+        authenticated_client.post(self.ENDPOINT, self._payload(), format="json")
+
+        alice = staged.participants.get(discord_id="100000000000000001")
+        assert alice.imported_at is not None
+        assert staged.participants.count() == 3
+
+    def test_retry_refreshes_discord_name_on_imported_rows(self, authenticated_client, sample_contacts):
+        from django.utils import timezone
+
+        from dggcrm.events.models import StagedEvent
+
+        authenticated_client.post(self.ENDPOINT, self._payload(), format="json")
+        staged = StagedEvent.objects.get(discord_event_id="evt-1")
+        staged.participants.filter(discord_id="100000000000000001").update(imported_at=timezone.now())
+
+        renamed_payload = self._payload()
+        renamed_payload["participants"][0]["discord_name"] = "Alice (Renamed)"
+        authenticated_client.post(self.ENDPOINT, renamed_payload, format="json")
+
+        alice = staged.participants.get(discord_id="100000000000000001")
+        assert alice.discord_name == "Alice (Renamed)"
+        assert alice.imported_at is not None
+
+    def test_accepts_empty_participants(self, authenticated_client):
+        from dggcrm.events.models import StagedEvent
+
+        response = authenticated_client.post(
+            self.ENDPOINT,
+            self._payload(participants=[]),
+            format="json",
+        )
+        assert response.status_code == 200
+        assert response.json()["total_received"] == 0
+        assert response.json()["unlinked_participants"] == []
+
+        staged = StagedEvent.objects.get(discord_event_id="evt-1")
+        assert staged.participants.count() == 0
+
+    def test_rejects_duplicate_participant_discord_ids(self, authenticated_client, sample_contacts):
+        payload = self._payload(
+            participants=[
+                {
+                    "discord_id": "100000000000000001",
+                    "discord_name": "Alice",
+                    "status": "ATTENDED",
+                },
+                {
+                    "discord_id": "100000000000000001",
+                    "discord_name": "Alice Again",
+                    "status": "ATTENDED",
+                },
+            ]
+        )
+        response = authenticated_client.post(self.ENDPOINT, payload, format="json")
+        assert response.status_code == 400
+
+    def test_rejects_invalid_status(self, authenticated_client, sample_contacts):
+        payload = self._payload(
+            participants=[
+                {
+                    "discord_id": "100000000000000001",
+                    "discord_name": "Alice",
+                    "status": "MAYBE",
+                },
+            ]
+        )
+        response = authenticated_client.post(self.ENDPOINT, payload, format="json")
+        assert response.status_code == 400
+
+    def test_rejects_missing_fields(self, authenticated_client):
+        response = authenticated_client.post(
+            self.ENDPOINT,
+            {"event_id": "evt-2", "participants": []},
+            format="json",
+        )
+        assert response.status_code == 400
