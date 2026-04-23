@@ -1,6 +1,7 @@
 from auditlog.models import AuditlogHistoryField
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 
 
 class EventType(models.TextChoices):
@@ -158,3 +159,70 @@ class UsersInEvent(models.Model):
 
     def __str__(self):
         return f"{self.user} -> {self.event}"
+
+
+class StagedEvent(models.Model):
+    id = models.AutoField(primary_key=True)
+
+    discord_event_id = models.CharField(
+        max_length=64,
+        unique=True,
+        help_text="Discord scheduled event ID (snowflake)",
+    )
+    event_name = models.CharField(max_length=100)
+    event_tracker_discord_id = models.CharField(
+        max_length=64,
+        help_text="Discord user ID of the organizer who ran the tracking command",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "staged_events"
+        indexes = [
+            models.Index(fields=["event_tracker_discord_id"]),
+        ]
+
+    def __str__(self):
+        return f"{self.event_name} ({self.discord_event_id})"
+
+
+class StagedEventParticipation(models.Model):
+    id = models.AutoField(primary_key=True)
+
+    staged_event = models.ForeignKey(
+        "events.StagedEvent",
+        on_delete=models.CASCADE,
+        related_name="participants",
+    )
+
+    discord_id = models.CharField(max_length=64)
+    discord_name = models.CharField(max_length=100)
+    status = models.CharField(
+        max_length=20,
+        choices=CommitmentStatus.choices,
+        default=CommitmentStatus.UNKNOWN,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    imported_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Set when promoted into a real EventParticipation row",
+    )
+
+    class Meta:
+        db_table = "staged_event_participations"
+        unique_together = [("staged_event", "discord_id")]
+        indexes = [
+            models.Index(fields=["discord_id"]),
+            models.Index(
+                fields=["staged_event"],
+                name="staged_part_pending_idx",
+                condition=Q(imported_at__isnull=True),
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.discord_name} ({self.discord_id}) -> {self.get_status_display()}"
