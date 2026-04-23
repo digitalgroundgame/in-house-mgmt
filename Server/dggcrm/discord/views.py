@@ -158,7 +158,12 @@ class RecordAttendanceView(APIView):
     with the payload's list. All participants are staged regardless of
     whether a matching Contact exists; the response flags those without
     a Contact so the bot can DM the organizer.
-    Idempotent: retries with the same payload are safe.
+
+    Idempotent: retries with the same payload are safe. Participants
+    already promoted into EventParticipation (imported_at is not null)
+    are preserved across retries — their imported_at is never cleared,
+    though their discord_name is refreshed to reflect display-name
+    changes the bot may have picked up.
     """
 
     permission_classes = [IsAdminOrDiscordBot]
@@ -206,9 +211,15 @@ class RecordAttendanceView(APIView):
             )
             # Refresh discord_name on already-imported rows so retries capture
             # display-name changes that bulk_create's ignore_conflicts skips.
-            for p in participants:
-                if p["discord_id"] in imported_discord_ids:
-                    staged_event.participants.filter(discord_id=p["discord_id"]).update(discord_name=p["discord_name"])
+            if imported_discord_ids:
+                name_by_id = {
+                    p["discord_id"]: p["discord_name"] for p in participants if p["discord_id"] in imported_discord_ids
+                }
+                imported_rows = list(staged_event.participants.filter(discord_id__in=imported_discord_ids))
+                for row in imported_rows:
+                    if row.discord_id in name_by_id:
+                        row.discord_name = name_by_id[row.discord_id]
+                StagedEventParticipation.objects.bulk_update(imported_rows, ["discord_name"])
 
         return Response(
             {

@@ -51,6 +51,8 @@ class StagedEventParticipationInline(admin.TabularInline):
     model = StagedEventParticipation
     extra = 0
     readonly_fields = ["discord_id", "discord_name", "status", "created_at", "imported_at"]
+    # Delete only via the standalone StagedEventParticipationAdmin — keeps accidental
+    # deletes off the parent-event detail page.
     can_delete = False
 
 
