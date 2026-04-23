@@ -14,7 +14,7 @@ services:
       - dggcrm_production_admin_static_files:/app/staticfiles
     labels:
     - traefik.enable=true
-    - traefik.docker.network=coolify
+    - traefik.docker.network=crm-network-staging
     - "traefik.http.routers.inhouse-nginx-staging-http.rule=Host(`housestaging.digitalgroundgame.org`) && PathPrefix(`/`)"
     - traefik.http.routers.inhouse-nginx-staging-http.entryPoints=http
     - "traefik.http.routers.inhouse-nginx-staging-https.rule=Host(`housestaging.digitalgroundgame.org`) && PathPrefix(`/`)"
@@ -23,7 +23,7 @@ services:
     - traefik.http.routers.inhouse-nginx-staging-https.tls.certresolver=letsencrypt
     - traefik.http.services.inhouse-nginx-staging.loadbalancer.server.port=80
     networks:
-      - coolify
+      - crm-network-staging
       - default
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/health"]
@@ -107,7 +107,7 @@ services:
     logging:
       driver: journald
     networks:
-      - coolify
+      - crm-network-staging
       - default
 
 
@@ -115,5 +115,5 @@ volumes:
   dggcrm_production_admin_static_files:
 
 networks:
-  coolify:
+  crm-network-staging:
     external: true
