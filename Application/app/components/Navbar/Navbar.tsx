@@ -8,12 +8,11 @@ import {
   IconUsers,
   IconCalendarEvent,
   IconPhone,
-  IconTicketOff,
   IconEyeFilled,
   IconLogout,
   IconBuilding,
 } from "@tabler/icons-react";
-import { Code, Group, NavLink, Switch } from "@mantine/core";
+import { Checkbox, NavLink } from "@mantine/core";
 import classes from "./Navbar.module.css";
 import { useState } from "react";
 import { handleLogout } from "@/app/utils/oauth";
@@ -33,7 +32,7 @@ export default function NavbarSimple() {
   const pathname = usePathname();
 
   const [admin, changeMode] = useState(false);
-  const data = admin ? [...notAdminData, ...adminOnly] : notAdminData;
+  const data = notAdminData;
 
   const showNavbar = pathname !== "/login";
 
@@ -59,17 +58,17 @@ export default function NavbarSimple() {
         ))}
 
         <NavLink
+          className={classes.navLinkRoot}
           label="Internal"
-          leftSection={<IconBuilding size={20} stroke={1.5} className={classes.linkIcon} />}
+          leftSection={<IconBuilding stroke={1.5} className={classes.navLinkIcon} />}
           defaultOpened={isInternalActive}
-          classNames={{ children: classes.navLinkChildren }}
+          classNames={{ children: classes.navLinkChildren, label: classes.navLinkLabel }}
           styles={{
             root: {
               padding: "var(--mantine-spacing-xs) var(--mantine-spacing-sm)",
               borderRadius: "var(--mantine-radius-sm)",
               fontSize: "var(--mantine-font-size-sm)",
               fontWeight: 500,
-              color: "var(--mantine-color-gray-7)",
             },
             label: { padding: 0 },
           }}
@@ -89,9 +88,31 @@ export default function NavbarSimple() {
       </div>
 
       <div className={classes.footer}>
-        <div>
-          <Switch color="red" label="Admin Mode" onChange={() => changeMode(!admin)} />
-        </div>
+        <label className={classes.link}>
+          <span className={classes.checkboxIcon}>
+            <Checkbox
+              aria-label="Admin Mode"
+              checked={admin}
+              color="red"
+              onChange={(event) => changeMode(event.currentTarget.checked)}
+              size="xs"
+            />
+          </span>
+          <span>Admin Mode</span>
+        </label>
+
+        {admin &&
+          adminOnly.map((item) => (
+            <Link
+              className={classes.link}
+              data-active={item.link === pathname || undefined}
+              href={item.link}
+              key={item.label}
+            >
+              <item.icon className={classes.linkIcon} stroke={1.5} />
+              <span>{item.label}</span>
+            </Link>
+          ))}
 
         <Link
           className={classes.link}
@@ -108,9 +129,9 @@ export default function NavbarSimple() {
           <span>Logout</span>
         </a>
       </div>
-      <Group className={classes.header} justify="space-between">
+      {/* <Group className={classes.header} justify="space-between">
         <Code fw={700}>v0.0.0</Code>
-      </Group>
+      </Group> */}
     </nav>
   );
 }
