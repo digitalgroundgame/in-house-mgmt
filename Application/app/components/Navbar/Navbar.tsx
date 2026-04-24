@@ -8,15 +8,17 @@ import {
   IconUsers,
   IconCalendarEvent,
   IconPhone,
-  IconTicketOff,
   IconEyeFilled,
   IconLogout,
   IconBuilding,
+  IconChevronLeft,
+  IconChevronRight,
 } from "@tabler/icons-react";
-import { Code, Group, NavLink, Switch } from "@mantine/core";
+import { NavLink } from "@mantine/core";
 import classes from "./Navbar.module.css";
 import { useState } from "react";
 import { handleLogout } from "@/app/utils/oauth";
+import { useUser } from "@/app/components/provider/UserContext";
 
 const notAdminData = [
   { link: "/home", label: "Home", icon: IconHome },
@@ -31,9 +33,11 @@ const adminOnly = [{ link: "/management", label: "Management", icon: IconEyeFill
 
 export default function NavbarSimple() {
   const pathname = usePathname();
+  const { user } = useUser();
 
-  const [admin, changeMode] = useState(false);
-  const data = admin ? [...notAdminData, ...adminOnly] : notAdminData;
+  const [collapsed, setCollapsed] = useState(false);
+  const data = notAdminData;
+  const isAdmin = user?.groups.includes("ADMIN") ?? false;
 
   const showNavbar = pathname !== "/login";
 
@@ -44,38 +48,61 @@ export default function NavbarSimple() {
   }
 
   return (
-    <nav className={classes.navbar}>
+    <nav className={classes.navbar} data-collapsed={collapsed || undefined}>
+      <button
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        className={classes.collapseButton}
+        onClick={() => setCollapsed((value) => !value)}
+        type="button"
+      >
+        {collapsed ? (
+          <IconChevronRight size={16} stroke={1.5} />
+        ) : (
+          <IconChevronLeft size={16} stroke={1.5} />
+        )}
+      </button>
+
       <div className={classes.navbarMain}>
         {data.map((item) => (
           <Link
+            aria-label={item.label}
             className={classes.link}
             data-active={item.link === pathname || undefined}
             href={item.link}
             key={item.label}
           >
             <item.icon className={classes.linkIcon} stroke={1.5} />
-            <span>{item.label}</span>
+            <span className={classes.linkLabel}>{item.label}</span>
           </Link>
         ))}
 
         <NavLink
+          aria-label="Internal"
+          className={classes.navLinkRoot}
           label="Internal"
-          leftSection={<IconBuilding size={20} stroke={1.5} className={classes.linkIcon} />}
+          leftSection={<IconBuilding stroke={1.5} className={classes.navLinkIcon} />}
           defaultOpened={isInternalActive}
-          classNames={{ children: classes.navLinkChildren }}
+          classNames={{
+            children: classes.navLinkChildren,
+            label: classes.navLinkLabel,
+            section: classes.navLinkSection,
+          }}
           styles={{
+            body: {
+              display: collapsed ? "none" : undefined,
+            },
             root: {
               padding: "var(--mantine-spacing-xs) var(--mantine-spacing-sm)",
               borderRadius: "var(--mantine-radius-sm)",
               fontSize: "var(--mantine-font-size-sm)",
               fontWeight: 500,
-              color: "var(--mantine-color-gray-7)",
             },
             label: { padding: 0 },
           }}
         >
           {internalLinks.map((item) => (
             <Link
+              aria-label={item.label}
               className={classes.link}
               data-active={item.link === pathname || undefined}
               href={item.link}
@@ -89,28 +116,36 @@ export default function NavbarSimple() {
       </div>
 
       <div className={classes.footer}>
-        <div>
-          <Switch color="red" label="Admin Mode" onChange={() => changeMode(!admin)} />
-        </div>
+        {isAdmin &&
+          adminOnly.map((item) => (
+            <Link
+              aria-label={item.label}
+              className={classes.link}
+              data-active={item.link === pathname || undefined}
+              href={item.link}
+              key={item.label}
+            >
+              <item.icon className={classes.linkIcon} stroke={1.5} />
+              <span className={classes.linkLabel}>{item.label}</span>
+            </Link>
+          ))}
 
         <Link
+          aria-label="Profile"
           className={classes.link}
           data-active={"/profile" === pathname || undefined}
           href={"/profile"}
           key={"profile"}
         >
           <IconUser className={classes.linkIcon} stroke={1.5} />
-          <span>Profile</span>
+          <span className={classes.linkLabel}>Profile</span>
         </Link>
 
-        <a href="#" className={classes.link} onClick={handleLogout}>
+        <a aria-label="Logout" href="#" className={classes.link} onClick={handleLogout}>
           <IconLogout className={classes.linkIcon} stroke={1.5} />
-          <span>Logout</span>
+          <span className={classes.linkLabel}>Logout</span>
         </a>
       </div>
-      <Group className={classes.header} justify="space-between">
-        <Code fw={700}>v0.0.0</Code>
-      </Group>
     </nav>
   );
 }
