@@ -126,15 +126,6 @@
   margin-inline-end: 0;
 }
 
-.checkboxIcon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: var(--mantine-spacing-sm);
-  width: 25px;
-  height: 25px;
-}
-
 .linkIcon {
   color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
   margin-right: var(--mantine-spacing-sm);
@@ -142,8 +133,7 @@
   height: 25px;
 }
 
-.navbar[data-collapsed] .linkIcon,
-.navbar[data-collapsed] .checkboxIcon {
+.navbar[data-collapsed] .linkIcon {
   margin-right: 0;
 }
 

@@ -14,10 +14,11 @@ import {
   IconChevronLeft,
   IconChevronRight,
 } from "@tabler/icons-react";
-import { Checkbox, NavLink } from "@mantine/core";
+import { NavLink } from "@mantine/core";
 import classes from "./Navbar.module.css";
 import { useState } from "react";
 import { handleLogout } from "@/app/utils/oauth";
+import { useUser } from "@/app/components/provider/UserContext";
 
 const notAdminData = [
   { link: "/home", label: "Home", icon: IconHome },
@@ -32,10 +33,11 @@ const adminOnly = [{ link: "/management", label: "Management", icon: IconEyeFill
 
 export default function NavbarSimple() {
   const pathname = usePathname();
+  const { user } = useUser();
 
-  const [admin, changeMode] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const data = notAdminData;
+  const isAdmin = user?.groups.includes("ADMIN") ?? false;
 
   const showNavbar = pathname !== "/login";
 
@@ -114,20 +116,7 @@ export default function NavbarSimple() {
       </div>
 
       <div className={classes.footer}>
-        <label className={classes.link}>
-          <span className={classes.checkboxIcon}>
-            <Checkbox
-              aria-label="Admin Mode"
-              checked={admin}
-              color="red"
-              onChange={(event) => changeMode(event.currentTarget.checked)}
-              size="xs"
-            />
-          </span>
-          <span className={classes.linkLabel}>Admin Mode</span>
-        </label>
-
-        {admin &&
+        {isAdmin &&
           adminOnly.map((item) => (
             <Link
               aria-label={item.label}
