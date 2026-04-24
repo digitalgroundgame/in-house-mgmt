@@ -11,6 +11,8 @@ import {
   IconEyeFilled,
   IconLogout,
   IconBuilding,
+  IconChevronLeft,
+  IconChevronRight,
 } from "@tabler/icons-react";
 import { Checkbox, NavLink } from "@mantine/core";
 import classes from "./Navbar.module.css";
@@ -32,6 +34,7 @@ export default function NavbarSimple() {
   const pathname = usePathname();
 
   const [admin, changeMode] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const data = notAdminData;
 
   const showNavbar = pathname !== "/login";
@@ -43,27 +46,49 @@ export default function NavbarSimple() {
   }
 
   return (
-    <nav className={classes.navbar}>
+    <nav className={classes.navbar} data-collapsed={collapsed || undefined}>
+      <button
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        className={classes.collapseButton}
+        onClick={() => setCollapsed((value) => !value)}
+        type="button"
+      >
+        {collapsed ? (
+          <IconChevronRight size={16} stroke={1.5} />
+        ) : (
+          <IconChevronLeft size={16} stroke={1.5} />
+        )}
+      </button>
+
       <div className={classes.navbarMain}>
         {data.map((item) => (
           <Link
+            aria-label={item.label}
             className={classes.link}
             data-active={item.link === pathname || undefined}
             href={item.link}
             key={item.label}
           >
             <item.icon className={classes.linkIcon} stroke={1.5} />
-            <span>{item.label}</span>
+            <span className={classes.linkLabel}>{item.label}</span>
           </Link>
         ))}
 
         <NavLink
+          aria-label="Internal"
           className={classes.navLinkRoot}
           label="Internal"
           leftSection={<IconBuilding stroke={1.5} className={classes.navLinkIcon} />}
           defaultOpened={isInternalActive}
-          classNames={{ children: classes.navLinkChildren, label: classes.navLinkLabel }}
+          classNames={{
+            children: classes.navLinkChildren,
+            label: classes.navLinkLabel,
+            section: classes.navLinkSection,
+          }}
           styles={{
+            body: {
+              display: collapsed ? "none" : undefined,
+            },
             root: {
               padding: "var(--mantine-spacing-xs) var(--mantine-spacing-sm)",
               borderRadius: "var(--mantine-radius-sm)",
@@ -75,6 +100,7 @@ export default function NavbarSimple() {
         >
           {internalLinks.map((item) => (
             <Link
+              aria-label={item.label}
               className={classes.link}
               data-active={item.link === pathname || undefined}
               href={item.link}
@@ -98,35 +124,37 @@ export default function NavbarSimple() {
               size="xs"
             />
           </span>
-          <span>Admin Mode</span>
+          <span className={classes.linkLabel}>Admin Mode</span>
         </label>
 
         {admin &&
           adminOnly.map((item) => (
             <Link
+              aria-label={item.label}
               className={classes.link}
               data-active={item.link === pathname || undefined}
               href={item.link}
               key={item.label}
             >
               <item.icon className={classes.linkIcon} stroke={1.5} />
-              <span>{item.label}</span>
+              <span className={classes.linkLabel}>{item.label}</span>
             </Link>
           ))}
 
         <Link
+          aria-label="Profile"
           className={classes.link}
           data-active={"/profile" === pathname || undefined}
           href={"/profile"}
           key={"profile"}
         >
           <IconUser className={classes.linkIcon} stroke={1.5} />
-          <span>Profile</span>
+          <span className={classes.linkLabel}>Profile</span>
         </Link>
 
-        <a href="#" className={classes.link} onClick={handleLogout}>
+        <a aria-label="Logout" href="#" className={classes.link} onClick={handleLogout}>
           <IconLogout className={classes.linkIcon} stroke={1.5} />
-          <span>Logout</span>
+          <span className={classes.linkLabel}>Logout</span>
         </a>
       </div>
     </nav>
