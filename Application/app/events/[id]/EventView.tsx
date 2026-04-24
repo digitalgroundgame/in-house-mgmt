@@ -49,7 +49,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useDisclosure } from "@mantine/hooks";
 import getCookie from "@/app/utils/cookie";
-import { formatDateTime } from "@/app/utils/datetime";
+import { formatBackendProvidedDateTime } from "@/app/utils/datetime";
 
 const EVENT_PARTICIPATION_STATUSES = [
   "UNKNOWN",
@@ -370,7 +370,7 @@ function EventViewMetadata({
             onChange={(value) => form.setFieldValue("startsAt", value ?? form.values.startsAt)}
           />
         ) : (
-          <Text>{formatDateTime(event.starts_at)}</Text>
+          <Text>{formatBackendProvidedDateTime(event.starts_at)}</Text>
         )}
       </Box>
       <Box mt={4} mb={4}>
@@ -388,7 +388,7 @@ function EventViewMetadata({
             onChange={(value) => form.setFieldValue("endsAt", value ?? form.values.endsAt)}
           />
         ) : (
-          <Text>{formatDateTime(event.ends_at)}</Text>
+          <Text>{formatBackendProvidedDateTime(event.ends_at)}</Text>
         )}
       </Box>
     </Paper>
@@ -863,7 +863,9 @@ function EventViewUsersTable({ event }: { event: Event }) {
                   <Table.Td key={user.user_username}>{user.user_username}</Table.Td>
                 ),
                 (user: UsersInEvent) => (
-                  <Table.Td key={user.joined_at}>{formatDateTime(user.joined_at)}</Table.Td>
+                  <Table.Td key={user.joined_at}>
+                    {formatBackendProvidedDateTime(user.joined_at)}
+                  </Table.Td>
                 ),
                 (user: UsersInEvent) => (
                   <Table.Td key={user.id}>

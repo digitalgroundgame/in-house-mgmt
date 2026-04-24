@@ -3,10 +3,9 @@
 import { Text, Tooltip, TextProps } from "@mantine/core";
 import { useTimezone } from "@/app/components/provider/TimezoneContext";
 import {
-  formatDateTime,
+  formatBackendProvidedDateTime,
   formatFullDateTime,
   getTimezoneAbbr,
-  FormatDateTimeOptions,
 } from "@/app/utils/datetime";
 
 export interface DateRangeProps extends Omit<TextProps, "children"> {
@@ -35,10 +34,10 @@ export function DateRange({
 }: DateRangeProps) {
   const { timezone } = useTimezone();
 
-  const startText = formatDateTime(start, timezone, {
+  const startText = formatBackendProvidedDateTime(start, timezone, {
     includeTime,
   });
-  const endText = formatDateTime(end, timezone, {
+  const endText = formatBackendProvidedDateTime(end, timezone, {
     includeTime,
   });
 

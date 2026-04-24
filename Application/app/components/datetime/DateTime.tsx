@@ -3,10 +3,9 @@
 import { Text, Tooltip, TextProps } from "@mantine/core";
 import { useTimezone } from "@/app/components/provider/TimezoneContext";
 import {
-  formatDateTime,
+  formatBackendProvidedDateTime,
   formatFullDateTime,
   getTimezoneAbbr,
-  FormatDateTimeOptions,
 } from "@/app/utils/datetime";
 
 export interface DateTimeProps extends Omit<TextProps, "children"> {
@@ -29,7 +28,7 @@ export function DateTime({
 }: DateTimeProps) {
   const { timezone } = useTimezone();
 
-  const formattedDate = formatDateTime(value, timezone, { includeTime });
+  const formattedDate = formatBackendProvidedDateTime(value, timezone, { includeTime });
   const tzAbbr = getTimezoneAbbr(timezone);
   // Only show timezone when time is displayed
   const displayText =
