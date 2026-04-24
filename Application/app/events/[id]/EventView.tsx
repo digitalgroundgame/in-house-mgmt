@@ -42,11 +42,12 @@ import {
   Textarea,
   ActionIcon,
   Tooltip,
+  Alert,
 } from "@mantine/core";
 import { IconPencil, IconSearch } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDisclosure } from "@mantine/hooks";
 import getCookie from "@/app/utils/cookie";
 import { formatBackendProvidedDateTime } from "@/app/utils/datetime";
@@ -59,6 +60,15 @@ const EVENT_PARTICIPATION_STATUSES = [
   "NO_SHOW",
 ] as const;
 type EventParticipationStatus = (typeof EVENT_PARTICIPATION_STATUSES)[number];
+const INVALID_FINAL_ATTENDANCE_STATUSES = new Set<EventParticipationStatus>([
+  "UNKNOWN",
+  "MAYBE",
+  "COMMITTED",
+]);
+
+function hasInvalidFinalAttendanceStatus(status: string) {
+  return INVALID_FINAL_ATTENDANCE_STATUSES.has(status as EventParticipationStatus);
+}
 
 interface EventEditFormValues {
   name: string;
@@ -95,6 +105,7 @@ function EventViewMain({ event }: { event: Event }) {
   const [currentEvent, setCurrentEvent] = useState(event);
   const [isEditing, setIsEditing] = useState(false);
   const [isSavingEventEdits, setIsSavingEventEdits] = useState(false);
+  const [attendanceValidationError, setAttendanceValidationError] = useState<string | null>(null);
   const form = useForm<EventEditFormValues>({
     initialValues: getEventFormValues(event),
   });
@@ -122,6 +133,7 @@ function EventViewMain({ event }: { event: Event }) {
       const values = getEventFormValues(updated);
       form.setValues(values);
       form.resetDirty(values);
+      setAttendanceValidationError(null);
 
       notifications.show({
         title: "Event updated",
@@ -130,12 +142,9 @@ function EventViewMain({ event }: { event: Event }) {
       });
       setIsEditing(false);
     } catch (error) {
-      console.error(error);
-      notifications.show({
-        title: "Save failed",
-        message: "Could not update the event details.",
-        color: "red",
-      });
+      setAttendanceValidationError(
+        error instanceof Error ? error.message : "Could not update the event details."
+      );
     } finally {
       setIsSavingEventEdits(false);
     }
@@ -145,6 +154,7 @@ function EventViewMain({ event }: { event: Event }) {
     const values = getEventFormValues(currentEvent);
     form.setValues(values);
     form.resetDirty(values);
+    setAttendanceValidationError(null);
     setIsEditing(false);
   };
 
@@ -180,6 +190,17 @@ function EventViewMain({ event }: { event: Event }) {
               </>
             )}
           </Group>
+        )}
+        {attendanceValidationError && (
+          <Alert
+            color="red"
+            mb="md"
+            withCloseButton
+            onClose={() => setAttendanceValidationError(null)}
+          >
+            {attendanceValidationError} Participants with unresolved attendance statuses are
+            highlighted below.
+          </Alert>
         )}
         <EventSummaryCard event={currentEvent} isEditing={isEditing} form={form} />
         <Tabs defaultValue="participants" mt="md">
@@ -902,6 +923,16 @@ function EventViewContactTable({ event }: { event: Event }) {
   };
 
   const selectedData = data?.results.filter((participation) => selected.has(participation.id));
+  const sortedParticipations = useMemo(() => {
+    return [...(data?.results ?? [])].sort((a, b) => {
+      const aInvalid = hasInvalidFinalAttendanceStatus(a.status);
+      const bInvalid = hasInvalidFinalAttendanceStatus(b.status);
+
+      if (aInvalid === bInvalid) return 0;
+      return aInvalid ? -1 : 1;
+    });
+  }, [data?.results]);
+
   return (
     <>
       {opened && (
@@ -965,7 +996,7 @@ function EventViewContactTable({ event }: { event: Event }) {
             <PaginatedTable
               title="Participants"
               showTitle={true}
-              data={data.results}
+              data={sortedParticipations}
               onRowClick={(ep: EventParticipation) => router.push(`/contacts/${ep.contact.id}`)}
               columns={["Name", "Contact", "Status"]}
               transforms={[
@@ -992,6 +1023,11 @@ function EventViewContactTable({ event }: { event: Event }) {
               onSelectionChange={setSelected}
               selected={selected}
               keyFn={(ep: EventParticipation) => ep.id}
+              getRowBg={(ep: EventParticipation) =>
+                hasInvalidFinalAttendanceStatus(ep.status)
+                  ? "var(--mantine-color-red-light)"
+                  : undefined
+              }
             />
           )}
           {data && (

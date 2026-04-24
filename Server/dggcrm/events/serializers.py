@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from ..contacts.models import Contact
 from ..contacts.serializers import ContactSerializer
-from .models import CommitmentStatus, Event, EventParticipation, UsersInEvent
+from .models import CommitmentStatus, Event, EventParticipation, EventStatus, UsersInEvent
 from .permissions import can_change_event
 
 User = get_user_model()
@@ -43,6 +43,31 @@ class EventSerializer(serializers.ModelSerializer):
                 "event_status",
             }
         )
+
+    def validate(self, attrs):
+        event_status = attrs.get("event_status")
+
+        if event_status in {EventStatus.COMPLETED, EventStatus.CANCELED}:
+            invalid_statuses = [
+                CommitmentStatus.UNKNOWN,
+                CommitmentStatus.MAYBE,
+                CommitmentStatus.COMMITTED,
+            ]
+            invalid_participations = EventParticipation.objects.filter(
+                event=self.instance,
+                status__in=invalid_statuses,
+            ).values_list("id", flat=True)
+            invalid_participation_ids = list(invalid_participations)
+
+            if invalid_participation_ids:
+                raise serializers.ValidationError(
+                    {
+                        "detail": "Attendance statuses must be resolved before an event can be completed or canceled.",
+                        "invalid_participation_ids": invalid_participation_ids,
+                    }
+                )
+
+        return attrs
 
 
 class EventParticipationSerializer(serializers.ModelSerializer):
