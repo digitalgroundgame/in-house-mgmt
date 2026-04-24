@@ -129,9 +129,6 @@ export default function NavbarSimple() {
           <span>Logout</span>
         </a>
       </div>
-      {/* <Group className={classes.header} justify="space-between">
-        <Code fw={700}>v0.0.0</Code>
-      </Group> */}
     </nav>
   );
 }
