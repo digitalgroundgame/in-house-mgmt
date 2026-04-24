@@ -44,9 +44,17 @@ export default function RootLayout({
           <MantineProvider theme={theme}>
             <Notifications position="top-center" />
             <TimezoneProvider>
-              <div style={{ display: "flex" }}>
+              <div
+                style={{
+                  alignItems: "stretch",
+                  display: "flex",
+                  minHeight: "100vh",
+                }}
+              >
                 <NavbarSimple />
-                <main style={{ flex: 1, padding: "20px" }}>{children}</main>
+                <main style={{ borderLeft: "1px solid #dee2e6", flex: 1, padding: "20px" }}>
+                  {children}
+                </main>
               </div>
             </TimezoneProvider>
           </MantineProvider>
