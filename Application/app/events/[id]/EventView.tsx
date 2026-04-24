@@ -46,7 +46,7 @@ import {
 } from "@mantine/core";
 import { IconPencil, IconSearch } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useDisclosure } from "@mantine/hooks";
 import getCookie from "@/app/utils/cookie";
@@ -60,11 +60,16 @@ const EVENT_PARTICIPATION_STATUSES = [
   "NO_SHOW",
 ] as const;
 type EventParticipationStatus = (typeof EVENT_PARTICIPATION_STATUSES)[number];
+const FINAL_EVENT_STATUSES = new Set(["completed", "canceled"]);
 const INVALID_FINAL_ATTENDANCE_STATUSES = new Set<EventParticipationStatus>([
   "UNKNOWN",
   "MAYBE",
   "COMMITTED",
 ]);
+
+function isFinalEventStatus(status: string) {
+  return FINAL_EVENT_STATUSES.has(status);
+}
 
 function hasInvalidFinalAttendanceStatus(status: string) {
   return INVALID_FINAL_ATTENDANCE_STATUSES.has(status as EventParticipationStatus);
@@ -416,12 +421,14 @@ function EventViewMetadata({
 }
 
 function AddParticipantModal({
+  event,
   selected,
   opened,
   close,
   refresh,
   mode,
 }: {
+  event: Event;
   selected?: EventParticipation[];
   opened: boolean;
   close: () => void;
@@ -435,9 +442,11 @@ function AddParticipantModal({
   const [removedContactIds, setRemovedContactIds] = useState<Set<number>>(new Set());
   const [eventStatus, setEventStatus] = useState<EventParticipationStatus>();
   const [submitting, setSubmitting] = useState(false);
-  const eventId = usePathname().split("/").pop();
   const apiParams = new URLSearchParams();
   if (contactSearchQuery) apiParams.append("search", contactSearchQuery);
+  const participationStatusOptions = isFinalEventStatus(event.event_status)
+    ? EVENT_PARTICIPATION_STATUSES.filter((status) => !hasInvalidFinalAttendanceStatus(status))
+    : EVENT_PARTICIPATION_STATUSES;
 
   const contactToParticipationMap = new Map<number, number>();
   if (mode === "modify" && selected) {
@@ -486,7 +495,7 @@ function AddParticipantModal({
         await Promise.all(
           Array.from(selectedContacts).map((c) =>
             createMutate({
-              event_id: Number.parseInt(eventId!),
+              event_id: event.id,
               status: eventStatus,
               contact_id: c.id,
             })
@@ -596,7 +605,7 @@ function AddParticipantModal({
           </Combobox>
         )}
         <Select
-          data={EVENT_PARTICIPATION_STATUSES}
+          data={participationStatusOptions}
           label="Participation Status"
           onChange={(s) => setEventStatus(s as EventParticipationStatus)}
           placeholder="Participation Status"
@@ -937,6 +946,7 @@ function EventViewContactTable({ event }: { event: Event }) {
     <>
       {opened && (
         <AddParticipantModal
+          event={event}
           selected={modalMode === "add" ? undefined : selectedData}
           opened={opened}
           close={close}

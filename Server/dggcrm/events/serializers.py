@@ -8,6 +8,13 @@ from .permissions import can_change_event
 
 User = get_user_model()
 
+FINAL_EVENT_STATUSES = {EventStatus.COMPLETED, EventStatus.CANCELED}
+INVALID_FINAL_ATTENDANCE_STATUSES = {
+    CommitmentStatus.UNKNOWN,
+    CommitmentStatus.MAYBE,
+    CommitmentStatus.COMMITTED,
+}
+
 
 class EventSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source="get_event_status_display", read_only=True)
@@ -47,15 +54,10 @@ class EventSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         event_status = attrs.get("event_status")
 
-        if event_status in {EventStatus.COMPLETED, EventStatus.CANCELED}:
-            invalid_statuses = [
-                CommitmentStatus.UNKNOWN,
-                CommitmentStatus.MAYBE,
-                CommitmentStatus.COMMITTED,
-            ]
+        if event_status in FINAL_EVENT_STATUSES:
             invalid_participations = EventParticipation.objects.filter(
                 event=self.instance,
-                status__in=invalid_statuses,
+                status__in=INVALID_FINAL_ATTENDANCE_STATUSES,
             ).values_list("id", flat=True)
             invalid_participation_ids = list(invalid_participations)
 
@@ -94,6 +96,19 @@ class EventParticipationSerializer(serializers.ModelSerializer):
         fields = "__all__"
         read_only_fields = ["id", "created_at", "modified_at", "status_display"]
         validators = []
+
+    def validate(self, attrs):
+        status = attrs.get("status")
+        event = attrs.get("event") or (self.instance.event if self.instance else None)
+
+        if event and event.event_status in FINAL_EVENT_STATUSES and status in INVALID_FINAL_ATTENDANCE_STATUSES:
+            raise serializers.ValidationError(
+                {
+                    "detail": "Attendance status cannot be unresolved for a completed or canceled event.",
+                }
+            )
+
+        return attrs
 
 
 class UsersInEventSerializer(serializers.ModelSerializer):
