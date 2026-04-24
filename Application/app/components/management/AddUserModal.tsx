@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { notifications } from "@mantine/notifications";
 import { apiClient } from "@/app/lib/apiClient";
 import { useForm } from "@mantine/form";
+import formatApiPayload from "@/app/utils/format-api-payload";
 
 interface Group {
   id: number;
@@ -18,24 +19,33 @@ interface Props {
   availableGroups: Group[];
 }
 
-interface CreateUserPayload {
+type CreateUserPayload = {
   username: string;
-  email: string;
   first_name?: string;
   last_name?: string;
   groups: string[];
+} & ({ email: string; discord_id?: string } | { email?: string; discord_id: string });
+
+interface Form {
+  discordId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  selectedGroups: string[];
+  username: string;
 }
 
 export default function AddUserModal({ opened, onClose, onSuccess, availableGroups }: Props) {
   const [loading, setLoading] = useState(false);
 
-  const form = useForm({
+  const form = useForm<Form>({
     initialValues: {
       username: "",
       email: "",
       firstName: "",
       lastName: "",
-      selectedGroups: [] as string[],
+      discordId: "",
+      selectedGroups: [],
     },
 
     validate: {
@@ -45,8 +55,12 @@ export default function AddUserModal({ opened, onClose, onSuccess, availableGrou
         return null;
       },
       email: (value) => {
-        if (!value.trim()) return "Email is required";
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Please enter a valid email address";
+        if (value.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+          return "Please enter a valid email address";
+        return null;
+      },
+      discordId: (value, values) => {
+        if (!value.trim() && !values.email.trim()) return "Discord ID or Email is required";
         return null;
       },
     },
@@ -57,18 +71,25 @@ export default function AddUserModal({ opened, onClose, onSuccess, availableGrou
     //eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opened]);
 
-  const handleSubmit = async (values: typeof form.values) => {
+  const handleSubmit = async (values: Form) => {
     setLoading(true);
-    const payload: CreateUserPayload = {
-      username: values.username.trim(),
-      email: values.email.trim(),
-      groups: values.selectedGroups,
-      ...(values.firstName.trim() && { first_name: values.firstName.trim() }),
-      ...(values.lastName.trim() && { last_name: values.lastName.trim() }),
-    };
+    const { email, username, firstName, lastName, discordId, selectedGroups } = values;
+
+    const payload = formatApiPayload<CreateUserPayload>(
+      {
+        username: username,
+        groups: selectedGroups,
+        email: email,
+        first_name: firstName,
+        last_name: lastName,
+        discord_id: discordId,
+      },
+      { trim: true, removeBlank: true }
+    );
 
     try {
-      await apiClient.post("/management/users/", payload);
+      await apiClient.post<{ id: number }>("/management/users/", payload);
+
       notifications.show({
         title: "Success",
         message: `User "${payload.username}" created successfully`,
@@ -81,10 +102,10 @@ export default function AddUserModal({ opened, onClose, onSuccess, availableGrou
       if (err instanceof Error) {
         if (err.message.includes("already exists")) {
           errorMessage = err.message;
-        } else if (err.message.includes("400")) {
-          errorMessage = "Invalid data provided. Please check your input.";
         } else if (err.message.includes("403")) {
           errorMessage = "You do not have permission to create users.";
+        } else {
+          errorMessage = err.message;
         }
       }
       notifications.show({
@@ -110,13 +131,20 @@ export default function AddUserModal({ opened, onClose, onSuccess, availableGrou
           {...form.getInputProps("username")}
         />
 
-        <TextInput
-          label="Email"
-          placeholder="user@example.com"
-          required
-          description="Primary email address for this user"
-          {...form.getInputProps("email")}
-        />
+        <Stack gap="xs">
+          <TextInput
+            label="Discord ID"
+            placeholder="123456789012345678"
+            {...form.getInputProps("discordId")}
+            description="Link a Discord account for OAuth login"
+          />
+
+          <TextInput
+            label="Email"
+            placeholder="user@example.com"
+            {...form.getInputProps("email")}
+          />
+        </Stack>
 
         <Group grow>
           <TextInput

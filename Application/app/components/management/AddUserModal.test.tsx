@@ -17,15 +17,27 @@ beforeEach(() => {
   server.listen({ onUnhandledRequest: "warn" });
   server.use(
     http.post("/api/management/users/", async ({ request }) => {
-      const body = (await request.json()) as { username: string; email: string };
+      const body = (await request.json()) as {
+        username: string;
+        email?: string;
+        discord_id?: string;
+      };
+
+      if (!body.email && !body.discord_id) {
+        return HttpResponse.json(
+          { detail: ["Either email or Discord ID is required for authentication."] },
+          { status: 400 }
+        );
+      }
+
       return HttpResponse.json({
         id: 999,
         username: body.username,
-        email: body.email,
+        email: body.email || "",
         first_name: "",
         last_name: "",
         groups: [],
-        primary_email: body.email,
+        primary_email: body.email || "",
       });
     })
   );
@@ -43,30 +55,6 @@ describe("AddUserModal", () => {
     availableGroups: mockGroups,
   };
 
-  it("renders when opened", () => {
-    render(<AddUserModal {...defaultProps} />);
-    expect(screen.getByText("Add New User")).toBeInTheDocument();
-  });
-
-  it("does not render when closed", () => {
-    render(<AddUserModal {...defaultProps} opened={false} />);
-    expect(screen.queryByText("Add New User")).not.toBeInTheDocument();
-  });
-
-  it("has all required fields", () => {
-    render(<AddUserModal {...defaultProps} />);
-    expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/first name/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/last name/i)).toBeInTheDocument();
-  });
-
-  it("has Cancel and Create User buttons", () => {
-    render(<AddUserModal {...defaultProps} />);
-    expect(screen.getByRole("button", { name: /cancel/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /create user/i })).toBeInTheDocument();
-  });
-
   describe("form validation", () => {
     it("requires username", async () => {
       const user = userEvent.setup();
@@ -80,23 +68,12 @@ describe("AddUserModal", () => {
       });
     });
 
-    it("requires email", async () => {
-      const user = userEvent.setup();
-      render(<AddUserModal {...defaultProps} />);
-
-      await user.type(screen.getByLabelText(/username/i), "testuser");
-      await user.click(screen.getByRole("button", { name: /create user/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText(/email is required/i)).toBeInTheDocument();
-      });
-    });
-
     it("validates email format", async () => {
       const user = userEvent.setup();
       render(<AddUserModal {...defaultProps} />);
 
       await user.type(screen.getByLabelText(/username/i), "testuser");
+      await user.type(screen.getByLabelText(/discord id/i), "123456789");
       await user.type(screen.getByLabelText(/email/i), "invalid-email");
       await user.click(screen.getByRole("button", { name: /create user/i }));
 

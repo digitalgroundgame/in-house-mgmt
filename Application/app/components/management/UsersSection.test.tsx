@@ -14,6 +14,7 @@ const mockUsers: ManagedUser[] = [
     primary_email: "admin@example.com",
     is_superuser: true,
     is_active: true,
+    discord_ids: [],
   },
   {
     id: 2,
@@ -24,6 +25,7 @@ const mockUsers: ManagedUser[] = [
     primary_email: "organizer@example.com",
     is_superuser: false,
     is_active: true,
+    discord_ids: [],
   },
   {
     id: 3,
@@ -34,6 +36,7 @@ const mockUsers: ManagedUser[] = [
     primary_email: "helper@example.com",
     is_superuser: false,
     is_active: true,
+    discord_ids: [],
   },
   {
     id: 4,
@@ -44,6 +47,7 @@ const mockUsers: ManagedUser[] = [
     primary_email: "trainee@example.com",
     is_superuser: false,
     is_active: false,
+    discord_ids: [],
   },
 ];
 

@@ -18,6 +18,8 @@ from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 
+from dggcrm.accounts.models import DiscordID
+
 # Define groups
 
 GROUP_PERMISSIONS = {
@@ -113,18 +115,21 @@ users_data = [
         "email": "admin@example.com",
         "first_name": "Admin",
         "last_name": "Istrator",
+        "discord_id": "1",
     },
     {
         "username": "tiny",
         "email": "tiny@destiny.gg",
         "first_name": "Tiny",
         "last_name": "Mann",
+        "discord_id": "2",
     },
     {
         "username": "dummy",
         "email": "dumb@example.com",
         "first_name": "Dummy",
         "last_name": "Person",
+        "discord_id": "3",
     },
     {
         "username": "unverified",
@@ -132,6 +137,8 @@ users_data = [
         "email_verified": False,
         "first_name": "Unverified",
         "last_name": "Email",
+        "discord_id": "4",
+        "discord_verified": False,
     },
 ]
 
@@ -179,6 +186,18 @@ for user_data in users_data:
     )
     if created:
         email_address.save()
+
+    # Link DiscordID
+    discord_id = user_data.get("discord_id")
+    if discord_id:
+        discord_verified = user_data.get("discord_verified", True)
+        discord_obj, created = DiscordID.objects.get_or_create(
+            user=user,
+            discord_id=discord_id,
+            defaults={"active": discord_verified},
+        )
+        if created:
+            print(f"  Linked DiscordID {discord_id} to {email}")
 
     # Add group membership
     group_name = USER_GROUPS.get(email, None)

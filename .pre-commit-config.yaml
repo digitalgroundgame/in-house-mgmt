@@ -14,6 +14,12 @@ repos:
   # JavaScript/TypeScript formatting (Application)
   - repo: local
     hooks:
+      - id: tsc
+        name: tsc (TypeScript)
+        entry: bash -c 'cd Application && npx tsc --noEmit'
+        language: system
+        files: ^Application/.*\.(ts|tsx)$
+        pass_filenames: false
       - id: prettier
         name: prettier (TypeScript)
         entry: bash -c 'cd Application && npx prettier --write .'

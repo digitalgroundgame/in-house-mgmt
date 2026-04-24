@@ -15,6 +15,7 @@ import {
   Tooltip,
   TextInput,
   Pagination,
+  Modal,
 } from "@mantine/core";
 import {
   IconPlus,
@@ -37,6 +38,7 @@ export interface ManagedUser {
   last_name: string;
   groups: string[];
   primary_email: string;
+  discord_ids: { id: number; discord_id: string; active: boolean }[];
   is_superuser?: boolean;
   is_active: boolean;
 }
@@ -44,6 +46,13 @@ export interface ManagedUser {
 export interface Group {
   id: number;
   name: string;
+}
+
+export interface DiscordID {
+  id: number;
+  user: number;
+  discord_id: string;
+  active: boolean;
 }
 
 interface PaginatedResponse {
@@ -65,7 +74,10 @@ export default function UsersSection({ onUserCreated }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
-  const [savingUserId, setSavingUserId] = useState<number | null>(null);
+  const [editingDiscordIdUserId, setEditingDiscordIdUserId] = useState<number | null>(null);
+  const [editingEmailUserId, setEditingEmailUserId] = useState<number | null>(null);
+  const [newDiscordId, setNewDiscordId] = useState("");
+  const [newEmail, setNewEmail] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -122,7 +134,6 @@ export default function UsersSection({ onUserCreated }: Props) {
   };
 
   const handleSaveGroups = async (userId: number, newGroups: string[]) => {
-    setSavingUserId(userId);
     try {
       await apiClient.patch(`/management/users/${userId}/`, { groups: newGroups });
       setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, groups: newGroups } : u)));
@@ -138,8 +149,6 @@ export default function UsersSection({ onUserCreated }: Props) {
         message: err instanceof Error ? err.message : "Failed to update groups",
         color: "red",
       });
-    } finally {
-      setSavingUserId(null);
     }
   };
 
@@ -163,6 +172,66 @@ export default function UsersSection({ onUserCreated }: Props) {
       notifications.show({
         title: "Error",
         message: err instanceof Error ? err.message : "Failed to update user status",
+        color: "red",
+      });
+    }
+  };
+
+  const handleSaveDiscordId = async (userId: number) => {
+    const existingDiscordId = users.find((u) => u.id === userId)?.discord_ids?.[0];
+    try {
+      // NewDiscord ID being set
+      if (newDiscordId.trim()) {
+        // Update Discord ID
+        if (existingDiscordId) {
+          await apiClient.patch(`/management/discord-ids/${existingDiscordId.id}/`, {
+            discord_id: newDiscordId.trim(),
+            active: true,
+          });
+        } else {
+          // Create Discord ID
+          await apiClient.post("/management/discord-ids/", {
+            user: userId,
+            discord_id: newDiscordId.trim(),
+            active: true,
+          });
+        }
+      } else if (existingDiscordId) {
+        // Existing discord ID, but no new discord ID, therefore we are removing it
+        await apiClient.delete(`/management/discord-ids/${existingDiscordId.id}/`);
+      }
+      setEditingDiscordIdUserId(null);
+      fetchUsers();
+      notifications.show({
+        title: "Success",
+        message: "Discord ID updated",
+        color: "green",
+      });
+    } catch (err) {
+      notifications.show({
+        title: "Error",
+        message: err instanceof Error ? err.message : "Failed to update Discord ID",
+        color: "red",
+      });
+    }
+  };
+
+  const handleSaveEmail = async (userId: number) => {
+    try {
+      await apiClient.patch(`/management/users/${userId}/`, {
+        email: newEmail.trim() || null,
+      });
+      setEditingEmailUserId(null);
+      fetchUsers();
+      notifications.show({
+        title: "Success",
+        message: "Email updated",
+        color: "green",
+      });
+    } catch (err) {
+      notifications.show({
+        title: "Error",
+        message: err instanceof Error ? err.message : "Failed to update email",
         color: "red",
       });
     }
@@ -205,6 +274,7 @@ export default function UsersSection({ onUserCreated }: Props) {
             <Table.Th>Username</Table.Th>
             <Table.Th>Name</Table.Th>
             <Table.Th>Email</Table.Th>
+            <Table.Th>Discord IDs</Table.Th>
             <Table.Th>Groups</Table.Th>
             <Table.Th style={{ width: 80 }}>Actions</Table.Th>
           </Table.Tr>
@@ -212,7 +282,7 @@ export default function UsersSection({ onUserCreated }: Props) {
         <Table.Tbody>
           {users.length === 0 ? (
             <Table.Tr>
-              <Table.Td colSpan={5}>
+              <Table.Td colSpan={6}>
                 <Text c="dimmed" ta="center" py="md">
                   {searchQuery ? "No users match your search" : "No users found"}
                 </Text>
@@ -242,6 +312,21 @@ export default function UsersSection({ onUserCreated }: Props) {
                   </Text>
                 </Table.Td>
                 <Table.Td>
+                  {user.discord_ids && user.discord_ids.length > 0 ? (
+                    <Text
+                      size="sm"
+                      c={user.discord_ids[0].active ? "blue" : "gray"}
+                      style={{ opacity: user.discord_ids[0].active ? 1 : 0.5 }}
+                    >
+                      {user.discord_ids[0].discord_id}
+                    </Text>
+                  ) : (
+                    <Text size="sm" c="dimmed">
+                      —
+                    </Text>
+                  )}
+                </Table.Td>
+                <Table.Td>
                   {editingUser?.id === user.id ? (
                     <Group gap={4}>
                       <MultiSelect
@@ -262,16 +347,10 @@ export default function UsersSection({ onUserCreated }: Props) {
                         size="xs"
                         variant="light"
                         onClick={() => handleSaveGroups(user.id, editingUser.groups)}
-                        loading={savingUserId === user.id}
                       >
                         Save
                       </Button>
-                      <Button
-                        size="xs"
-                        variant="subtle"
-                        onClick={() => setEditingUser(null)}
-                        disabled={savingUserId === user.id}
-                      >
+                      <Button size="xs" variant="subtle" onClick={() => setEditingUser(null)}>
                         Cancel
                       </Button>
                     </Group>
@@ -305,6 +384,24 @@ export default function UsersSection({ onUserCreated }: Props) {
                       </Menu.Item>
                       <Menu.Divider />
                       <Menu.Item
+                        leftSection={<IconEdit size={14} />}
+                        onClick={() => {
+                          setEditingEmailUserId(user.id);
+                          setNewEmail(user.primary_email || "");
+                        }}
+                      >
+                        Edit Email
+                      </Menu.Item>
+                      <Menu.Item
+                        leftSection={<IconEdit size={14} />}
+                        onClick={() => {
+                          setEditingDiscordIdUserId(user.id);
+                          setNewDiscordId(user.discord_ids?.[0]?.discord_id || "");
+                        }}
+                      >
+                        Edit Discord ID
+                      </Menu.Item>
+                      <Menu.Item
                         leftSection={
                           user.is_active ? <IconBan size={14} /> : <IconCheck size={14} />
                         }
@@ -337,6 +434,68 @@ export default function UsersSection({ onUserCreated }: Props) {
         onSuccess={handleUserCreated}
         availableGroups={groups}
       />
+
+      <Modal
+        opened={editingEmailUserId !== null}
+        onClose={() => setEditingEmailUserId(null)}
+        title="Edit Email"
+        size="sm"
+        centered
+      >
+        <Stack gap="md">
+          <TextInput
+            label="Email"
+            placeholder="Enter email address"
+            value={newEmail}
+            onChange={(e) => setNewEmail(e.currentTarget.value)}
+          />
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setEditingEmailUserId(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (editingEmailUserId) {
+                  handleSaveEmail(editingEmailUserId);
+                }
+              }}
+            >
+              Save
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      <Modal
+        opened={editingDiscordIdUserId !== null}
+        onClose={() => setEditingDiscordIdUserId(null)}
+        title="Edit Discord ID"
+        size="sm"
+        centered
+      >
+        <Stack gap="md">
+          <TextInput
+            label="Discord ID"
+            placeholder="Enter Discord ID"
+            value={newDiscordId}
+            onChange={(e) => setNewDiscordId(e.currentTarget.value)}
+          />
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setEditingDiscordIdUserId(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (editingDiscordIdUserId) {
+                  handleSaveDiscordId(editingDiscordIdUserId);
+                }
+              }}
+            >
+              Save
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Stack>
   );
 }
