@@ -30,6 +30,27 @@ def authenticated_client(api_client, db):
 
 
 @pytest.fixture
+def event_tracker_user(db):
+    """
+    CRM user linked via DiscordID to "100000000000000001" (the event_tracker
+    used in the RecordAttendanceView test payloads), holding
+    events.record_attendance through an Organizers group. Required for any
+    test that should pass the per-user authorization layer.
+    """
+    from django.contrib.auth.models import Group, Permission
+
+    from dggcrm.accounts.models import DiscordID
+
+    user = User.objects.create_user(username="tracker", password="x")
+    DiscordID.objects.create(user=user, discord_id="100000000000000001")
+    group, _ = Group.objects.get_or_create(name="Organizers")
+    perm = Permission.objects.get(codename="record_attendance")
+    group.permissions.add(perm)
+    user.groups.add(group)
+    return user
+
+
+@pytest.fixture
 def sample_contacts(db):
     """Creates sample contacts with Discord IDs."""
     contacts = [
@@ -349,7 +370,7 @@ class TestRecordAttendanceView:
         response = nonadmin_client.post(self.ENDPOINT, self._payload(), format="json")
         assert response.status_code == 403
 
-    def test_allows_discord_bot_group_user(self, api_client, sample_contacts, db):
+    def test_allows_discord_bot_group_user(self, api_client, sample_contacts, event_tracker_user, db):
         from django.contrib.auth.models import Group
 
         bot = User.objects.create_user(username="bot-user", password="x")
@@ -360,7 +381,9 @@ class TestRecordAttendanceView:
         response = api_client.post(self.ENDPOINT, self._payload(), format="json")
         assert response.status_code == 200
 
-    def test_stages_all_participants_and_reports_unknowns(self, authenticated_client, sample_contacts):
+    def test_stages_all_participants_and_reports_unknowns(
+        self, authenticated_client, sample_contacts, event_tracker_user
+    ):
         response = authenticated_client.post(self.ENDPOINT, self._payload(), format="json")
 
         assert response.status_code == 200
@@ -369,7 +392,9 @@ class TestRecordAttendanceView:
         assert body["total_received"] == 3
         assert body["unlinked_participants"] == [{"discord_id": "999999999999999999", "discord_name": "Stranger"}]
 
-    def test_stages_all_participants_in_db_including_unknown(self, authenticated_client, sample_contacts):
+    def test_stages_all_participants_in_db_including_unknown(
+        self, authenticated_client, sample_contacts, event_tracker_user
+    ):
         from dggcrm.events.models import StagedEvent
 
         authenticated_client.post(self.ENDPOINT, self._payload(), format="json")
@@ -388,7 +413,7 @@ class TestRecordAttendanceView:
         for p in staged.participants.all():
             assert p.imported_at is None
 
-    def test_retry_with_same_payload_is_idempotent(self, authenticated_client, sample_contacts):
+    def test_retry_with_same_payload_is_idempotent(self, authenticated_client, sample_contacts, event_tracker_user):
         from dggcrm.events.models import StagedEvent
 
         first = authenticated_client.post(self.ENDPOINT, self._payload(), format="json")
@@ -407,7 +432,7 @@ class TestRecordAttendanceView:
             "999999999999999999",
         }
 
-    def test_retry_preserves_imported_participants(self, authenticated_client, sample_contacts):
+    def test_retry_preserves_imported_participants(self, authenticated_client, sample_contacts, event_tracker_user):
         from django.utils import timezone
 
         from dggcrm.events.models import StagedEvent
@@ -424,7 +449,9 @@ class TestRecordAttendanceView:
         assert alice.imported_at is not None
         assert staged.participants.count() == 3
 
-    def test_retry_refreshes_discord_name_on_imported_rows(self, authenticated_client, sample_contacts):
+    def test_retry_refreshes_discord_name_on_imported_rows(
+        self, authenticated_client, sample_contacts, event_tracker_user
+    ):
         from django.utils import timezone
 
         from dggcrm.events.models import StagedEvent
@@ -441,7 +468,7 @@ class TestRecordAttendanceView:
         assert alice.discord_name == "Alice (Renamed)"
         assert alice.imported_at is not None
 
-    def test_accepts_empty_participants(self, authenticated_client):
+    def test_accepts_empty_participants(self, authenticated_client, event_tracker_user):
         from dggcrm.events.models import StagedEvent
 
         response = authenticated_client.post(
@@ -456,7 +483,7 @@ class TestRecordAttendanceView:
         staged = StagedEvent.objects.get(discord_event_id="evt-1")
         assert staged.participants.count() == 0
 
-    def test_rejects_duplicate_participant_discord_ids(self, authenticated_client, sample_contacts):
+    def test_rejects_duplicate_participant_discord_ids(self, authenticated_client, sample_contacts, event_tracker_user):
         payload = self._payload(
             participants=[
                 {
@@ -474,7 +501,7 @@ class TestRecordAttendanceView:
         response = authenticated_client.post(self.ENDPOINT, payload, format="json")
         assert response.status_code == 400
 
-    def test_rejects_invalid_status(self, authenticated_client, sample_contacts):
+    def test_rejects_invalid_status(self, authenticated_client, sample_contacts, event_tracker_user):
         payload = self._payload(
             participants=[
                 {
@@ -487,10 +514,10 @@ class TestRecordAttendanceView:
         response = authenticated_client.post(self.ENDPOINT, payload, format="json")
         assert response.status_code == 400
 
-    def test_rejects_missing_fields(self, authenticated_client):
+    def test_rejects_missing_fields(self, authenticated_client, event_tracker_user):
         response = authenticated_client.post(
             self.ENDPOINT,
-            {"event_id": "evt-2", "participants": []},
+            {"event_id": "evt-2", "event_tracker": "100000000000000001", "participants": []},
             format="json",
         )
         assert response.status_code == 400

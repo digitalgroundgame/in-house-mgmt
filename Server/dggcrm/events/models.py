@@ -183,6 +183,9 @@ class StagedEvent(models.Model):
         indexes = [
             models.Index(fields=["event_tracker_discord_id"]),
         ]
+        permissions = [
+            ("record_attendance", "Can record attendance via Discord"),
+        ]
 
     def __str__(self):
         return f"{self.event_name} ({self.discord_event_id})"

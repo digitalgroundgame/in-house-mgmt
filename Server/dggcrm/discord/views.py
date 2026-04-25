@@ -12,7 +12,7 @@ from dggcrm.contacts.models import Contact, Tag, TagAssignments
 from dggcrm.events.models import StagedEvent, StagedEventParticipation
 
 from .client import get_discord_client
-from .permissions import IsAdminOrDiscordBot
+from .permissions import CanRecordAttendance
 from .serializers import RecordAttendanceSerializer
 
 logger = logging.getLogger(__name__)
@@ -166,7 +166,7 @@ class RecordAttendanceView(APIView):
     changes the bot may have picked up.
     """
 
-    permission_classes = [IsAdminOrDiscordBot]
+    permission_classes = [CanRecordAttendance]
     authentication_classes = [TokenAuthentication, SessionAuthentication]
 
     def post(self, request):
