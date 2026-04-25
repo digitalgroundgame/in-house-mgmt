@@ -1,39 +1,31 @@
 "use client";
 
 import {
-  Container,
-  Title,
-  Group,
+  ActionIcon,
   Button,
-  Paper,
-  Text,
-  TextInput,
-  Stack,
+  Container,
+  Group,
   Modal,
   MultiSelect,
-  Select,
-  ActionIcon,
   NumberInput,
+  Paper,
+  Select,
+  Stack,
+  Text,
+  TextInput,
+  Title,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
-import {
-  IconPlus,
-  IconFileUpload,
-  IconSearch,
-  IconChevronLeft,
-  IconChevronRight,
-} from "@tabler/icons-react";
-import { useState, useEffect, Component } from "react";
+import { IconPlus, IconSearch, IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/app/lib/apiClient";
 import { useForm } from "@mantine/form";
 import { TicketBulkCreateModal } from "@/app/components/tickets/TicketBulkCreateModal";
-import ContactTable, {
-  type Contact,
-  type Group as ContactGroup,
-  type Tag,
-} from "@/app/components/ContactTable";
+import ContactTable, { type Contact, type Tag } from "@/app/components/ContactTable";
 import "./page.css";
+
+const MAX_TAG_COUNT = 99999;
 
 export default function ContactsPage() {
   const router = useRouter();
@@ -41,7 +33,6 @@ export default function ContactsPage() {
   const [bulkTicketModalOpen, setBulkTicketModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedGroup, setSelectedGroup] = useState<string | null>("all");
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [tagMode, setTagMode] = useState<"any" | "all">("any");
   const [startDate, setStartDate] = useState<string | null>("");
@@ -62,8 +53,8 @@ export default function ContactsPage() {
   const form = useForm({
     initialValues: {
       discord_id: "",
-      full_name: "",
       email: "",
+      full_name: "",
       phone: "",
       tags: [],
     },
@@ -76,102 +67,99 @@ export default function ContactsPage() {
 
   // Fetch groups and tags on component mount
   useEffect(() => {
+    const fetchGroupsAndTags = async () => {
+      try {
+        const tagsData = await apiClient.get<Tag[] | { results: Tag[] }>(
+          `/tags/?page_size=${MAX_TAG_COUNT}`
+        );
+
+        // Handle both array and object responses
+        const tagsArray = Array.isArray(tagsData) ? tagsData : tagsData.results || [];
+        setTags(tagsArray);
+      } catch (error) {
+        console.error("Error fetching groups and tags:", error);
+        setTags([]); // Ensure tags is always an array
+      }
+    };
     fetchGroupsAndTags();
   }, []);
 
-  // Fetch contacts whenever filters change (reset to first page)
+  const fetchContacts = useCallback(
+    async (url?: string) => {
+      try {
+        setLoading(true);
+
+        let fetchUrl = url;
+
+        // If no URL provided, build the initial query
+        if (!fetchUrl) {
+          const params = new URLSearchParams();
+          if (searchQuery) params.append("search", searchQuery);
+          if (minEvents) params.append("min_events", minEvents.toString());
+          if (minTickets) params.append("min_tickets", minTickets.toString());
+          if (maxTickets) params.append("max_tickets", maxTickets.toString());
+          if (maxEvents) params.append("max_tickets", maxEvents.toString());
+          if (startDate) params.append("start_date", startDate);
+          if (endDate) params.append("end_date", endDate);
+
+          if (selectedTagIds.length > 0) {
+            params.append("tag_ids", selectedTagIds.join(","));
+            params.append("tag_mode", tagMode);
+          }
+          fetchUrl = `/contacts/?${params}`;
+        }
+
+        console.log("Fetch URL:", fetchUrl);
+
+        const data = await apiClient.get<{
+          results: Contact[];
+          count: number;
+          next: string | null;
+          previous: string | null;
+        }>(fetchUrl || `/contacts/`);
+
+        console.log("Fetched contacts data:", data);
+        setContacts(data.results);
+        setTotalCount(data.count);
+        setNextUrl(data.next);
+        setPreviousUrl(data.previous);
+      } catch (error) {
+        console.error("Error fetching contacts:", error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [
+      endDate,
+      maxEvents,
+      maxTickets,
+      minEvents,
+      minTickets,
+      searchQuery,
+      selectedTagIds,
+      startDate,
+      tagMode,
+    ]
+  );
+
   useEffect(() => {
     fetchContacts();
-  }, [
-    searchQuery,
-    selectedGroup,
-    selectedTagIds,
-    tagMode,
-    minEvents,
-    minTickets,
-    maxEvents,
-    maxTickets,
-    startDate,
-    endDate,
-  ]);
-
-  const fetchGroupsAndTags = async () => {
-    try {
-      const tagsData = await apiClient.get<Tag[] | { results: Tag[] }>("/tags/");
-      console.log("Tags data:", tagsData);
-
-      // Handle both array and object responses
-      const tagsArray = Array.isArray(tagsData) ? tagsData : tagsData.results || [];
-      setTags(tagsArray);
-    } catch (error) {
-      console.error("Error fetching groups and tags:", error);
-      setTags([]); // Ensure tags is always an array
-    }
-  };
-
-  const fetchContacts = async (url?: string) => {
-    try {
-      setLoading(true);
-
-      let fetchUrl = url;
-
-      // If no URL provided, build the initial query
-      if (!fetchUrl) {
-        const params = new URLSearchParams();
-        if (searchQuery) params.append("search", searchQuery);
-        if (minEvents) params.append("min_events", minEvents.toString());
-        if (minTickets) params.append("min_tickets", minTickets.toString());
-        if (maxTickets) params.append("max_tickets", maxTickets.toString());
-        if (maxEvents) params.append("max_events", maxEvents.toString());
-        if (startDate) params.append("start_date", startDate);
-        if (endDate) params.append("end_date", endDate);
-
-        if (selectedTagIds.length > 0) {
-          params.append("tag_ids", selectedTagIds.join(","));
-          params.append("tag_mode", tagMode);
-        }
-        fetchUrl = `/contacts/?${params}`;
-      }
-
-      console.log("Fetch URL:", fetchUrl);
-
-      const data = await apiClient.get<{
-        results: Contact[];
-        count: number;
-        next: string | null;
-        previous: string | null;
-      }>(fetchUrl || `/contacts/`);
-
-      console.log("Fetched contacts data:", data);
-      setContacts(data.results);
-      setTotalCount(data.count);
-      setNextUrl(data.next);
-      setPreviousUrl(data.previous);
-    } catch (error) {
-      console.error("Error fetching contacts:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [fetchContacts]);
 
   const handleReset = () => {
-    setSearchQuery("");
-    setSelectedGroup("all");
-    setSelectedTagIds([]);
-    setTagMode("any");
-    setMaxEvents("");
-    setMinEvents("");
-    setMaxTickets("");
-    setMinTickets("");
-    setStartDate("");
     setEndDate("");
-    fetchContacts();
+    setMaxEvents("");
+    setMaxTickets("");
+    setMinEvents("");
+    setMinTickets("");
+    setSearchQuery("");
+    setSelectedTagIds([]);
+    setStartDate("");
+    setTagMode("any");
   };
 
   const handleRowClick = (contact: Contact) => {
-    // TODO: Navigate to contact detail page or show modal
     router.push(`/contacts/${contact.id}`);
-    console.log("Clicked contact:", contact);
   };
 
   const handleAddContact = () => {
@@ -219,14 +207,12 @@ export default function ContactsPage() {
   const toggleRowSelection = (id: number) => {
     setSelectedRows((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
+      if (next.has(id)) {
+        next.delete(id);
+        return next;
+      }
+      return next.add(id);
     });
-  };
-
-  const handleUploadCSV = () => {
-    // TODO: Open CSV upload modal
-    console.log("Upload CSV clicked");
   };
 
   return (
