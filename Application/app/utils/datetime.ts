@@ -19,11 +19,40 @@ export interface FormatDateTimeOptions {
   /** Show relative time instead (e.g., "3 hours ago") */
   relative?: boolean;
 }
+/** takes the provided time and formats it without any timezone conversion.
+ * Should be used for formatting times input by user. Should not be used
+ * to format data from the backend
+ *
+ */
+export function formatUserProvidedDateTime(
+  date: string | null,
+  options: FormatDateTimeOptions = {}
+): string {
+  if (!date) return "No date";
 
-/**
+  const { includeTime = true } = options;
+
+  const dayjsDate = dayjs.utc(date);
+
+  return formatDateTimeInternal(dayjsDate, includeTime);
+}
+
+function formatDateTimeInternal(date: dayjs.Dayjs, includeTime: boolean): string {
+  const fmt = {
+    date: "MM/DD/YY",
+    time: "hh:mm A",
+  };
+
+  if (includeTime) {
+    return date.format(`${fmt.date}, ${fmt.time}`);
+  }
+  return date.format(fmt.date);
+}
+
+/*
  * Format a UTC datetime string for display in the user's timezone
  */
-export function formatDateTime(
+export function formatBackendProvidedDateTime(
   utcString: string | null | undefined,
   tz: string = getBrowserTimezone(),
   options: FormatDateTimeOptions = {}
@@ -38,21 +67,13 @@ export function formatDateTime(
     return date.fromNow();
   }
 
-  const fmt = {
-    date: "MM/DD/YY",
-    time: "hh:mm A",
-  };
-
-  if (includeTime) {
-    return date.format(`${fmt.date}, ${fmt.time}`);
-  }
-  return date.format(fmt.date);
+  return formatDateTimeInternal(date, includeTime);
 }
 
 /**
  * Convert a local Date object to a UTC ISO string for API submission
  */
-export function toUTC(date: Date | null, tz: string): string | null {
+export function toUTC(date: Date | null, tz: string = getBrowserTimezone()): string | null {
   if (!date) return null;
   return dayjs.tz(date, tz).utc().toISOString();
 }

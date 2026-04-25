@@ -122,7 +122,7 @@ export default function ContactsPage() {
         if (minEvents) params.append("min_events", minEvents.toString());
         if (minTickets) params.append("min_tickets", minTickets.toString());
         if (maxTickets) params.append("max_tickets", maxTickets.toString());
-        if (maxEvents) params.append("max_tickets", maxEvents.toString());
+        if (maxEvents) params.append("max_events", maxEvents.toString());
         if (startDate) params.append("start_date", startDate);
         if (endDate) params.append("end_date", endDate);
 
@@ -235,18 +235,9 @@ export default function ContactsPage() {
         {/* Header with title and action buttons */}
         <Group justify="space-between">
           <Title order={2}>Contacts</Title>
-          <Group gap="sm">
-            <Button leftSection={<IconPlus size={16} />} onClick={handleAddContact}>
-              Add contact
-            </Button>
-            {/*      <Button
-              variant="outline"
-              leftSection={<IconFileUpload size={16} />}
-              onClick={handleUploadCSV}
-            >
-              Upload CSV
-            </Button> */}
-          </Group>
+          <Button leftSection={<IconPlus size={16} />} onClick={handleAddContact}>
+            Add contact
+          </Button>
         </Group>
 
         {/* Filters */}
@@ -347,6 +338,35 @@ export default function ContactsPage() {
           </Stack>
         </Paper>
 
+        {/* Create Tickets action bar */}
+        <Paper p="sm" withBorder>
+          <Group justify="space-between" align="center">
+            <Text size="sm" c="dimmed">
+              {selectedRows.size > 0
+                ? `${selectedRows.size} selected`
+                : "Select contacts to create tickets"}
+            </Text>
+            <Group gap="sm">
+              <Button
+                variant="light"
+                onClick={() => setBulkTicketModalOpen(true)}
+                disabled={selectedRows.size === 0}
+              >
+                Create Tickets
+              </Button>
+              <Button
+                variant="subtle"
+                color="red"
+                size="sm"
+                onClick={() => setSelectedRows(new Set())}
+                disabled={selectedRows.size === 0}
+              >
+                Clear
+              </Button>
+            </Group>
+          </Group>
+        </Paper>
+
         {/* Contacts Table */}
         <ContactTable
           contacts={contacts}
@@ -364,26 +384,6 @@ export default function ContactsPage() {
               <Text>
                 {totalCount} {totalCount === 1 ? "contact" : "contacts"} found
               </Text>
-
-              {selectedRows.size > 0 && (
-                <>
-                  <Text size="sm" c="dimmed">
-                    {selectedRows.size} selected
-                  </Text>
-                  <Button size="xs" variant="light" onClick={() => setBulkTicketModalOpen(true)}>
-                    Create Tickets
-                  </Button>
-                  <Button
-                    variant="subtle"
-                    color="red"
-                    size="xs"
-                    px={6}
-                    onClick={() => setSelectedRows(new Set())}
-                  >
-                    Clear
-                  </Button>
-                </>
-              )}
             </Group>
 
             <Group gap="xs">

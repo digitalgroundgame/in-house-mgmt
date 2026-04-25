@@ -5,7 +5,7 @@ import { DateTimePicker as MantineDateTimePicker } from "@mantine/dates";
 import { Stack, Group, Text, Popover, Button, Box } from "@mantine/core";
 import { IconCalendar } from "@tabler/icons-react";
 import { useTimezone } from "@/app/components/provider/TimezoneContext";
-import { getTimezoneAbbr, formatDateTime } from "@/app/utils/datetime";
+import { getTimezoneAbbr, formatUserProvidedDateTime } from "@/app/utils/datetime";
 
 export interface DateRangeValue {
   start: string | null;
@@ -73,12 +73,8 @@ export function DateRangePicker({
   // Format display text
   const getDisplayText = () => {
     if (!value.start && !value.end) return placeholder;
-    const startText = formatDateTime(value.start, timezone, {
-      includeTime: true,
-    });
-    const endText = formatDateTime(value.end, timezone, {
-      includeTime: true,
-    });
+    const startText = formatUserProvidedDateTime(value.start);
+    const endText = formatUserProvidedDateTime(value.end);
     return `${startText} - ${endText}`;
   };
 

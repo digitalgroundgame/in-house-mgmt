@@ -26,7 +26,7 @@ import { useRouter } from "next/navigation";
 import { apiClient } from "@/app/lib/apiClient";
 import EventHistory from "./EventHistory";
 import OpenedTickets from "./OpenedTickets";
-import { formatDateTime } from "@/app/utils/datetime";
+import { formatBackendProvidedDateTime } from "@/app/utils/datetime";
 
 interface Tag {
   id: number;
@@ -169,7 +169,9 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
                 {
                   icon: <IconCalendar size={20} style={{ color: "var(--mantine-color-gray-6)" }} />,
                   label: "Added",
-                  value: contact?.created_at ? formatDateTime(contact.created_at) : undefined,
+                  value: contact?.created_at
+                    ? formatBackendProvidedDateTime(contact.created_at)
+                    : undefined,
                 },
               ].flatMap((field, i, arr) => [
                 <ContactField
