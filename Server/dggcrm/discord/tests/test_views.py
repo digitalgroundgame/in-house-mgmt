@@ -521,3 +521,64 @@ class TestRecordAttendanceView:
             format="json",
         )
         assert response.status_code == 400
+
+
+@pytest.mark.django_db
+class TestCheckAttendancePermissionView:
+    """
+    Pre-flight authorization endpoint the bot calls before starting an
+    attendance-tracking slash command. Returns 200 with {authorized, reason}
+    so the bot can render an ephemeral message; the caller is the bot, but
+    the subject is a Discord user (the tracker).
+    """
+
+    ENDPOINT = "/api/discord/can-record-attendance/"
+
+    def test_requires_authentication(self, api_client):
+        response = api_client.get(self.ENDPOINT, {"discord_id": "100000000000000001"})
+        assert response.status_code in (401, 403)
+
+    def test_rejects_non_admin_non_bot_user(self, nonadmin_client):
+        response = nonadmin_client.get(self.ENDPOINT, {"discord_id": "100000000000000001"})
+        assert response.status_code == 403
+
+    def test_authorized_user_returns_true(self, authenticated_client, event_tracker_user):
+        response = authenticated_client.get(self.ENDPOINT, {"discord_id": "100000000000000001"})
+        assert response.status_code == 200
+        assert response.json() == {"authorized": True, "reason": "ok"}
+
+    def test_unknown_discord_id_returns_unlinked(self, authenticated_client):
+        response = authenticated_client.get(self.ENDPOINT, {"discord_id": "999999999999999999"})
+        assert response.status_code == 200
+        assert response.json() == {"authorized": False, "reason": "unlinked_discord_id"}
+
+    def test_missing_discord_id_returns_missing_tracker(self, authenticated_client):
+        response = authenticated_client.get(self.ENDPOINT)
+        assert response.status_code == 200
+        assert response.json() == {"authorized": False, "reason": "missing_tracker"}
+
+    def test_linked_user_without_perm_returns_not_authorized(self, authenticated_client, db):
+        from dggcrm.accounts.models import DiscordID
+
+        bystander = User.objects.create_user(username="bystander", password="x")
+        DiscordID.objects.create(user=bystander, discord_id="200000000000000001")
+
+        response = authenticated_client.get(self.ENDPOINT, {"discord_id": "200000000000000001"})
+        assert response.status_code == 200
+        assert response.json() == {"authorized": False, "reason": "not_authorized"}
+
+    def test_inactive_link_returns_unlinked(self, authenticated_client, db):
+        from django.contrib.auth.models import Group, Permission
+
+        from dggcrm.accounts.models import DiscordID
+
+        user = User.objects.create_user(username="ex-tracker", password="x")
+        DiscordID.objects.create(user=user, discord_id="300000000000000001", active=False)
+        group, _ = Group.objects.get_or_create(name="Organizers")
+        perm = Permission.objects.get(codename="record_attendance")
+        group.permissions.add(perm)
+        user.groups.add(group)
+
+        response = authenticated_client.get(self.ENDPOINT, {"discord_id": "300000000000000001"})
+        assert response.status_code == 200
+        assert response.json() == {"authorized": False, "reason": "unlinked_discord_id"}

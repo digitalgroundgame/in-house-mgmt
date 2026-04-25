@@ -12,7 +12,11 @@ from dggcrm.contacts.models import Contact, Tag, TagAssignments
 from dggcrm.events.models import StagedEvent, StagedEventParticipation
 
 from .client import get_discord_client
-from .permissions import CanRecordAttendance
+from .permissions import (
+    CanRecordAttendance,
+    IsBotCaller,
+    check_record_attendance_permission,
+)
 from .serializers import RecordAttendanceSerializer
 
 logger = logging.getLogger(__name__)
@@ -229,5 +233,30 @@ class RecordAttendanceView(APIView):
                     {"discord_id": p["discord_id"], "discord_name": p["discord_name"]} for p in unlinked_participants
                 ],
             },
+            status=status.HTTP_200_OK,
+        )
+
+
+class CheckAttendancePermissionView(APIView):
+    """
+    GET /api/discord/can-record-attendance/?discord_id=<id>
+
+    Pre-flight authorization check the bot calls before starting an
+    attendance-tracking slash command, so the user gets immediate
+    ephemeral feedback instead of finding out at submission time.
+
+    Returns 200 with {"authorized": bool, "reason": "<code>"}. The
+    actual record-attendance endpoint still re-enforces the same
+    check, so this is purely for UX — the source of truth is there.
+    """
+
+    permission_classes = [IsBotCaller]
+    authentication_classes = [TokenAuthentication, SessionAuthentication]
+
+    def get(self, request):
+        discord_id = request.query_params.get("discord_id", "")
+        authorized, reason = check_record_attendance_permission(discord_id)
+        return Response(
+            {"authorized": authorized, "reason": reason},
             status=status.HTTP_200_OK,
         )
