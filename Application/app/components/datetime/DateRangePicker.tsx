@@ -113,6 +113,7 @@ export function DateRangePicker({
             <MantineDateTimePicker
               label={`Start (${tzAbbr})`}
               value={draftStart}
+              valueFormat="MM/DD/YY hh:mm A"
               onChange={setDraftStart}
               clearable
               popoverProps={{ withinPortal: false }}
@@ -123,6 +124,7 @@ export function DateRangePicker({
             <MantineDateTimePicker
               label={`End (${tzAbbr})`}
               value={draftEnd}
+              valueFormat="MM/DD/YY hh:mm A"
               onChange={setDraftEnd}
               minDate={draftStart || undefined}
               clearable
