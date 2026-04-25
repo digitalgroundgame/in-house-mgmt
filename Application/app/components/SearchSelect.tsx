@@ -32,6 +32,7 @@ interface SearchSelectProps<T = unknown> {
   clearable?: boolean;
   mapResult: (item: T) => SearchSelectOption<T>;
   disabled?: boolean;
+  "data-testid"?: string;
 }
 
 export function SearchSelect<T = unknown>({
@@ -44,6 +45,7 @@ export function SearchSelect<T = unknown>({
   clearable = false,
   disabled = false,
   mapResult,
+  "data-testid": dataTestId,
 }: SearchSelectProps<T>) {
   const [query, setQuery] = useState("");
   const [debounced] = useDebouncedValue(query, 300);
@@ -82,7 +84,7 @@ export function SearchSelect<T = unknown>({
   }, [debounced, opened, fetchResults]);
 
   return (
-    <Box pos="relative" ref={ref}>
+    <Box pos="relative" ref={ref} data-testid={dataTestId}>
       <TextInput
         label={label}
         placeholder={placeholder}

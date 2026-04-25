@@ -23,6 +23,7 @@ interface EnumSelectProps<T = unknown> {
   clearable?: boolean;
   mapResult: (item: T) => EnumSelectOption<T>;
   disabled?: boolean;
+  "data-testid"?: string;
 }
 
 export function EnumSelect<T = unknown>({
@@ -34,6 +35,7 @@ export function EnumSelect<T = unknown>({
   clearable = false,
   mapResult,
   disabled = false,
+  "data-testid": dataTestId,
 }: EnumSelectProps<T>) {
   const [opened, setOpened] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -66,7 +68,7 @@ export function EnumSelect<T = unknown>({
     }
   }, [opened, options.length, fetchOptions]);
   return (
-    <Box ref={ref} pos="relative">
+    <Box ref={ref} pos="relative" data-testid={dataTestId}>
       {label && (
         <Text size="sm" fw={500} mb={4}>
           {label}

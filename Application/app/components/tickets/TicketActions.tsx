@@ -31,7 +31,8 @@ export default function TicketActions({ ticket, event, contact }: TicketActionsP
     if (!event || !contact) return;
 
     async function fetchParticipation() {
-      if (!event || !contact) return;
+      // Guard against transient Mantine values or missing IDs before attempting fetch
+      if (!event?.id || !contact?.id) return;
       setLoadingParticipation(true);
       try {
         const searchParams = new URLSearchParams({

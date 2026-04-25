@@ -76,6 +76,32 @@ def event2(db):
 
 
 @pytest.fixture
+def tag_b(db):
+    return Tag.objects.create(name="vip")
+
+
+@pytest.fixture
+def tag_c(db):
+    return Tag.objects.create(name="donor")
+
+
+@pytest.fixture
+def contact_b(db):
+    return Contact.objects.create(
+        full_name="Bob Example",
+        email="bob@example.com",
+    )
+
+
+@pytest.fixture
+def contact_c(db):
+    return Contact.objects.create(
+        full_name="Carol Example",
+        email="carol@example.com",
+    )
+
+
+@pytest.fixture
 def tag_assignment(db, tag, contact):
     return TagAssignments.objects.create(
         contact=contact,
