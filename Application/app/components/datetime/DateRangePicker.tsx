@@ -116,6 +116,9 @@ export function DateRangePicker({
               onChange={setDraftStart}
               clearable
               popoverProps={{ withinPortal: false }}
+              timePickerProps={{
+                format: "12h",
+              }}
             />
             <MantineDateTimePicker
               label={`End (${tzAbbr})`}
@@ -124,6 +127,9 @@ export function DateRangePicker({
               minDate={draftStart || undefined}
               clearable
               popoverProps={{ withinPortal: false }}
+              timePickerProps={{
+                format: "12h",
+              }}
             />
             <Group justify="flex-end" gap="xs">
               <Button variant="subtle" size="xs" onClick={handleClear}>
