@@ -158,16 +158,23 @@ class RecordAttendanceView(APIView):
     POST /api/discord/record-attendance/
 
     Stages attendance from the Discord bot. Creates or updates a
-    StagedEvent row keyed by discord_event_id; replaces its participants
-    with the payload's list. All participants are staged regardless of
-    whether a matching Contact exists; the response flags those without
-    a Contact so the bot can DM the organizer.
+    StagedEvent row keyed by discord_event_id; replaces the calling
+    tracker's participants with the payload's list. All participants
+    are staged regardless of whether a matching Contact exists; the
+    response flags those without a Contact so the bot can DM the
+    organizer.
 
-    Idempotent: retries with the same payload are safe. Participants
-    already promoted into EventParticipation (imported_at is not null)
-    are preserved across retries — their imported_at is never cleared,
-    though their discord_name is refreshed to reflect display-name
-    changes the bot may have picked up.
+    Multiple trackers may submit independently for the same Discord
+    event — each tracker's participations are scoped by
+    event_tracker_discord_id on StagedEventParticipation, so a second
+    tracker's submission never touches the first's rows.
+
+    Idempotent: retries with the same payload from the same tracker
+    are safe. Participants already promoted into EventParticipation
+    (imported_at is not null) are preserved across retries — their
+    imported_at is never cleared, though their discord_name is
+    refreshed to reflect display-name changes the bot may have
+    picked up.
     """
 
     permission_classes = [CanRecordAttendance]
@@ -186,25 +193,25 @@ class RecordAttendanceView(APIView):
         )
         unlinked_participants = [p for p in participants if p["discord_id"] not in known_discord_ids]
 
+        tracker = data["event_tracker"]
         with transaction.atomic():
             staged_event, _ = StagedEvent.objects.update_or_create(
                 discord_event_id=data["event_id"],
-                defaults={
-                    "event_name": data["event_name"],
-                    "event_tracker_discord_id": data["event_tracker"],
-                },
+                defaults={"event_name": data["event_name"]},
             )
+            tracker_rows = staged_event.participants.filter(event_tracker_discord_id=tracker)
             # Preserve already-imported participations: a bot retry should never
-            # un-do a downstream import. ignore_conflicts skips bulk_create rows
-            # whose (staged_event, discord_id) already exists on the imported side.
+            # un-do a downstream import. Scoped to this tracker only — another
+            # tracker's rows for the same event are untouched.
             imported_discord_ids = set(
-                staged_event.participants.filter(imported_at__isnull=False).values_list("discord_id", flat=True)
+                tracker_rows.filter(imported_at__isnull=False).values_list("discord_id", flat=True)
             )
-            staged_event.participants.filter(imported_at__isnull=True).delete()
+            tracker_rows.filter(imported_at__isnull=True).delete()
             StagedEventParticipation.objects.bulk_create(
                 [
                     StagedEventParticipation(
                         staged_event=staged_event,
+                        event_tracker_discord_id=tracker,
                         discord_id=p["discord_id"],
                         discord_name=p["discord_name"],
                         status=p["status"],
@@ -213,13 +220,18 @@ class RecordAttendanceView(APIView):
                 ],
                 ignore_conflicts=True,
             )
-            # Refresh discord_name on already-imported rows so retries capture
-            # display-name changes that bulk_create's ignore_conflicts skips.
+            # Refresh discord_name on this tracker's already-imported rows so
+            # retries capture display-name changes that ignore_conflicts skips.
             if imported_discord_ids:
                 name_by_id = {
                     p["discord_id"]: p["discord_name"] for p in participants if p["discord_id"] in imported_discord_ids
                 }
-                imported_rows = list(staged_event.participants.filter(discord_id__in=imported_discord_ids))
+                imported_rows = list(
+                    staged_event.participants.filter(
+                        event_tracker_discord_id=tracker,
+                        discord_id__in=imported_discord_ids,
+                    )
+                )
                 for row in imported_rows:
                     if row.discord_id in name_by_id:
                         row.discord_name = name_by_id[row.discord_id]

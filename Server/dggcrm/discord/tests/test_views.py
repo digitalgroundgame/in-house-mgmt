@@ -401,17 +401,15 @@ class TestRecordAttendanceView:
 
         staged = StagedEvent.objects.get(discord_event_id="evt-1")
         assert staged.event_name == "Scrim Night"
-        assert staged.event_tracker_discord_id == "100000000000000001"
 
-        participant_discord_ids = set(staged.participants.values_list("discord_id", flat=True))
-        assert participant_discord_ids == {
+        participants = list(staged.participants.all())
+        assert {p.discord_id for p in participants} == {
             "100000000000000001",
             "100000000000000002",
             "999999999999999999",
         }
-
-        for p in staged.participants.all():
-            assert p.imported_at is None
+        assert all(p.event_tracker_discord_id == "100000000000000001" for p in participants)
+        assert all(p.imported_at is None for p in participants)
 
     def test_retry_with_same_payload_is_idempotent(self, authenticated_client, sample_contacts, event_tracker_user):
         from dggcrm.events.models import StagedEvent
@@ -521,6 +519,147 @@ class TestRecordAttendanceView:
             format="json",
         )
         assert response.status_code == 400
+
+    def test_two_trackers_same_event_keep_independent_rows(
+        self, authenticated_client, sample_contacts, event_tracker_user
+    ):
+        """Two organizers can independently submit attendance for the same Discord event;
+        each tracker's submission must not touch the other's rows."""
+        from django.contrib.auth.models import Group, Permission
+
+        from dggcrm.accounts.models import DiscordID
+        from dggcrm.events.models import StagedEvent
+
+        # Provision a second authorized tracker (Discord ID 100000000000000002).
+        second_tracker = User.objects.create_user(username="tracker2", password="x")
+        DiscordID.objects.create(user=second_tracker, discord_id="100000000000000002")
+        org_group, _ = Group.objects.get_or_create(name="Organizers")
+        org_group.permissions.add(Permission.objects.get(codename="record_attendance"))
+        second_tracker.groups.add(org_group)
+
+        # Tracker 1 submits two participants.
+        authenticated_client.post(
+            self.ENDPOINT,
+            self._payload(
+                event_tracker="100000000000000001",
+                participants=[
+                    {"discord_id": "100000000000000001", "discord_name": "Alice", "status": "ATTENDED"},
+                    {"discord_id": "100000000000000002", "discord_name": "Bob", "status": "ATTENDED"},
+                ],
+            ),
+            format="json",
+        )
+        # Tracker 2 submits a different set (one overlapping, one new).
+        authenticated_client.post(
+            self.ENDPOINT,
+            self._payload(
+                event_tracker="100000000000000002",
+                participants=[
+                    {"discord_id": "100000000000000002", "discord_name": "Bob", "status": "ATTENDED"},
+                    {"discord_id": "100000000000000003", "discord_name": "Charlie", "status": "ATTENDED"},
+                ],
+            ),
+            format="json",
+        )
+
+        staged = StagedEvent.objects.get(discord_event_id="evt-1")
+        assert StagedEvent.objects.filter(discord_event_id="evt-1").count() == 1, "shared StagedEvent row"
+
+        t1_rows = staged.participants.filter(event_tracker_discord_id="100000000000000001")
+        t2_rows = staged.participants.filter(event_tracker_discord_id="100000000000000002")
+        assert {r.discord_id for r in t1_rows} == {"100000000000000001", "100000000000000002"}
+        assert {r.discord_id for r in t2_rows} == {"100000000000000002", "100000000000000003"}
+        assert staged.participants.count() == 4, "Bob is staged once per tracker"
+
+    def test_tracker_retry_does_not_disturb_other_trackers_rows(
+        self, authenticated_client, sample_contacts, event_tracker_user
+    ):
+        """Tracker A reposting a new payload must not delete or alter tracker B's pending rows."""
+        from django.contrib.auth.models import Group, Permission
+
+        from dggcrm.accounts.models import DiscordID
+        from dggcrm.events.models import StagedEvent
+
+        second_tracker = User.objects.create_user(username="tracker2", password="x")
+        DiscordID.objects.create(user=second_tracker, discord_id="100000000000000002")
+        org_group, _ = Group.objects.get_or_create(name="Organizers")
+        org_group.permissions.add(Permission.objects.get(codename="record_attendance"))
+        second_tracker.groups.add(org_group)
+
+        authenticated_client.post(
+            self.ENDPOINT,
+            self._payload(
+                event_tracker="100000000000000002",
+                participants=[
+                    {"discord_id": "100000000000000003", "discord_name": "Charlie", "status": "ATTENDED"},
+                ],
+            ),
+            format="json",
+        )
+        # Tracker 1 now posts twice with different payloads — should never touch tracker 2's row.
+        for participants in (
+            [{"discord_id": "100000000000000001", "discord_name": "Alice", "status": "ATTENDED"}],
+            [{"discord_id": "100000000000000002", "discord_name": "Bob", "status": "ATTENDED"}],
+        ):
+            authenticated_client.post(
+                self.ENDPOINT,
+                self._payload(event_tracker="100000000000000001", participants=participants),
+                format="json",
+            )
+
+        staged = StagedEvent.objects.get(discord_event_id="evt-1")
+        t2_rows = list(staged.participants.filter(event_tracker_discord_id="100000000000000002"))
+        assert len(t2_rows) == 1
+        assert t2_rows[0].discord_id == "100000000000000003"
+
+    def test_tracker_a_post_preserves_tracker_b_imported_rows(
+        self, authenticated_client, sample_contacts, event_tracker_user
+    ):
+        """Tracker A submitting must not clear tracker B's already-imported rows."""
+        from django.contrib.auth.models import Group, Permission
+        from django.utils import timezone
+
+        from dggcrm.accounts.models import DiscordID
+        from dggcrm.events.models import StagedEvent
+
+        second_tracker = User.objects.create_user(username="tracker2", password="x")
+        DiscordID.objects.create(user=second_tracker, discord_id="100000000000000002")
+        org_group, _ = Group.objects.get_or_create(name="Organizers")
+        org_group.permissions.add(Permission.objects.get(codename="record_attendance"))
+        second_tracker.groups.add(org_group)
+
+        # Tracker 2 submits and gets one row promoted (imported_at set).
+        authenticated_client.post(
+            self.ENDPOINT,
+            self._payload(
+                event_tracker="100000000000000002",
+                participants=[
+                    {"discord_id": "100000000000000003", "discord_name": "Charlie", "status": "ATTENDED"},
+                ],
+            ),
+            format="json",
+        )
+        staged = StagedEvent.objects.get(discord_event_id="evt-1")
+        staged.participants.filter(
+            event_tracker_discord_id="100000000000000002", discord_id="100000000000000003"
+        ).update(imported_at=timezone.now())
+
+        # Tracker 1 now posts. Tracker 2's imported row must survive untouched.
+        authenticated_client.post(
+            self.ENDPOINT,
+            self._payload(
+                event_tracker="100000000000000001",
+                participants=[
+                    {"discord_id": "100000000000000001", "discord_name": "Alice", "status": "ATTENDED"},
+                ],
+            ),
+            format="json",
+        )
+
+        charlie = staged.participants.get(
+            event_tracker_discord_id="100000000000000002", discord_id="100000000000000003"
+        )
+        assert charlie.imported_at is not None
 
 
 @pytest.mark.django_db

@@ -170,19 +170,12 @@ class StagedEvent(models.Model):
         help_text="Discord scheduled event ID (snowflake)",
     )
     event_name = models.CharField(max_length=100)
-    event_tracker_discord_id = models.CharField(
-        max_length=64,
-        help_text="Discord user ID of the organizer who ran the tracking command",
-    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = "staged_events"
-        indexes = [
-            models.Index(fields=["event_tracker_discord_id"]),
-        ]
         permissions = [
             ("record_attendance", "Can record attendance via Discord"),
         ]
@@ -200,6 +193,10 @@ class StagedEventParticipation(models.Model):
         related_name="participants",
     )
 
+    event_tracker_discord_id = models.CharField(
+        max_length=64,
+        help_text="Discord user ID of the organizer whose tracking session produced this row",
+    )
     discord_id = models.CharField(max_length=64)
     discord_name = models.CharField(max_length=100)
     status = models.CharField(
@@ -217,9 +214,10 @@ class StagedEventParticipation(models.Model):
 
     class Meta:
         db_table = "staged_event_participations"
-        unique_together = [("staged_event", "discord_id")]
+        unique_together = [("staged_event", "event_tracker_discord_id", "discord_id")]
         indexes = [
             models.Index(fields=["discord_id"]),
+            models.Index(fields=["event_tracker_discord_id"]),
             models.Index(
                 fields=["staged_event"],
                 name="staged_part_pending_idx",

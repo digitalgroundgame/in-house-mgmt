@@ -50,7 +50,7 @@ class UsersInEventAdmin(admin.ModelAdmin):
 class StagedEventParticipationInline(admin.TabularInline):
     model = StagedEventParticipation
     extra = 0
-    readonly_fields = ["discord_id", "discord_name", "status", "created_at", "imported_at"]
+    readonly_fields = ["event_tracker_discord_id", "discord_id", "discord_name", "status", "created_at", "imported_at"]
     # Delete only via the standalone StagedEventParticipationAdmin — keeps accidental
     # deletes off the parent-event detail page.
     can_delete = False
@@ -58,17 +58,17 @@ class StagedEventParticipationInline(admin.TabularInline):
 
 @admin.register(StagedEvent)
 class StagedEventAdmin(admin.ModelAdmin):
-    list_display = ["event_name", "discord_event_id", "event_tracker_discord_id", "created_at"]
-    search_fields = ["event_name", "discord_event_id", "event_tracker_discord_id"]
+    list_display = ["event_name", "discord_event_id", "created_at"]
+    search_fields = ["event_name", "discord_event_id"]
     list_filter = ["created_at"]
     ordering = ["-created_at"]
-    readonly_fields = ["discord_event_id", "event_name", "event_tracker_discord_id", "created_at", "modified_at"]
+    readonly_fields = ["discord_event_id", "event_name", "created_at", "modified_at"]
     inlines = [StagedEventParticipationInline]
 
 
 @admin.register(StagedEventParticipation)
 class StagedEventParticipationAdmin(admin.ModelAdmin):
-    list_display = ["discord_name", "discord_id", "staged_event", "status", "imported_at"]
-    search_fields = ["discord_name", "discord_id", "staged_event__event_name"]
+    list_display = ["discord_name", "discord_id", "event_tracker_discord_id", "staged_event", "status", "imported_at"]
+    search_fields = ["discord_name", "discord_id", "event_tracker_discord_id", "staged_event__event_name"]
     list_filter = ["status", "imported_at"]
-    readonly_fields = ["staged_event", "discord_id", "discord_name", "status", "created_at"]
+    readonly_fields = ["staged_event", "event_tracker_discord_id", "discord_id", "discord_name", "status", "created_at"]
