@@ -2,6 +2,9 @@ import logging
 import os
 
 from django.db import transaction
+from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
@@ -10,14 +13,11 @@ from rest_framework.views import APIView
 
 from dggcrm.accounts.models import DiscordID
 from dggcrm.contacts.models import Contact, Tag, TagAssignments
-from dggcrm.events.models import StagedEvent, StagedEventParticipation
+from dggcrm.events.models import Event, EventParticipation, StagedEvent, StagedEventParticipation
+from dggcrm.events.permissions import can_change_event
 
 from .client import get_discord_client
-from .permissions import (
-    CanRecordAttendance,
-    IsBotCaller,
-    check_record_attendance_permission,
-)
+from .permissions import CanRecordAttendance, IsBotCaller, check_record_attendance_permission
 from .serializers import RecordAttendanceSerializer
 
 logger = logging.getLogger(__name__)
@@ -277,4 +277,233 @@ class CheckAttendancePermissionView(APIView):
         return Response(
             {"authorized": authorized, "reason": reason},
             status=status.HTTP_200_OK,
+        )
+
+
+def _resolve_staged_import_context(user, staged_id, target_event_id):
+    """Look up the (target Event, StagedEvent) pair for a bulk-import request,
+    enforcing both the destination-event change permission and the requester's
+    membership as a tracker on the staged event. Returns a Response with the
+    appropriate 4xx on any failure so the caller can short-circuit."""
+    if not target_event_id:
+        return Response(
+            {"error": "target_event_id is required"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    try:
+        target_event = Event.objects.get(id=target_event_id)
+    except (Event.DoesNotExist, ValueError):
+        return Response({"error": "target event not found"}, status=status.HTTP_404_NOT_FOUND)
+    if not can_change_event(user, target_event):
+        return Response(
+            {"error": "you don't have permission to modify the target event"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    try:
+        staged_event = StagedEvent.objects.get(id=staged_id)
+    except StagedEvent.DoesNotExist:
+        return Response({"error": "staged event not found"}, status=status.HTTP_404_NOT_FOUND)
+    if not staged_event.participants.filter(event_tracker_crm_user=user).exists():
+        return Response(
+            {"error": "you are not a tracker on this staged event"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    return target_event, staged_event
+
+
+@method_decorator(ensure_csrf_cookie, name="get")
+class MyStagedEventsView(APIView):
+    """
+    GET /api/discord/staged-events/mine/
+
+    Lists staged events the requesting user has tracked and that still
+    have un-imported participations. Powers the bulk-upload modal's
+    dropdown — the user only ever sees the staged events they themselves
+    ran /attendance-track for.
+
+    Each entry includes counts so the dropdown can show e.g. "Tuesday
+    Standup — 5 ready, 2 no contact".
+    """
+
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication, SessionAuthentication]
+
+    def get(self, request):
+        my_unimported = StagedEventParticipation.objects.filter(
+            event_tracker_crm_user=request.user,
+            imported_at__isnull=True,
+        )
+        staged_events = list(
+            StagedEvent.objects.filter(participants__in=my_unimported).distinct().order_by("-modified_at")
+        )
+        if not staged_events:
+            return Response([])
+
+        rows = list(my_unimported.values_list("staged_event_id", "discord_id"))
+        all_discord_ids = {dc for _, dc in rows}
+        contact_discord_ids = set(
+            Contact.objects.filter(discord_id__in=all_discord_ids)
+            .exclude(discord_id="")
+            .values_list("discord_id", flat=True)
+        )
+
+        importable: dict[int, int] = {}
+        no_contact: dict[int, int] = {}
+        for sid, dc in rows:
+            bucket = importable if dc in contact_discord_ids else no_contact
+            bucket[sid] = bucket.get(sid, 0) + 1
+
+        return Response(
+            [
+                {
+                    "id": se.id,
+                    "discord_event_id": se.discord_event_id,
+                    "event_name": se.event_name,
+                    "modified_at": se.modified_at,
+                    "importable_count": importable.get(se.id, 0),
+                    "no_contact_count": no_contact.get(se.id, 0),
+                }
+                for se in staged_events
+            ]
+        )
+
+
+@method_decorator(ensure_csrf_cookie, name="get")
+class StagedImportPreviewView(APIView):
+    """
+    GET /api/discord/staged-events/<staged_id>/preview/?target_event_id=<id>
+
+    Preview the participants that would be imported from the staged event
+    into a target CRM event. Each row carries enough information for the
+    UI to render its three states:
+      * has_contact=False     -> no CRM contact, can't be imported
+      * already_on_event=True -> contact already participates in target event
+      * otherwise              -> will be added on submit
+
+    Scoped to the requesting user as tracker. Excludes already-imported rows.
+    """
+
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication, SessionAuthentication]
+
+    def get(self, request, staged_id):
+        ctx = _resolve_staged_import_context(request.user, staged_id, request.query_params.get("target_event_id"))
+        if isinstance(ctx, Response):
+            return ctx
+        target_event, staged_event = ctx
+
+        my_rows = list(
+            staged_event.participants.filter(
+                event_tracker_crm_user=request.user,
+                imported_at__isnull=True,
+            ).order_by("discord_name", "discord_id")
+        )
+        discord_ids = [r.discord_id for r in my_rows]
+        # Multiple Contact rows can share a discord_id (the model doesn't enforce
+        # uniqueness), so we dedupe at the discord_id layer everywhere — both for
+        # "has CRM contact" and for "already on event" — by joining through Contact.
+        discord_ids_with_contact = set(
+            Contact.objects.filter(discord_id__in=discord_ids)
+            .exclude(discord_id="")
+            .values_list("discord_id", flat=True)
+        )
+        discord_ids_already_on_event = set(
+            EventParticipation.objects.filter(event=target_event, contact__discord_id__in=discord_ids).values_list(
+                "contact__discord_id", flat=True
+            )
+        )
+
+        return Response(
+            {
+                "staged_event_id": staged_event.id,
+                "event_name": staged_event.event_name,
+                "participants": [
+                    {
+                        "staged_participation_id": r.id,
+                        "discord_id": r.discord_id,
+                        "discord_name": r.discord_name,
+                        "status": r.status,
+                        "has_contact": r.discord_id in discord_ids_with_contact,
+                        "already_on_event": r.discord_id in discord_ids_already_on_event,
+                    }
+                    for r in my_rows
+                ],
+            }
+        )
+
+
+class StagedImportExecuteView(APIView):
+    """
+    POST /api/discord/staged-events/<staged_id>/import/
+    Body: {"target_event_id": <int>}
+
+    Imports the requesting user's un-imported staged participants into
+    the target CRM event. For each row with a matching Contact, an
+    EventParticipation row is upserted (status from the staged row wins);
+    the staged row is then stamped imported_at. Rows without a Contact
+    are skipped — they remain staged for a future import once the
+    Contact is created.
+    """
+
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication, SessionAuthentication]
+
+    def post(self, request, staged_id):
+        ctx = _resolve_staged_import_context(request.user, staged_id, request.data.get("target_event_id"))
+        if isinstance(ctx, Response):
+            return ctx
+        target_event, staged_event = ctx
+
+        my_rows = list(
+            staged_event.participants.filter(
+                event_tracker_crm_user=request.user,
+                imported_at__isnull=True,
+            )
+        )
+        discord_ids = [r.discord_id for r in my_rows]
+
+        # Prefer contact already on event
+        on_event_contact_by_discord_id = {
+            ep.contact.discord_id: ep.contact
+            for ep in EventParticipation.objects.filter(
+                event=target_event, contact__discord_id__in=discord_ids
+            ).select_related("contact")
+        }
+        fallback_contact_by_discord_id: dict[str, Contact] = {}
+        for c in Contact.objects.filter(discord_id__in=discord_ids).exclude(discord_id="").order_by("id"):
+            fallback_contact_by_discord_id.setdefault(c.discord_id, c)
+
+        created_count = 0
+        upserted_count = 0
+        skipped_no_contact = 0
+        consumed_row_ids: list[int] = []
+
+        with transaction.atomic():
+            for r in my_rows:
+                contact = on_event_contact_by_discord_id.get(r.discord_id) or fallback_contact_by_discord_id.get(
+                    r.discord_id
+                )
+                if contact is None:
+                    skipped_no_contact += 1
+                    continue
+                _, created = EventParticipation.objects.update_or_create(
+                    event=target_event,
+                    contact=contact,
+                    defaults={"status": r.status},
+                )
+                if created:
+                    created_count += 1
+                else:
+                    upserted_count += 1
+                consumed_row_ids.append(r.id)
+
+            if consumed_row_ids:
+                StagedEventParticipation.objects.filter(id__in=consumed_row_ids).update(imported_at=timezone.now())
+
+        return Response(
+            {
+                "imported": created_count,
+                "already_on_event": upserted_count,
+                "skipped_no_contact": skipped_no_contact,
+            }
         )
