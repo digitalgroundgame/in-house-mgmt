@@ -85,6 +85,14 @@ class TestSyncMembershipTagsView:
         assert response.status_code == 503
         assert response.json()["error"] == "Discord bot not configured"
 
+    def test_returns_503_when_discord_fetch_fails(self, authenticated_client, patch_discord_client):
+        """Returns 503 when Discord API fetch fails during sync."""
+        with patch_discord_client(fetch_error="503 Service Unavailable"):
+            response = authenticated_client.post(self.ENDPOINT)
+
+        assert response.status_code == 503
+        assert "503 Service Unavailable" in response.json()["error"]
+
     def test_adds_tags_for_discord_members(self, authenticated_client, sample_contacts, patch_discord_client):
         """Adds membership tag to contacts who are Discord guild members."""
         # Alice and Bob are members, Charlie is not

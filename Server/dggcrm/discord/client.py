@@ -15,6 +15,11 @@ from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
 
+
+class DiscordFetchError(Exception):
+    """Raised when a Discord API fetch fails after retries."""
+
+
 # Retry configuration: retry on connection errors, timeouts, and 5xx/429 errors
 # Do NOT retry on 4xx client errors (400, 401, 403, 404, etc.)
 RETRY_STRATEGY = Retry(
@@ -140,12 +145,10 @@ class DiscordClient:
         try:
             resp = self.session.get(url, timeout=30)
         except requests.exceptions.RequestException as e:
-            logger.error(f"Network error fetching roles: {e}")
-            return []
+            raise DiscordFetchError(f"Network error fetching roles: {e}") from e
 
         if resp.status_code != 200:
-            logger.error(f"Failed to fetch roles: {resp.status_code} - {resp.text}")
-            return []
+            raise DiscordFetchError(f"Failed to fetch roles: {resp.status_code} - {resp.text}")
 
         data = resp.json()
         roles = []
@@ -181,12 +184,10 @@ class DiscordClient:
             try:
                 resp = self.session.get(url, timeout=30)
             except requests.exceptions.RequestException as e:
-                logger.error(f"Network error fetching members (retries exhausted): {e}")
-                break
+                raise DiscordFetchError(f"Network error fetching members (retries exhausted): {e}") from e
 
             if resp.status_code != 200:
-                logger.error(f"Failed to fetch members: {resp.status_code} - {resp.text}")
-                break
+                raise DiscordFetchError(f"Failed to fetch members: {resp.status_code} - {resp.text}")
 
             data = resp.json()
 
