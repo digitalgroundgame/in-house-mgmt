@@ -340,7 +340,7 @@ class TestRecordAttendanceView:
         base = {
             "event_id": "evt-1",
             "event_name": "Scrim Night",
-            "event_tracker": "100000000000000001",
+            "event_tracker_discord_id": "100000000000000001",
             "participants": [
                 {
                     "discord_id": "100000000000000001",
@@ -408,7 +408,7 @@ class TestRecordAttendanceView:
             "100000000000000002",
             "999999999999999999",
         }
-        assert all(p.event_tracker_discord_id == "100000000000000001" for p in participants)
+        assert all(p.event_tracker_crm_user_id == event_tracker_user.id for p in participants)
         assert all(p.imported_at is None for p in participants)
 
     def test_retry_with_same_payload_is_idempotent(self, authenticated_client, sample_contacts, event_tracker_user):
@@ -515,7 +515,7 @@ class TestRecordAttendanceView:
     def test_rejects_missing_fields(self, authenticated_client, event_tracker_user):
         response = authenticated_client.post(
             self.ENDPOINT,
-            {"event_id": "evt-2", "event_tracker": "100000000000000001", "participants": []},
+            {"event_id": "evt-2", "event_tracker_discord_id": "100000000000000001", "participants": []},
             format="json",
         )
         assert response.status_code == 400
@@ -541,7 +541,7 @@ class TestRecordAttendanceView:
         authenticated_client.post(
             self.ENDPOINT,
             self._payload(
-                event_tracker="100000000000000001",
+                event_tracker_discord_id="100000000000000001",
                 participants=[
                     {"discord_id": "100000000000000001", "discord_name": "Alice", "status": "ATTENDED"},
                     {"discord_id": "100000000000000002", "discord_name": "Bob", "status": "ATTENDED"},
@@ -553,7 +553,7 @@ class TestRecordAttendanceView:
         authenticated_client.post(
             self.ENDPOINT,
             self._payload(
-                event_tracker="100000000000000002",
+                event_tracker_discord_id="100000000000000002",
                 participants=[
                     {"discord_id": "100000000000000002", "discord_name": "Bob", "status": "ATTENDED"},
                     {"discord_id": "100000000000000003", "discord_name": "Charlie", "status": "ATTENDED"},
@@ -565,8 +565,8 @@ class TestRecordAttendanceView:
         staged = StagedEvent.objects.get(discord_event_id="evt-1")
         assert StagedEvent.objects.filter(discord_event_id="evt-1").count() == 1, "shared StagedEvent row"
 
-        t1_rows = staged.participants.filter(event_tracker_discord_id="100000000000000001")
-        t2_rows = staged.participants.filter(event_tracker_discord_id="100000000000000002")
+        t1_rows = staged.participants.filter(event_tracker_crm_user=event_tracker_user)
+        t2_rows = staged.participants.filter(event_tracker_crm_user=second_tracker)
         assert {r.discord_id for r in t1_rows} == {"100000000000000001", "100000000000000002"}
         assert {r.discord_id for r in t2_rows} == {"100000000000000002", "100000000000000003"}
         assert staged.participants.count() == 4, "Bob is staged once per tracker"
@@ -589,7 +589,7 @@ class TestRecordAttendanceView:
         authenticated_client.post(
             self.ENDPOINT,
             self._payload(
-                event_tracker="100000000000000002",
+                event_tracker_discord_id="100000000000000002",
                 participants=[
                     {"discord_id": "100000000000000003", "discord_name": "Charlie", "status": "ATTENDED"},
                 ],
@@ -603,12 +603,12 @@ class TestRecordAttendanceView:
         ):
             authenticated_client.post(
                 self.ENDPOINT,
-                self._payload(event_tracker="100000000000000001", participants=participants),
+                self._payload(event_tracker_discord_id="100000000000000001", participants=participants),
                 format="json",
             )
 
         staged = StagedEvent.objects.get(discord_event_id="evt-1")
-        t2_rows = list(staged.participants.filter(event_tracker_discord_id="100000000000000002"))
+        t2_rows = list(staged.participants.filter(event_tracker_crm_user=second_tracker))
         assert len(t2_rows) == 1
         assert t2_rows[0].discord_id == "100000000000000003"
 
@@ -632,7 +632,7 @@ class TestRecordAttendanceView:
         authenticated_client.post(
             self.ENDPOINT,
             self._payload(
-                event_tracker="100000000000000002",
+                event_tracker_discord_id="100000000000000002",
                 participants=[
                     {"discord_id": "100000000000000003", "discord_name": "Charlie", "status": "ATTENDED"},
                 ],
@@ -640,15 +640,15 @@ class TestRecordAttendanceView:
             format="json",
         )
         staged = StagedEvent.objects.get(discord_event_id="evt-1")
-        staged.participants.filter(
-            event_tracker_discord_id="100000000000000002", discord_id="100000000000000003"
-        ).update(imported_at=timezone.now())
+        staged.participants.filter(event_tracker_crm_user=second_tracker, discord_id="100000000000000003").update(
+            imported_at=timezone.now()
+        )
 
         # Tracker 1 now posts. Tracker 2's imported row must survive untouched.
         authenticated_client.post(
             self.ENDPOINT,
             self._payload(
-                event_tracker="100000000000000001",
+                event_tracker_discord_id="100000000000000001",
                 participants=[
                     {"discord_id": "100000000000000001", "discord_name": "Alice", "status": "ATTENDED"},
                 ],
@@ -656,9 +656,7 @@ class TestRecordAttendanceView:
             format="json",
         )
 
-        charlie = staged.participants.get(
-            event_tracker_discord_id="100000000000000002", discord_id="100000000000000003"
-        )
+        charlie = staged.participants.get(event_tracker_crm_user=second_tracker, discord_id="100000000000000003")
         assert charlie.imported_at is not None
 
 

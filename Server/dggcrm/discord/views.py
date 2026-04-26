@@ -8,6 +8,7 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from dggcrm.accounts.models import DiscordID
 from dggcrm.contacts.models import Contact, Tag, TagAssignments
 from dggcrm.events.models import StagedEvent, StagedEventParticipation
 
@@ -193,13 +194,18 @@ class RecordAttendanceView(APIView):
         )
         unlinked_participants = [p for p in participants if p["discord_id"] not in known_discord_ids]
 
-        tracker = data["event_tracker"]
+        # CanRecordAttendance has already validated that this Discord ID
+        # is linked to a CRM user with the right permission, so the lookup
+        # below is guaranteed to succeed.
+        tracker = (
+            DiscordID.objects.select_related("user").get(discord_id=data["event_tracker_discord_id"], active=True).user
+        )
         with transaction.atomic():
             staged_event, _ = StagedEvent.objects.update_or_create(
                 discord_event_id=data["event_id"],
                 defaults={"event_name": data["event_name"]},
             )
-            tracker_rows = staged_event.participants.filter(event_tracker_discord_id=tracker)
+            tracker_rows = staged_event.participants.filter(event_tracker_crm_user=tracker)
             # Preserve already-imported participations: a bot retry should never
             # un-do a downstream import. Scoped to this tracker only — another
             # tracker's rows for the same event are untouched.
@@ -211,7 +217,7 @@ class RecordAttendanceView(APIView):
                 [
                     StagedEventParticipation(
                         staged_event=staged_event,
-                        event_tracker_discord_id=tracker,
+                        event_tracker_crm_user=tracker,
                         discord_id=p["discord_id"],
                         discord_name=p["discord_name"],
                         status=p["status"],
@@ -228,7 +234,7 @@ class RecordAttendanceView(APIView):
                 }
                 imported_rows = list(
                     staged_event.participants.filter(
-                        event_tracker_discord_id=tracker,
+                        event_tracker_crm_user=tracker,
                         discord_id__in=imported_discord_ids,
                     )
                 )

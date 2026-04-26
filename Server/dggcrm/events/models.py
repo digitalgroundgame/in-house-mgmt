@@ -193,9 +193,11 @@ class StagedEventParticipation(models.Model):
         related_name="participants",
     )
 
-    event_tracker_discord_id = models.CharField(
-        max_length=64,
-        help_text="Discord user ID of the organizer whose tracking session produced this row",
+    event_tracker_crm_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="recorded_staged_participations",
+        help_text="CRM user (organizer) whose tracking session produced this row",
     )
     discord_id = models.CharField(max_length=64)
     discord_name = models.CharField(max_length=100)
@@ -214,10 +216,9 @@ class StagedEventParticipation(models.Model):
 
     class Meta:
         db_table = "staged_event_participations"
-        unique_together = [("staged_event", "event_tracker_discord_id", "discord_id")]
+        unique_together = [("staged_event", "event_tracker_crm_user", "discord_id")]
         indexes = [
             models.Index(fields=["discord_id"]),
-            models.Index(fields=["event_tracker_discord_id"]),
             models.Index(
                 fields=["staged_event"],
                 name="staged_part_pending_idx",

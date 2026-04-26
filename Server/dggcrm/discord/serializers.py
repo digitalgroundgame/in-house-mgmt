@@ -18,7 +18,7 @@ class AttendanceParticipantSerializer(serializers.Serializer):
 class RecordAttendanceSerializer(serializers.Serializer):
     event_id = serializers.CharField(max_length=64)
     event_name = serializers.CharField(max_length=100)
-    event_tracker = serializers.CharField(max_length=64)
+    event_tracker_discord_id = serializers.CharField(max_length=64)
     participants = AttendanceParticipantSerializer(many=True)
 
     def validate_participants(self, value):

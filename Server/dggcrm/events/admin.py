@@ -50,7 +50,7 @@ class UsersInEventAdmin(admin.ModelAdmin):
 class StagedEventParticipationInline(admin.TabularInline):
     model = StagedEventParticipation
     extra = 0
-    readonly_fields = ["event_tracker_discord_id", "discord_id", "discord_name", "status", "created_at", "imported_at"]
+    readonly_fields = ["event_tracker_crm_user", "discord_id", "discord_name", "status", "created_at", "imported_at"]
     # Delete only via the standalone StagedEventParticipationAdmin — keeps accidental
     # deletes off the parent-event detail page.
     can_delete = False
@@ -68,7 +68,13 @@ class StagedEventAdmin(admin.ModelAdmin):
 
 @admin.register(StagedEventParticipation)
 class StagedEventParticipationAdmin(admin.ModelAdmin):
-    list_display = ["discord_name", "discord_id", "event_tracker_discord_id", "staged_event", "status", "imported_at"]
-    search_fields = ["discord_name", "discord_id", "event_tracker_discord_id", "staged_event__event_name"]
+    list_display = ["discord_name", "discord_id", "event_tracker_crm_user", "staged_event", "status", "imported_at"]
+    search_fields = [
+        "discord_name",
+        "discord_id",
+        "event_tracker_crm_user__username",
+        "event_tracker_crm_user__discord_ids__discord_id",
+        "staged_event__event_name",
+    ]
     list_filter = ["status", "imported_at"]
-    readonly_fields = ["staged_event", "event_tracker_discord_id", "discord_id", "discord_name", "status", "created_at"]
+    readonly_fields = ["staged_event", "event_tracker_crm_user", "discord_id", "discord_name", "status", "created_at"]

@@ -60,14 +60,14 @@ class CanRecordAttendance(BasePermission):
     1. The caller (bound to the request token/session) must be the bot
        service account or a superuser — keeps a non-bot token holder
        from impersonating the bot.
-    2. The Discord user named as `event_tracker` in the body must be
-       linked via DiscordID (active=True) to a CRM user that holds
-       `events.record_attendance`. This is the per-user authorization
-       the bot is acting on behalf of.
+    2. The Discord user named as `event_tracker_discord_id` in the body
+       must be linked via DiscordID (active=True) to a CRM user that
+       holds `events.record_attendance`. This is the per-user
+       authorization the bot is acting on behalf of.
     """
 
     def has_permission(self, request, view):
         if not is_bot_caller(request.user):
             return False
-        authorized, _ = check_record_attendance_permission(request.data.get("event_tracker"))
+        authorized, _ = check_record_attendance_permission(request.data.get("event_tracker_discord_id"))
         return authorized
