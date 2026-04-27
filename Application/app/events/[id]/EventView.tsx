@@ -44,7 +44,14 @@ import {
   ActionIcon,
   Tooltip,
 } from "@mantine/core";
-import { IconPencil, IconSearch } from "@tabler/icons-react";
+import {
+  IconUpload,
+  IconPencil,
+  IconSearch,
+  IconUserPlus,
+  IconUserQuestion,
+  IconUsersGroup,
+} from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -944,28 +951,16 @@ function EventViewContactTable({
       )}
       <Paper p="md" mt="sm" withBorder style={{ position: "relative" }}>
         <Stack>
-          <Group align="flex-end" wrap="wrap" gap="sm">
-            <TextInput
-              label="Search"
-              placeholder="Search by name, Discord ID, email, or phone..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              leftSection={<IconSearch size={16} />}
-              style={{ flex: "2 1 180px" }}
-            />
-            <MultiSelect
-              label="Participation Status"
-              data={EVENT_PARTICIPATION_STATUSES}
-              onChange={setStatusArray}
-              value={statusArray}
-              style={{ flex: "1 1 140px" }}
-            />
-            <Divider orientation="vertical" style={{ alignSelf: "stretch" }} visibleFrom="sm" />
-            <Group gap="xs" style={{ alignSelf: "center" }}>
+          <Group justify="space-between" align="center" wrap="wrap" gap="xs">
+            <Title order={4}>Participants{data ? ` (${data.count})` : ""}</Title>
+            <Group gap="xs">
               {selected.size === 0 ? (
                 <>
                   <Button
-                    size="sm"
+                    size="xs"
+                    radius="xl"
+                    variant="light"
+                    leftSection={<IconUserPlus size={13} />}
                     onClick={() => {
                       setModalMode("add");
                       open();
@@ -973,14 +968,34 @@ function EventViewContactTable({
                   >
                     Add Participant
                   </Button>
-                  <Button size="sm" onClick={openBulk}>
+                  <Button
+                    size="xs"
+                    radius="xl"
+                    variant="light"
+                    leftSection={<IconUpload size={13} />}
+                    onClick={openBulk}
+                  >
                     Discord Import
                   </Button>
+                  {showAnonymousButton && (
+                    <Button
+                      size="xs"
+                      radius="xl"
+                      variant="light"
+                      leftSection={<IconUserQuestion size={13} />}
+                      onClick={openAnonymous}
+                    >
+                      Anonymous Participants
+                    </Button>
+                  )}
                 </>
               ) : (
                 <Button
-                  size="sm"
+                  size="xs"
+                  radius="xl"
+                  variant="light"
                   color="green"
+                  leftSection={<IconUsersGroup size={13} />}
                   onClick={() => {
                     setModalMode("modify");
                     open();
@@ -989,17 +1004,28 @@ function EventViewContactTable({
                   Modify Selected
                 </Button>
               )}
-              {showAnonymousButton && (
-                <Button size="sm" variant="outline" onClick={openAnonymous}>
-                  Anonymous Participants
-                </Button>
-              )}
             </Group>
+          </Group>
+          <Group gap="xs" wrap="wrap">
+            <TextInput
+              size="xs"
+              placeholder="Search by name, Discord ID, email, or phone..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              leftSection={<IconSearch size={14} />}
+              style={{ flex: "2 1 180px" }}
+            />
+            <MultiSelect
+              size="xs"
+              placeholder="Status"
+              data={EVENT_PARTICIPATION_STATUSES}
+              onChange={setStatusArray}
+              value={statusArray}
+              style={{ flex: "1 1 140px" }}
+            />
           </Group>
           {data && (
             <PaginatedTable
-              title="Participants"
-              showTitle={true}
               data={data.results}
               onRowClick={(ep: EventParticipation) => router.push(`/contacts/${ep.contact.id}`)}
               columns={["Name", "Contact", "Status"]}
