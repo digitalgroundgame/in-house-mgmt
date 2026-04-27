@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Event, EventParticipation, UsersInEvent
+from .models import Event, EventParticipation, StagedEvent, StagedEventParticipation, UsersInEvent
 
 
 class EventParticipationInline(admin.TabularInline):
@@ -45,3 +45,36 @@ class UsersInEventAdmin(admin.ModelAdmin):
     list_filter = ["event"]
 
     readonly_fields = ["joined_at"]
+
+
+class StagedEventParticipationInline(admin.TabularInline):
+    model = StagedEventParticipation
+    extra = 0
+    readonly_fields = ["event_tracker_crm_user", "discord_id", "discord_name", "status", "created_at", "imported_at"]
+    # Delete only via the standalone StagedEventParticipationAdmin — keeps accidental
+    # deletes off the parent-event detail page.
+    can_delete = False
+
+
+@admin.register(StagedEvent)
+class StagedEventAdmin(admin.ModelAdmin):
+    list_display = ["event_name", "discord_event_id", "created_at"]
+    search_fields = ["event_name", "discord_event_id"]
+    list_filter = ["created_at"]
+    ordering = ["-created_at"]
+    readonly_fields = ["discord_event_id", "event_name", "created_at", "modified_at"]
+    inlines = [StagedEventParticipationInline]
+
+
+@admin.register(StagedEventParticipation)
+class StagedEventParticipationAdmin(admin.ModelAdmin):
+    list_display = ["discord_name", "discord_id", "event_tracker_crm_user", "staged_event", "status", "imported_at"]
+    search_fields = [
+        "discord_name",
+        "discord_id",
+        "event_tracker_crm_user__username",
+        "event_tracker_crm_user__discord_ids__discord_id",
+        "staged_event__event_name",
+    ]
+    list_filter = ["status", "imported_at"]
+    readonly_fields = ["staged_event", "event_tracker_crm_user", "discord_id", "discord_name", "status", "created_at"]

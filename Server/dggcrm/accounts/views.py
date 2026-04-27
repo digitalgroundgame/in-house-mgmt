@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
 
 from config.pagination import StandardPagination
+from dggcrm.discord.permissions import DISCORD_BOT_GROUP
 
 from .models import DiscordID, UserPreferences
 from .serializers import (
@@ -80,7 +81,7 @@ class UserPreferencesView(APIView):
 class GroupListView(generics.ListAPIView):
     permission_classes = [IsAdminUser]
     serializer_class = GroupSerializer
-    queryset = Group.objects.all().order_by("name")
+    queryset = Group.objects.exclude(name=DISCORD_BOT_GROUP).order_by("name")
     pagination_class = None
 
 
