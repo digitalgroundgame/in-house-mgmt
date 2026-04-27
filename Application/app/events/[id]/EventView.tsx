@@ -944,24 +944,28 @@ function EventViewContactTable({
       )}
       <Paper p="md" mt="sm" withBorder style={{ position: "relative" }}>
         <Stack>
-          <Group grow align="flex-end">
+          <Group align="flex-end" wrap="nowrap" gap="sm">
             <TextInput
               label="Search"
               placeholder="Search by name, Discord ID, email, or phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               leftSection={<IconSearch size={16} />}
+              style={{ flex: 2 }}
             />
             <MultiSelect
               label="Participation Status"
               data={EVENT_PARTICIPATION_STATUSES}
               onChange={setStatusArray}
               value={statusArray}
+              style={{ flex: 1 }}
             />
-            <Group gap="xs" wrap="nowrap" grow>
+            <Divider orientation="vertical" style={{ alignSelf: "stretch" }} />
+            <Group gap="xs" style={{ alignSelf: "center" }}>
               {selected.size === 0 ? (
                 <>
                   <Button
+                    size="sm"
                     onClick={() => {
                       setModalMode("add");
                       open();
@@ -969,10 +973,13 @@ function EventViewContactTable({
                   >
                     Add Participant
                   </Button>
-                  <Button onClick={openBulk}>Discord Import</Button>
+                  <Button size="sm" onClick={openBulk}>
+                    Discord Import
+                  </Button>
                 </>
               ) : (
                 <Button
+                  size="sm"
                   color="green"
                   onClick={() => {
                     setModalMode("modify");
@@ -983,7 +990,7 @@ function EventViewContactTable({
                 </Button>
               )}
               {showAnonymousButton && (
-                <Button variant="outline" onClick={openAnonymous}>
+                <Button size="sm" variant="outline" onClick={openAnonymous}>
                   Anonymous Participants
                 </Button>
               )}
