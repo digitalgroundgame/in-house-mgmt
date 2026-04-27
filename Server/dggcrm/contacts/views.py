@@ -53,7 +53,8 @@ class ContactViewSet(viewsets.ModelViewSet):
         queryset = super().get_queryset()
 
         event_id = self.request.query_params.get("event")
-        tag = self.request.query_params.get("tag")
+        tag_ids_param = self.request.query_params.get("tag_ids")
+        tag_mode = self.request.query_params.get("tag_mode", "any")
         min_tickets = self.request.query_params.get("min_tickets")
         max_tickets = self.request.query_params.get("max_tickets")
         min_events = self.request.query_params.get("min_events")
@@ -67,12 +68,15 @@ class ContactViewSet(viewsets.ModelViewSet):
                 event_participations__event_id=event_id,
             )
 
-        if tag:
-            # allow filtering by tag id OR tag name
-            if tag.isdigit():
-                queryset = queryset.filter(taggings__tag__id=tag)
-            else:
-                queryset = queryset.filter(taggings__tag__name__iexact=tag)
+        if tag_ids_param:
+            tag_ids = [int(v) for v in tag_ids_param.split(",") if v.strip().isdigit()]
+            if tag_ids:
+                if tag_mode == "all":
+                    for tag_id in tag_ids:
+                        queryset = queryset.filter(taggings__tag__id=tag_id)
+                else:
+                    queryset = queryset.filter(taggings__tag__id__in=tag_ids)
+
         date_filter = Q()
         if start_date:
             date_filter &= Q(event_participations__event__ends_at__gte=start_date)

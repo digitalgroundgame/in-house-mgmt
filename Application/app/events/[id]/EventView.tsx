@@ -46,11 +46,10 @@ import {
 import { IconPencil, IconSearch } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDisclosure } from "@mantine/hooks";
 import getCookie from "@/app/utils/cookie";
 import { formatBackendProvidedDateTime } from "@/app/utils/datetime";
-
 const EVENT_PARTICIPATION_STATUSES = [
   "UNKNOWN",
   "MAYBE",
@@ -612,11 +611,264 @@ function AddParticipantModal({
   );
 }
 
+function ParticipationStatusBadge({
+  status,
+  label,
+  centered = false,
+}: {
+  status: string;
+  label: string;
+  centered?: boolean;
+}) {
+  return (
+    <Badge
+      color={getEventParticipationStatusColor(status)}
+      styles={{
+        root: {
+          whiteSpace: "nowrap",
+          width: "max-content",
+          minWidth: "max-content",
+          ...(centered && { margin: "0 auto" }),
+        },
+      }}
+    >
+      {label}
+    </Badge>
+  );
+}
+
+interface StagedEventListItem {
+  id: number;
+  discord_event_id: string;
+  event_name: string;
+  modified_at: string;
+  importable_count: number;
+  no_contact_count: number;
+}
+
+interface PreviewParticipant {
+  staged_participation_id: number;
+  discord_id: string;
+  discord_name: string;
+  status: string;
+  has_contact: boolean;
+  already_on_event: boolean;
+}
+
+interface PreviewResponse {
+  staged_event_id: number;
+  event_name: string;
+  participants: PreviewParticipant[];
+}
+
+function BulkUploadModal({
+  opened,
+  close,
+  refresh,
+  eventId,
+}: {
+  opened: boolean;
+  close: () => void;
+  refresh: () => void;
+  eventId: number;
+}) {
+  const [selectedStagedId, setSelectedStagedId] = useState<string | null>(null);
+  const [preview, setPreview] = useState<PreviewResponse | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const { data: stagedList, loading: listLoading } = useBackend<StagedEventListItem[]>(
+    "/api/discord/staged-events/mine/"
+  );
+
+  useEffect(() => {
+    if (!selectedStagedId) {
+      setPreview(null);
+      return;
+    }
+    let cancelled = false;
+    setLoadingPreview(true);
+    apiClient
+      .get<PreviewResponse>(
+        `/discord/staged-events/${selectedStagedId}/preview/?target_event_id=${eventId}`
+      )
+      .then((data) => {
+        if (!cancelled) setPreview(data);
+      })
+      .catch((err: Error) => {
+        if (!cancelled) {
+          setPreview(null);
+          notifications.show({
+            title: "Couldn't load preview",
+            message: err.message,
+            color: "red",
+          });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingPreview(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedStagedId, eventId]);
+
+  let willAddCount = 0;
+  let alreadyOnEventCount = 0;
+  let noContactCount = 0;
+  for (const p of preview?.participants ?? []) {
+    if (!p.has_contact) noContactCount++;
+    if (p.has_contact) {
+      if (p.already_on_event) alreadyOnEventCount++;
+      else willAddCount++;
+    }
+  }
+  const importableCount = willAddCount + alreadyOnEventCount;
+
+  const handleSubmit = async () => {
+    if (!selectedStagedId) return;
+    setSubmitting(true);
+    try {
+      const result = await apiClient.post<{
+        imported: number;
+        already_on_event: number;
+        skipped_no_contact: number;
+      }>(`/discord/staged-events/${selectedStagedId}/import/`, {
+        target_event_id: eventId,
+      });
+      notifications.show({
+        title: "Import complete",
+        message: `${result.imported} imported. ${result.already_on_event} already on event. ${result.skipped_no_contact} skipped (no CRM contact).`,
+        color: "green",
+      });
+      close();
+      refresh();
+    } catch (err) {
+      notifications.show({
+        title: "Import failed",
+        message: err instanceof Error ? err.message : String(err),
+        color: "red",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal opened={opened} onClose={close} title="Bulk Upload by Event" size="xl">
+      <LoadingOverlay visible={listLoading || submitting} />
+      <Stack>
+        <Select
+          label="Source: staged event you tracked in Discord"
+          placeholder={
+            stagedList && stagedList.length === 0
+              ? "You haven't tracked any events yet"
+              : "Pick a staged event"
+          }
+          data={
+            stagedList?.map((s) => ({
+              value: s.id.toString(),
+              label: `${s.event_name} — ${s.importable_count} ready, ${s.no_contact_count} no contact`,
+            })) ?? []
+          }
+          value={selectedStagedId}
+          onChange={setSelectedStagedId}
+          disabled={!stagedList || stagedList.length === 0}
+        />
+
+        {loadingPreview && <Text>Loading participants…</Text>}
+
+        {preview && !loadingPreview && (
+          <>
+            <Text size="sm">
+              <strong>{willAddCount}</strong> will be imported.{" "}
+              {alreadyOnEventCount > 0 && (
+                <>
+                  <strong>{alreadyOnEventCount}</strong> already on this event (no duplicates will
+                  be created).{" "}
+                </>
+              )}
+              {noContactCount > 0 && (
+                <>
+                  <strong>{noContactCount}</strong> have no CRM contact and will be skipped.
+                </>
+              )}
+            </Text>
+            <Table>
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>Discord Name</Table.Th>
+                  <Table.Th>Discord ID</Table.Th>
+                  <Table.Th ta="center">Status</Table.Th>
+                  <Table.Th ta="center">State</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {preview.participants.map((p) => {
+                  let stateBadge;
+                  if (!p.has_contact) {
+                    stateBadge = (
+                      <Tooltip label="No CRM contact for this Discord ID — they won't be imported. Create the contact first to include them next time.">
+                        <Badge color="red">Not a CRM contact</Badge>
+                      </Tooltip>
+                    );
+                  }
+                  if (p.has_contact) {
+                    if (p.already_on_event) {
+                      stateBadge = (
+                        <Tooltip label="This person is already on this event — submitting won't create a duplicate.">
+                          <Badge color="yellow">Already on event</Badge>
+                        </Tooltip>
+                      );
+                    } else {
+                      stateBadge = (
+                        <Tooltip label="Has a CRM contact and isn't on the event yet — will be added on submit.">
+                          <Badge color="green">Valid</Badge>
+                        </Tooltip>
+                      );
+                    }
+                  }
+                  return (
+                    <Table.Tr
+                      key={p.staged_participation_id}
+                      c={!p.has_contact ? "dimmed" : undefined}
+                    >
+                      <Table.Td>{p.discord_name}</Table.Td>
+                      <Table.Td>{p.discord_id}</Table.Td>
+                      <Table.Td ta="center">
+                        <ParticipationStatusBadge status={p.status} label={p.status} centered />
+                      </Table.Td>
+                      <Table.Td ta="center">{stateBadge}</Table.Td>
+                    </Table.Tr>
+                  );
+                })}
+              </Table.Tbody>
+            </Table>
+          </>
+        )}
+
+        <Tooltip
+          label="Nothing to import — none of the participants have a CRM contact."
+          disabled={importableCount > 0 || !selectedStagedId}
+        >
+          <Button
+            onClick={handleSubmit}
+            disabled={!selectedStagedId || importableCount === 0 || submitting}
+          >
+            Submit
+          </Button>
+        </Tooltip>
+      </Stack>
+    </Modal>
+  );
+}
+
 function EventViewContactTable({ event }: { event: Event }) {
   const currentParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [statusArray, setStatusArray] = useState<string[]>();
   const [opened, { open, close }] = useDisclosure(false);
+  const [bulkOpened, { open: openBulk, close: closeBulk }] = useDisclosure(false);
   const [modalMode, setModalMode] = useState<"add" | "modify">("add");
 
   const pageNum = currentParams.get("page");
@@ -661,6 +913,14 @@ function EventViewContactTable({ event }: { event: Event }) {
           mode={modalMode}
         />
       )}
+      {bulkOpened && (
+        <BulkUploadModal
+          opened={bulkOpened}
+          close={closeBulk}
+          refresh={refetch}
+          eventId={event.id}
+        />
+      )}
       <Paper p="md" mt="sm" withBorder style={{ position: "relative" }}>
         <Stack>
           <Group grow align="flex-end">
@@ -678,14 +938,17 @@ function EventViewContactTable({ event }: { event: Event }) {
               value={statusArray}
             />
             {selected.size === 0 ? (
-              <Button
-                onClick={() => {
-                  setModalMode("add");
-                  open();
-                }}
-              >
-                Add Participant
-              </Button>
+              <Group gap="xs" wrap="nowrap" grow>
+                <Button
+                  onClick={() => {
+                    setModalMode("add");
+                    open();
+                  }}
+                >
+                  Add Participant
+                </Button>
+                <Button onClick={openBulk}>Bulk Upload</Button>
+              </Group>
             ) : (
               <Button
                 color="green"
@@ -720,18 +983,7 @@ function EventViewContactTable({ event }: { event: Event }) {
                       width: "1%",
                     }}
                   >
-                    <Badge
-                      color={getEventParticipationStatusColor(ep.status)}
-                      styles={{
-                        root: {
-                          whiteSpace: "nowrap",
-                          width: "max-content",
-                          minWidth: "max-content",
-                        },
-                      }}
-                    >
-                      {ep.status_display}
-                    </Badge>
+                    <ParticipationStatusBadge status={ep.status} label={ep.status_display} />
                   </Table.Td>
                 ),
               ]}
