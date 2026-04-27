@@ -60,6 +60,25 @@ class EventSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError("All values must be strings.")
         return value
 
+    def validate(self, data):
+        count = data.get(
+            "anonymous_attendee_count",
+            self.instance.anonymous_attendee_count if self.instance else 0,
+        )
+        detail = data.get(
+            "anonymous_attendees_detail",
+            self.instance.anonymous_attendees_detail if self.instance else [],
+        )
+        if len(detail) > count:
+            raise serializers.ValidationError(
+                {
+                    "anonymous_attendees_detail": (
+                        f"Cannot have more detail entries ({len(detail)}) than the anonymous participant count ({count})."
+                    )
+                }
+            )
+        return data
+
 
 class EventParticipationSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(

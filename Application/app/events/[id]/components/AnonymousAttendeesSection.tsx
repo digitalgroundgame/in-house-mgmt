@@ -56,6 +56,14 @@ export function AnonymousAttendeesModal({
       });
       return;
     }
+    if (entries.length > num) {
+      notifications.show({
+        title: "Too many entries",
+        message: `You have ${entries.length} detail entries but the count is ${num}. Increase the count or remove entries.`,
+        color: "red",
+      });
+      return;
+    }
     setSaving(true);
     try {
       const cleanedEntries: AnonymousAttendeeDetail[] = entries.map((e) => ({

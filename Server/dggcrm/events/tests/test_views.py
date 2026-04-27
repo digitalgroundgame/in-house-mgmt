@@ -185,7 +185,7 @@ class TestAnonymousAttendeeFields:
         self.client.force_authenticate(user=admin_user)
         response = self.client.patch(
             f"/api/events/{scheduled_event.id}/",
-            {"anonymous_attendees_detail": detail},
+            {"anonymous_attendee_count": 1, "anonymous_attendees_detail": detail},
             format="json",
         )
 
@@ -198,7 +198,7 @@ class TestAnonymousAttendeeFields:
         self.client.force_authenticate(user=admin_user)
         response = self.client.patch(
             f"/api/events/{scheduled_event.id}/",
-            {"anonymous_attendees_detail": detail},
+            {"anonymous_attendee_count": 3, "anonymous_attendees_detail": detail},
             format="json",
         )
 
@@ -247,6 +247,42 @@ class TestAnonymousAttendeeFields:
         )
 
         assert response.status_code == 403
+
+    def test_patch_detail_exceeding_count_returns_400(self, admin_user, scheduled_event):
+        self.client.force_authenticate(user=admin_user)
+        response = self.client.patch(
+            f"/api/events/{scheduled_event.id}/",
+            {
+                "anonymous_attendee_count": 2,
+                "anonymous_attendees_detail": [{"name": "A"}, {"name": "B"}, {"name": "C"}],
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert "anonymous_attendees_detail" in response.data
+
+    def test_patch_detail_equal_to_count_is_valid(self, admin_user, scheduled_event):
+        self.client.force_authenticate(user=admin_user)
+        response = self.client.patch(
+            f"/api/events/{scheduled_event.id}/",
+            {"anonymous_attendee_count": 2, "anonymous_attendees_detail": [{"name": "A"}, {"name": "B"}]},
+            format="json",
+        )
+
+        assert response.status_code == 200
+
+    def test_patch_detail_only_checked_against_existing_count(self, admin_user, scheduled_event):
+        scheduled_event.anonymous_attendee_count = 1
+        scheduled_event.save()
+        self.client.force_authenticate(user=admin_user)
+        response = self.client.patch(
+            f"/api/events/{scheduled_event.id}/",
+            {"anonymous_attendees_detail": [{"name": "A"}, {"name": "B"}]},
+            format="json",
+        )
+
+        assert response.status_code == 400
 
     def test_anonymous_fields_in_editable_fields_for_assigned_editor(
         self,
