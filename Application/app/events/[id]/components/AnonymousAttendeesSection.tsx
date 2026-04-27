@@ -72,7 +72,7 @@ export function AnonymousAttendeesModal({
     } catch {
       notifications.show({
         title: "Error",
-        message: "Failed to save anonymous attendee information.",
+        message: "Failed to save anonymous participant information.",
         color: "red",
       });
     } finally {
@@ -87,7 +87,7 @@ export function AnonymousAttendeesModal({
         {canEdit ? (
           <NumberInput
             label="Count"
-            description="Number of anonymous attendees not tracked as contacts"
+            description="Number of anonymous participants not tracked as contacts"
             value={count}
             onChange={setCount}
             min={0}
@@ -98,7 +98,7 @@ export function AnonymousAttendeesModal({
             <Text span fw={500}>
               {event.anonymous_attendee_count}
             </Text>{" "}
-            anonymous attendees
+            anonymous participants
           </Text>
         )}
 

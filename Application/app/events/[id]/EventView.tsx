@@ -944,23 +944,23 @@ function EventViewContactTable({
       )}
       <Paper p="md" mt="sm" withBorder style={{ position: "relative" }}>
         <Stack>
-          <Group align="flex-end" wrap="nowrap" gap="sm">
+          <Group align="flex-end" wrap="wrap" gap="sm">
             <TextInput
               label="Search"
               placeholder="Search by name, Discord ID, email, or phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               leftSection={<IconSearch size={16} />}
-              style={{ flex: 2 }}
+              style={{ flex: "2 1 180px" }}
             />
             <MultiSelect
               label="Participation Status"
               data={EVENT_PARTICIPATION_STATUSES}
               onChange={setStatusArray}
               value={statusArray}
-              style={{ flex: 1 }}
+              style={{ flex: "1 1 140px" }}
             />
-            <Divider orientation="vertical" style={{ alignSelf: "stretch" }} />
+            <Divider orientation="vertical" style={{ alignSelf: "stretch" }} visibleFrom="sm" />
             <Group gap="xs" style={{ alignSelf: "center" }}>
               {selected.size === 0 ? (
                 <>
