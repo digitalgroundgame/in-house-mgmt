@@ -81,7 +81,7 @@ export function AnonymousAttendeesModal({
   };
 
   return (
-    <Modal opened={opened} onClose={close} title="Anonymous Attendees" size="xl">
+    <Modal opened={opened} onClose={close} title="Anonymous Participants" size="xl">
       <LoadingOverlay visible={saving} />
       <Stack>
         {canEdit ? (
@@ -144,7 +144,7 @@ export function AnonymousAttendeesModal({
         {canEdit && (
           <Group justify="space-between">
             <Button variant="outline" onClick={addEntry}>
-              Add entry
+              + participant note
             </Button>
             <Button onClick={handleSave}>Save</Button>
           </Group>

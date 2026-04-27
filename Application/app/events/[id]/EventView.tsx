@@ -969,7 +969,7 @@ function EventViewContactTable({
                   >
                     Add Participant
                   </Button>
-                  <Button onClick={openBulk}>Bulk Upload</Button>
+                  <Button onClick={openBulk}>Discord Import</Button>
                 </>
               ) : (
                 <Button
@@ -984,7 +984,7 @@ function EventViewContactTable({
               )}
               {showAnonymousButton && (
                 <Button variant="outline" onClick={openAnonymous}>
-                  Anonymous Attendees
+                  Anonymous Participants
                 </Button>
               )}
             </Group>
