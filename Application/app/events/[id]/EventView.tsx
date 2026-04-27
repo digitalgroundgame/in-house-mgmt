@@ -1,3 +1,4 @@
+import AnonymousAttendeesSection from "@/app/events/[id]/components/AnonymousAttendeesSection";
 import { Contact } from "@/app/components/ContactSearch";
 import PaginatedTable from "@/app/components/pagination/PaginatedTable";
 import PaginationBar, {
@@ -188,7 +189,7 @@ function EventViewMain({ event }: { event: Event }) {
             <Tabs.Tab value="users">Users</Tabs.Tab>
           </Tabs.List>
           <Tabs.Panel value="participants" style={{ minWidth: "432px" }}>
-            <EventViewContactTable event={currentEvent} />
+            <EventViewContactTable event={currentEvent} onEventUpdate={setCurrentEvent} />
           </Tabs.Panel>
           <Tabs.Panel value="users">
             <EventViewUsersTable event={currentEvent} />
@@ -863,7 +864,13 @@ function BulkUploadModal({
   );
 }
 
-function EventViewContactTable({ event }: { event: Event }) {
+function EventViewContactTable({
+  event,
+  onEventUpdate,
+}: {
+  event: Event;
+  onEventUpdate: (updated: Event) => void;
+}) {
   const currentParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [statusArray, setStatusArray] = useState<string[]>();
@@ -1010,6 +1017,12 @@ function EventViewContactTable({ event }: { event: Event }) {
           )}
         </Stack>
       </Paper>
+      <AnonymousAttendeesSection event={event} onUpdate={onEventUpdate} />
+      {data && event.anonymous_attendee_count > 0 && (
+        <Text size="sm" c="dimmed" mt="xs" ta="right">
+          Total attendance: {data.count + event.anonymous_attendee_count}
+        </Text>
+      )}
     </>
   );
 }

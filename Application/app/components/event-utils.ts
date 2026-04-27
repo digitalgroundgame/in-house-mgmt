@@ -2,6 +2,12 @@ import { Contact } from "./ContactTable";
 
 export type EventType = "generic" | "internal";
 
+export interface AnonymousAttendeeDetail {
+  name?: string;
+  contact_info?: string;
+  notes?: string;
+}
+
 export interface Event {
   id: number;
   event_type: EventType;
@@ -15,6 +21,8 @@ export interface Event {
   location_display: string;
   starts_at: string;
   ends_at: string;
+  anonymous_attendee_count: number;
+  anonymous_attendees_detail: AnonymousAttendeeDetail[];
 }
 
 export function getStatusColor(status: string) {

@@ -41,8 +41,24 @@ class EventSerializer(serializers.ModelSerializer):
                 "starts_at",
                 "ends_at",
                 "event_status",
+                "anonymous_attendee_count",
+                "anonymous_attendees_detail",
             }
         )
+
+    def validate_anonymous_attendees_detail(self, value):
+        allowed_keys = {"name", "contact_info", "notes"}
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Must be a list.")
+        for entry in value:
+            if not isinstance(entry, dict):
+                raise serializers.ValidationError("Each entry must be an object.")
+            if not set(entry.keys()).issubset(allowed_keys):
+                raise serializers.ValidationError(f"Allowed keys are: {sorted(allowed_keys)}.")
+            for v in entry.values():
+                if not isinstance(v, str):
+                    raise serializers.ValidationError("All values must be strings.")
+        return value
 
 
 class EventParticipationSerializer(serializers.ModelSerializer):
