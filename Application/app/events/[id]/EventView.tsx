@@ -1,4 +1,4 @@
-import AnonymousAttendeesSection from "@/app/events/[id]/components/AnonymousAttendeesSection";
+import { AnonymousAttendeesModal } from "@/app/events/[id]/components/AnonymousAttendeesSection";
 import { Contact } from "@/app/components/ContactSearch";
 import PaginatedTable from "@/app/components/pagination/PaginatedTable";
 import PaginationBar, {
@@ -876,7 +876,13 @@ function EventViewContactTable({
   const [statusArray, setStatusArray] = useState<string[]>();
   const [opened, { open, close }] = useDisclosure(false);
   const [bulkOpened, { open: openBulk, close: closeBulk }] = useDisclosure(false);
+  const [anonymousOpened, { open: openAnonymous, close: closeAnonymous }] = useDisclosure(false);
   const [modalMode, setModalMode] = useState<"add" | "modify">("add");
+
+  const canEditAnonymous = event.editable_fields?.includes("anonymous_attendee_count") ?? false;
+  const hasAnonymousContent =
+    event.anonymous_attendee_count > 0 || event.anonymous_attendees_detail.length > 0;
+  const showAnonymousButton = canEditAnonymous || hasAnonymousContent;
 
   const pageNum = currentParams.get("page");
   const apiParams = new URLSearchParams();
@@ -928,6 +934,14 @@ function EventViewContactTable({
           eventId={event.id}
         />
       )}
+      {anonymousOpened && (
+        <AnonymousAttendeesModal
+          event={event}
+          opened={anonymousOpened}
+          close={closeAnonymous}
+          onUpdate={onEventUpdate}
+        />
+      )}
       <Paper p="md" mt="sm" withBorder style={{ position: "relative" }}>
         <Stack>
           <Group grow align="flex-end">
@@ -944,29 +958,36 @@ function EventViewContactTable({
               onChange={setStatusArray}
               value={statusArray}
             />
-            {selected.size === 0 ? (
-              <Group gap="xs" wrap="nowrap" grow>
+            <Group gap="xs" wrap="nowrap" grow>
+              {selected.size === 0 ? (
+                <>
+                  <Button
+                    onClick={() => {
+                      setModalMode("add");
+                      open();
+                    }}
+                  >
+                    Add Participant
+                  </Button>
+                  <Button onClick={openBulk}>Bulk Upload</Button>
+                </>
+              ) : (
                 <Button
+                  color="green"
                   onClick={() => {
-                    setModalMode("add");
+                    setModalMode("modify");
                     open();
                   }}
                 >
-                  Add Participant
+                  Modify Selected
                 </Button>
-                <Button onClick={openBulk}>Bulk Upload</Button>
-              </Group>
-            ) : (
-              <Button
-                color="green"
-                onClick={() => {
-                  setModalMode("modify");
-                  open();
-                }}
-              >
-                Modify Selected
-              </Button>
-            )}
+              )}
+              {showAnonymousButton && (
+                <Button variant="outline" onClick={openAnonymous}>
+                  Anonymous Attendees
+                </Button>
+              )}
+            </Group>
           </Group>
           {data && (
             <PaginatedTable
@@ -1017,10 +1038,10 @@ function EventViewContactTable({
           )}
         </Stack>
       </Paper>
-      <AnonymousAttendeesSection event={event} onUpdate={onEventUpdate} />
       {data && event.anonymous_attendee_count > 0 && (
         <Text size="sm" c="dimmed" mt="xs" ta="right">
-          Total attendance: {data.count + event.anonymous_attendee_count}
+          Total attendance: {data.count + event.anonymous_attendee_count} ({data.count} tracked +{" "}
+          {event.anonymous_attendee_count} anonymous)
         </Text>
       )}
     </>
