@@ -113,17 +113,27 @@ export function DateRangePicker({
             <MantineDateTimePicker
               label={`Start (${tzAbbr})`}
               value={draftStart}
+              valueFormat="MM/DD/YY hh:mm A"
+              defaultTimeValue={!draftStart ? "12:00" : undefined}
               onChange={setDraftStart}
               clearable
               popoverProps={{ withinPortal: false }}
+              timePickerProps={{
+                format: "12h",
+              }}
             />
             <MantineDateTimePicker
               label={`End (${tzAbbr})`}
               value={draftEnd}
+              valueFormat="MM/DD/YY hh:mm A"
+              defaultTimeValue={!draftEnd ? "12:00" : undefined}
               onChange={setDraftEnd}
               minDate={draftStart || undefined}
               clearable
               popoverProps={{ withinPortal: false }}
+              timePickerProps={{
+                format: "12h",
+              }}
             />
             <Group justify="flex-end" gap="xs">
               <Button variant="subtle" size="xs" onClick={handleClear}>
