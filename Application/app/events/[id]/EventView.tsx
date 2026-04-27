@@ -952,7 +952,12 @@ function EventViewContactTable({
       <Paper p="md" mt="sm" withBorder style={{ position: "relative" }}>
         <Stack>
           <Group justify="space-between" align="center" wrap="wrap" gap="xs">
-            <Title order={4}>Participants{data ? ` (${data.count})` : ""}</Title>
+            <Title order={4}>
+              {data ? `${data.count} ` : ""}Participants
+              {data && event.anonymous_attendee_count > 0
+                ? ` (+${event.anonymous_attendee_count} anonymous)`
+                : ""}
+            </Title>
             <Group gap="xs">
               {selected.size === 0 ? (
                 <>
