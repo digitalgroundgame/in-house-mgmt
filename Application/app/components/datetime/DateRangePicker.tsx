@@ -114,7 +114,7 @@ export function DateRangePicker({
               label={`Start (${tzAbbr})`}
               value={draftStart}
               valueFormat="MM/DD/YY hh:mm A"
-              defaultTimeValue="12:00"
+              defaultTimeValue={!draftStart ? "12:00" : undefined}
               onChange={setDraftStart}
               clearable
               popoverProps={{ withinPortal: false }}
@@ -126,7 +126,7 @@ export function DateRangePicker({
               label={`End (${tzAbbr})`}
               value={draftEnd}
               valueFormat="MM/DD/YY hh:mm A"
-              defaultTimeValue="12:00"
+              defaultTimeValue={!draftEnd ? "12:00" : undefined}
               onChange={setDraftEnd}
               minDate={draftStart || undefined}
               clearable
