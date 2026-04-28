@@ -46,3 +46,12 @@ jobs:
         uses: pre-commit/action@v3.0.1
         with:
           extra_args: --from-ref ${{ github.event.before }} --to-ref ${{ github.event.after }}
+
+      - name: Check for modified migrations
+        run: |
+          BASE_BRANCH=${GITHUB_BASE_REF:-main}
+          if git diff origin/$BASE_BRANCH --name-status -- '*/migrations/*.py' | grep '^M' | grep -v '/__init__.py'; then
+            echo "ERROR: Existing migration files should not be modified. Create a new migration instead."
+            exit 1
+          fi
+          echo "No existing migrations were modified."
