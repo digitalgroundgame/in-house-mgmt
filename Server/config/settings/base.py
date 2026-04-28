@@ -42,6 +42,7 @@ DJANGO_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django_extensions",
 ]
 
 THIRD_PARTY_APPS = [
@@ -60,6 +61,7 @@ LOCAL_APPS = [
     "dggcrm.tickets",
     "dggcrm.events",
     "dggcrm.accounts",
+    "dggcrm.discord",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -123,7 +125,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 ACCOUNT_LOGIN_METHODS = {"email", "username"}
-ACCOUNT_SIGNUP_FIELDS = ["email", "username"]
+ACCOUNT_SIGNUP_FIELDS = ["email*", "username*"]
 ACCOUNT_EMAIL_VERIFICATION = "none"
 
 ACCOUNT_ADAPTER = "dggcrm.accounts.adapters.NoNewUsersAccountAdapter"

@@ -219,13 +219,7 @@ export default function OpenedTickets({ contactId }: { contactId: string }) {
                           <Text size="sm" fw={500} truncate="end">
                             {t.title || "Untitled Ticket"}
                           </Text>
-                          <DateTime
-                            value={t.created_at}
-                            size="xs"
-                            c="dimmed"
-                            includeTime={false}
-                            format="medium"
-                          />
+                          <DateTime value={t.created_at} size="xs" c="dimmed" includeTime={false} />
                         </div>
                         <Group gap={4} wrap="nowrap">
                           <Badge size="xs" variant="light">

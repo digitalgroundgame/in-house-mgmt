@@ -18,13 +18,6 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
-urlpatterns = []
-
-# TODO: only add these paths in local dev (NEVER PRODUCTION)
-urlpatterns += [
-    path("accounts/", include("dggcrm.authmock.urls")),
-]
-
 urlpatterns = [
     # allauth (browser OAuth)
     path("accounts/", include("allauth.urls")),

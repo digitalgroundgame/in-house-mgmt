@@ -9,6 +9,7 @@ export function proxy(request: NextRequest) {
   const isLoginPage = pathname === "/login";
   const isPublic =
     pathname === "/login" ||
+    pathname === "/health" ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon") ||
     pathname.startsWith("/accounts") ||

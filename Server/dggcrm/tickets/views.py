@@ -9,19 +9,24 @@ from rest_framework.permissions import DjangoModelPermissions, IsAuthenticated
 from rest_framework.response import Response
 
 from ..events.models import EventParticipation
-from .models import Ticket, TicketAsks, TicketAskStatus, TicketStatus, TicketType
+from .models import Ticket, TicketAsks, TicketAskStatus, TicketStatus, TicketTemplate, TicketType
 from .permissions import (
+    CanAssignTicketPermission,
+    CanChangeTicketStatusPermission,
     CanCommentOnTicketPermission,
     TicketClaimPermission,
     TicketObjectPermission,
     get_ticket_visibility_filter,
 )
 from .serializers import (
+    AssignTicketSerializer,
     BulkTicketCreateSerializer,
+    StatusUpdateSerializer,
     TicketAskSerializer,
     TicketClaimSerializer,
     TicketCommentSerializer,
     TicketSerializer,
+    TicketTemplateSerializer,
     TicketTimelineSerializer,
 )
 
@@ -164,12 +169,48 @@ class TicketViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=True,
+        methods=["patch"],
+        url_path="assign",
+        url_name="assign",
+        serializer_class=AssignTicketSerializer,
+        permission_classes=[IsAuthenticated, TicketObjectPermission, CanAssignTicketPermission],
+    )
+    def assign(self, request, pk=None):
+        ticket = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        ticket.assigned_to = serializer.validated_data.get("assigned_to")
+        ticket.save(update_fields=["assigned_to"])
+
+        return Response(TicketSerializer(ticket, context={"request": request}).data)
+
+    @action(
+        detail=True,
+        methods=["patch"],
+        url_path="status",
+        url_name="status",
+        serializer_class=StatusUpdateSerializer,
+        permission_classes=[IsAuthenticated, TicketObjectPermission, CanChangeTicketStatusPermission],
+    )
+    def status(self, request, pk=None):
+        ticket = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        ticket.ticket_status = serializer.validated_data["ticket_status"]
+        ticket.save(update_fields=["ticket_status"])
+
+        return Response(TicketSerializer(ticket, context={"request": request}).data)
+
+    @action(
+        detail=True,
         methods=["post"],
         url_path="comment",
         serializer_class=TicketCommentSerializer,
         permission_classes=[
             IsAuthenticated,
-            DjangoModelPermissions,
+            # DjangoModelPermissions, The dummy user is not given this role, and it is not necessary for comments
             TicketObjectPermission,
             CanCommentOnTicketPermission,
         ],
@@ -357,6 +398,12 @@ class TicketTypeViewSet(viewsets.ViewSet):
 
     def list(self, request):
         types = [{"value": t.value, "label": t.label} for t in TicketType]
+        search = request.query_params.get("search", "").lower()
+        if search:
+            types = [t for t in types if search in t["label"].lower()]
+        page_size = request.query_params.get("page_size")
+        if page_size:
+            types = types[: int(page_size)]
         return Response(types)
 
 
@@ -384,3 +431,13 @@ class TicketStatusesViewSet(viewsets.ViewSet):
     def list(self, request):
         types = [{"value": t.value, "label": t.label} for t in TicketStatus]
         return Response(types)
+
+
+class TicketTemplateViewSet(viewsets.ModelViewSet):
+    queryset = TicketTemplate.objects.all().order_by("name")
+    serializer_class = TicketTemplateSerializer
+    permission_classes = [IsAuthenticated, DjangoModelPermissions]
+    filter_backends = [filters.OrderingFilter, filters.SearchFilter]
+    search_fields = ["name"]
+    ordering_fields = ["name", "created_at", "modified_at"]
+    ordering = ["name"]

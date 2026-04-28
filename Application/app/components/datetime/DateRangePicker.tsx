@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { DateTimePicker as MantineDateTimePicker } from "@mantine/dates";
 import { Stack, Group, Text, Popover, Button, Box } from "@mantine/core";
 import { IconCalendar } from "@tabler/icons-react";
 import { useTimezone } from "@/app/components/provider/TimezoneContext";
-import { toUTC, parseToLocal, getTimezoneAbbr, formatDateTime } from "@/app/utils/datetime";
+import { getTimezoneAbbr, formatUserProvidedDateTime } from "@/app/utils/datetime";
 
 export interface DateRangeValue {
   start: string | null;
@@ -73,14 +73,8 @@ export function DateRangePicker({
   // Format display text
   const getDisplayText = () => {
     if (!value.start && !value.end) return placeholder;
-    const startText = formatDateTime(value.start, timezone, {
-      includeTime: true,
-      style: "short",
-    });
-    const endText = formatDateTime(value.end, timezone, {
-      includeTime: true,
-      style: "short",
-    });
+    const startText = formatUserProvidedDateTime(value.start);
+    const endText = formatUserProvidedDateTime(value.end);
     return `${startText} - ${endText}`;
   };
 
@@ -121,6 +115,7 @@ export function DateRangePicker({
               value={draftStart}
               onChange={setDraftStart}
               clearable
+              popoverProps={{ withinPortal: false }}
             />
             <MantineDateTimePicker
               label={`End (${tzAbbr})`}
@@ -128,6 +123,7 @@ export function DateRangePicker({
               onChange={setDraftEnd}
               minDate={draftStart || undefined}
               clearable
+              popoverProps={{ withinPortal: false }}
             />
             <Group justify="flex-end" gap="xs">
               <Button variant="subtle" size="xs" onClick={handleClear}>

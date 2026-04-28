@@ -1,7 +1,9 @@
 import getCookie from "@/app/utils/cookie";
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`/api${path}`, {
+  const isFullUrl = path.startsWith("http://") || path.startsWith("https://");
+  const url = isFullUrl ? path : `/api${path}`;
+  const res = await fetch(url, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -11,7 +13,16 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     credentials: "include",
   });
   if (!res.ok) {
-    throw new Error(`API error: ${res.status}`);
+    const errorBody = await res.json().catch(() => null);
+    console.error("API error body:", errorBody);
+    let detail = errorBody?.detail;
+    if (Array.isArray(detail)) {
+      detail = detail[0];
+    } else if (typeof detail === "object" && detail !== null) {
+      detail = JSON.stringify(detail);
+    }
+    detail = detail || `API error: ${res.status}`;
+    throw new Error(detail);
   }
   if (res.status === 204) return undefined as T;
   return res.json();

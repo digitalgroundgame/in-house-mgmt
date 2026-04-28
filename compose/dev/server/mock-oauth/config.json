@@ -53,7 +53,7 @@
           "requestParam": "username",
           "match": "admin",
           "claims": {
-            "sub": "admin",
+            "sub": "1",
             "email": "admin@example.com",
             "name": "Admin"
           }
@@ -62,7 +62,7 @@
           "requestParam": "username",
           "match": "tiny",
           "claims": {
-            "sub": "tiny",
+            "sub": "2",
             "email": "tiny@destiny.gg",
             "name": "Tiny"
           }
@@ -71,7 +71,7 @@
           "requestParam": "username",
           "match": "dummy",
           "claims": {
-            "sub": "dummy",
+            "sub": "3",
             "email": "dumb@example.com",
             "name": "Dummy"
           }
@@ -80,7 +80,7 @@
           "requestParam": "username",
           "match": "unverified",
           "claims": {
-            "sub": "unverified",
+            "sub": "4",
             "email": "unverified@example.com",
             "name": "Unverified Email"
           }

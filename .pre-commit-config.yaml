@@ -1,7 +1,7 @@
 repos:
   # Python linting and formatting (Server)
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.9.0
+    rev: v0.15.10
     hooks:
       - id: ruff
         name: ruff lint (Python)
@@ -14,6 +14,12 @@ repos:
   # JavaScript/TypeScript formatting (Application)
   - repo: local
     hooks:
+      - id: tsc
+        name: tsc (TypeScript)
+        entry: bash -c 'cd Application && npx tsc --noEmit'
+        language: system
+        files: ^Application/.*\.(ts|tsx)$
+        pass_filenames: false
       - id: prettier
         name: prettier (TypeScript)
         entry: bash -c 'cd Application && npx prettier --write .'

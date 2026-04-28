@@ -3,6 +3,19 @@ export interface TicketType {
   label: string;
 }
 
+export interface TicketTemplate {
+  id: number;
+  name: string;
+  title_template: string;
+  description_template: string;
+  ticket_type: string;
+  default_priority: number;
+  requires_contact: boolean;
+  requires_event: boolean;
+  created_at: string;
+  modified_at: string;
+}
+
 export interface Ticket {
   id: number;
   title: string;
@@ -23,6 +36,7 @@ export interface Ticket {
   priority_display?: string;
   created_at: string;
   modified_at: string;
+  editable_fields?: string[];
 }
 
 export interface TicketAsk {

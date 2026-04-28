@@ -71,6 +71,26 @@ def ticket(db, contact):
 
 
 @pytest.fixture
+def assigned_ticket(db, regular_user, contact, completed_event):
+    return Ticket.objects.create(
+        contact=contact,
+        event=completed_event,
+        ticket_status=TicketStatus.INPROGRESS,
+        assigned_to=regular_user,
+    )
+
+
+@pytest.fixture
+def other_assigned_ticket(db, other_user, contact, scheduled_event):
+    return Ticket.objects.create(
+        contact=contact,
+        event=scheduled_event,
+        ticket_status=TicketStatus.INPROGRESS,
+        assigned_to=other_user,
+    )
+
+
+@pytest.fixture
 def scheduled_participation(db, scheduled_event, contact):
     return EventParticipation.objects.create(
         event=scheduled_event,
@@ -188,6 +208,11 @@ def view_all_usersinevents_permission(db):
 @pytest.fixture
 def view_usersinevent_via_event_permission(db):
     return Permission.objects.get(codename="view_usersinevent_via_event")
+
+
+@pytest.fixture
+def view_ticket_permission(db):
+    return Permission.objects.get(codename="view_ticket")
 
 
 @pytest.fixture

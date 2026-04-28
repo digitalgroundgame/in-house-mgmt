@@ -32,6 +32,7 @@ class EventViewSet(viewsets.ModelViewSet):
         event_id = self.request.query_params.get("event")
         contact_id = self.request.query_params.get("contact")
         status = self.request.query_params.get("status")
+        event_type = self.request.query_params.get("event_type")
 
         if event_id:
             queryset = queryset.filter(event_id=event_id)
@@ -42,7 +43,10 @@ class EventViewSet(viewsets.ModelViewSet):
         if status:
             queryset = queryset.filter(event_status=status)
 
-        return queryset.filter(get_event_visibility_filter(self.request.user))
+        if event_type:
+            queryset = queryset.filter(event_type=event_type)
+
+        return queryset.filter(get_event_visibility_filter(self.request.user)).distinct()
 
 
 class EventParticipationViewSet(viewsets.ModelViewSet):
@@ -79,6 +83,7 @@ class EventParticipationViewSet(viewsets.ModelViewSet):
         event_status = self.request.query_params.get("event_status")
         event_type = self.request.query_params.get("event_type")
         exclude_event_status = self.request.query_params.get("exclude_event_status")
+        self.request.query_params.get("")
 
         if status:
             queryset = queryset.filter(status__in=status)
@@ -95,7 +100,7 @@ class EventParticipationViewSet(viewsets.ModelViewSet):
         if contact_id:
             queryset = queryset.filter(contact_id=contact_id)
 
-        return queryset.filter(get_participation_visibility_filter(self.request.user))
+        return queryset.filter(get_participation_visibility_filter(self.request.user)).distinct()
 
     # TODO: Limit this API to organizer role or above
     @action(detail=False, methods=["get"])
@@ -141,18 +146,15 @@ class EventParticipationViewSet(viewsets.ModelViewSet):
         Upsert: If a participation exists for event+contact, update it.
         Otherwise, create a new participation.
         """
-        event_id = request.data.get("event")
-        contact_id = request.data.get("contact")
-        status_value = request.data.get("status")
 
-        if not event_id or not contact_id:
-            return Response(
-                {"detail": "event and contact are required"},
-                status=rest_status.HTTP_400_BAD_REQUEST,
-            )
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        # Try to fetch existing participation
-        participation = EventParticipation.objects.filter(event_id=event_id, contact_id=contact_id).first()
+        # Extract the instances from validated data
+        event = serializer.validated_data["event"]
+        contact = serializer.validated_data["contact"]
+        status_value = serializer.validated_data.get("status")
+        participation = EventParticipation.objects.filter(event=event, contact=contact).first()
 
         if participation:
             self.check_object_permissions(request, participation)
@@ -162,8 +164,8 @@ class EventParticipationViewSet(viewsets.ModelViewSet):
             created = False
         else:
             participation = EventParticipation.objects.create(
-                event_id=event_id,
-                contact_id=contact_id,
+                event=event,
+                contact=contact,
                 status=status_value,
             )
             created = True
@@ -191,7 +193,7 @@ class UsersInEventViewSet(viewsets.ModelViewSet):
     queryset = UsersInEvent.objects.select_related(
         "user",
         "event",
-    )
+    ).distinct()
     serializer_class = UsersInEventSerializer
     permission_classes = [IsAuthenticated, DjangoModelPermissions, EventMembershipObjectPermission]
 

@@ -3,12 +3,11 @@
 import React, { useState, useEffect } from "react";
 import { Paper, Stack, Title, Tooltip } from "@mantine/core";
 import { type Ticket } from "@/app/components/tickets/ticket-utils";
-import { type Event } from "@/app/components/event-utils";
+import { type Event, type EventParticipation } from "@/app/components/event-utils";
 import { type Contact } from "@/app/components/ContactTable";
 import { SearchSelect, SearchSelectOption } from "@/app/components/SearchSelect";
 import { apiClient } from "@/app/lib/apiClient";
 import { useUser } from "@/app/components/provider/UserContext";
-import { EventParticipation } from "@/app/events/[id]/EventView";
 
 interface CommitmentStatus {
   value: string;
@@ -75,9 +74,9 @@ export default function TicketActions({ ticket, event, contact }: TicketActionsP
   async function upsertParticipation(participation: SearchSelectOption<CommitmentStatus> | null) {
     if (!event || !contact || !participation) return;
     try {
-      await apiClient.post("/participants", {
-        event: event.id,
-        contact: contact.id,
+      await apiClient.post("/participants/", {
+        event_id: event.id,
+        contact_id: contact.id,
         status: participation.raw?.value,
       });
       setParticipation(participation);
@@ -98,7 +97,7 @@ export default function TicketActions({ ticket, event, contact }: TicketActionsP
         {event && contact && (
           <Tooltip label="Update Event Participation">
             <SearchSelect<CommitmentStatus>
-              endpoint="/api/commitment-statuses"
+              endpoint="/api/commitment-statuses/"
               label="Event Commitment"
               placeholder="Select commitment status"
               limit={10}

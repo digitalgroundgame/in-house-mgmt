@@ -1,59 +1,129 @@
 .navbar {
-  height: 100vh;
-  width: 300px;
+  position: relative;
+  min-height: 100vh;
+  width: max-content;
+  flex: 0 0 auto;
   padding: var(--mantine-spacing-md);
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #dee2e6;
   background-color: #ffffff;
 }
 
-.navbarMain {
-  flex: 1;
+.navbar[data-collapsed] {
+  padding-inline: var(--mantine-spacing-sm);
 }
 
-.header {
-  padding-bottom: var(--mantine-spacing-md);
-  margin-bottom: calc(var(--mantine-spacing-md) * 1.5);
-  border-bottom: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+.navbarMain {
+  flex: 0 0 auto;
+}
+
+.collapseButton {
+  position: absolute;
+  top: var(--mantine-spacing-md);
+  right: -13px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  color: var(--foreground);
+  background: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.collapseButton:hover {
+  background-color: var(--mantine-color-gray-1);
+}
+
+.collapseButton:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
 }
 
 .footer {
   padding-top: var(--mantine-spacing-md);
-  margin-top: var(--mantine-spacing-md);
+  margin-top: calc(var(--mantine-spacing-xl) * 2);
   border-top: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
 }
 
 .link {
   display: flex;
   align-items: center;
+  white-space: nowrap;
   text-decoration: none;
   font-size: var(--mantine-font-size-sm);
-  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+  color: var(--foreground);
   padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
   border-radius: var(--mantine-radius-sm);
   font-weight: 500;
+  cursor: pointer;
+}
 
-  @mixin hover {
-    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
-    color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
+.navbar[data-collapsed] .link {
+  justify-content: center;
+  padding-inline: var(--mantine-spacing-xs);
+}
 
-    .linkIcon {
-      color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
-    }
-  }
+.navLinkRoot,
+.navLinkLabel {
+  color: var(--foreground);
+}
 
-  &[data-active] {
-    &,
-    &:hover {
-      background-color: var(--mantine-color-blue-light);
-      color: var(--mantine-color-blue-light-color);
+.navbar[data-collapsed] .navLinkRoot {
+  justify-content: center;
+}
 
-      .linkIcon {
-        color: var(--mantine-color-blue-light-color);
-      }
-    }
-  }
+.link:hover,
+.navLinkRoot:hover {
+  background-color: var(--mantine-color-gray-light-hover);
+  color: var(--mantine-color-black);
+}
+
+.link:hover .linkIcon,
+.navLinkRoot:hover .linkIcon,
+.navLinkRoot:hover .navLinkIcon {
+  color: var(--mantine-color-black);
+}
+
+.link[data-active],
+.link[data-active]:hover {
+  background-color: var(--mantine-color-blue-light);
+  color: var(--mantine-color-blue-light-color);
+}
+
+.link[data-active] .linkIcon,
+.link[data-active]:hover .linkIcon {
+  color: var(--mantine-color-blue-light-color);
+}
+
+.navLinkChildren {
+  padding-left: var(--mantine-spacing-sm);
+}
+
+.navbar[data-collapsed] .navLinkChildren {
+  display: none;
+}
+
+.navLinkIcon {
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  width: 25px;
+  height: 25px;
+}
+
+.navLinkSection:where([data-position="right"]) {
+  display: flex;
+}
+
+.navbar[data-collapsed] .navLinkSection:where([data-position="right"]) {
+  display: none;
+}
+
+.navbar[data-collapsed] .navLinkSection:where([data-position="left"]) {
+  margin-inline-end: 0;
 }
 
 .linkIcon {
@@ -61,4 +131,12 @@
   margin-right: var(--mantine-spacing-sm);
   width: 25px;
   height: 25px;
+}
+
+.navbar[data-collapsed] .linkIcon {
+  margin-right: 0;
+}
+
+.navbar[data-collapsed] .linkLabel {
+  display: none;
 }
