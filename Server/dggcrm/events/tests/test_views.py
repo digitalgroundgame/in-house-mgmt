@@ -67,6 +67,120 @@ class TestParticipationCreate:
         scheduled_participation.refresh_from_db()
         assert scheduled_participation.status == CommitmentStatus.ATTENDED
 
+    @pytest.mark.parametrize("final_status", [EventStatus.COMPLETED, EventStatus.CANCELED])
+    @pytest.mark.parametrize(
+        "invalid_status",
+        [
+            CommitmentStatus.UNKNOWN,
+            CommitmentStatus.MAYBE,
+            CommitmentStatus.COMMITTED,
+        ],
+    )
+    def test_create_rejects_unresolved_status_for_final_event(
+        self,
+        admin_user,
+        scheduled_event,
+        contact,
+        final_status,
+        invalid_status,
+    ):
+        scheduled_event.event_status = final_status
+        scheduled_event.save()
+        self.client.force_authenticate(user=admin_user)
+
+        response = self.client.post(
+            ENDPOINT,
+            {"event_id": scheduled_event.id, "contact_id": contact.id, "status": invalid_status},
+        )
+
+        assert response.status_code == 400
+        assert "Attendance status cannot be unresolved" in response.data["detail"][0]
+        assert not EventParticipation.objects.filter(event=scheduled_event, contact=contact).exists()
+
+    @pytest.mark.parametrize(
+        "valid_status",
+        [
+            CommitmentStatus.REJECTED,
+            CommitmentStatus.ATTENDED,
+            CommitmentStatus.NO_SHOW,
+        ],
+    )
+    def test_create_allows_resolved_status_for_final_event(
+        self,
+        admin_user,
+        scheduled_event,
+        contact,
+        valid_status,
+    ):
+        scheduled_event.event_status = EventStatus.COMPLETED
+        scheduled_event.save()
+        self.client.force_authenticate(user=admin_user)
+
+        response = self.client.post(
+            ENDPOINT,
+            {"event_id": scheduled_event.id, "contact_id": contact.id, "status": valid_status},
+        )
+
+        assert response.status_code == 201
+        assert EventParticipation.objects.filter(
+            event=scheduled_event,
+            contact=contact,
+            status=valid_status,
+        ).exists()
+
+    @pytest.mark.parametrize(
+        "invalid_status",
+        [
+            CommitmentStatus.UNKNOWN,
+            CommitmentStatus.MAYBE,
+            CommitmentStatus.COMMITTED,
+        ],
+    )
+    def test_patch_rejects_unresolved_status_for_final_event(
+        self,
+        admin_user,
+        completed_participation,
+        invalid_status,
+    ):
+        completed_participation.status = CommitmentStatus.ATTENDED
+        completed_participation.save()
+        self.client.force_authenticate(user=admin_user)
+
+        response = self.client.patch(
+            f"{ENDPOINT}{completed_participation.id}/",
+            {"status": invalid_status},
+        )
+
+        assert response.status_code == 400
+        assert "Attendance status cannot be unresolved" in response.data["detail"][0]
+        completed_participation.refresh_from_db()
+        assert completed_participation.status == CommitmentStatus.ATTENDED
+
+    @pytest.mark.parametrize(
+        "valid_status",
+        [
+            CommitmentStatus.REJECTED,
+            CommitmentStatus.ATTENDED,
+            CommitmentStatus.NO_SHOW,
+        ],
+    )
+    def test_patch_allows_resolved_status_for_final_event(
+        self,
+        admin_user,
+        completed_participation,
+        valid_status,
+    ):
+        self.client.force_authenticate(user=admin_user)
+
+        response = self.client.patch(
+            f"{ENDPOINT}{completed_participation.id}/",
+            {"status": valid_status},
+        )
+
+        assert response.status_code == 200
+        completed_participation.refresh_from_db()
+        assert completed_participation.status == valid_status
+
 
 @pytest.mark.django_db
 class TestEventEditWorkflow:
@@ -140,6 +254,66 @@ class TestEventEditWorkflow:
         scheduled_event.refresh_from_db()
         assert scheduled_event.event_status == EventStatus.COMPLETED
         assert response.data["event_status"] == EventStatus.COMPLETED
+
+    @pytest.mark.parametrize("final_status", [EventStatus.COMPLETED, EventStatus.CANCELED])
+    @pytest.mark.parametrize(
+        "invalid_status",
+        [
+            CommitmentStatus.UNKNOWN,
+            CommitmentStatus.MAYBE,
+            CommitmentStatus.COMMITTED,
+        ],
+    )
+    def test_patch_final_status_rejected_with_unresolved_attendance(
+        self,
+        admin_user,
+        scheduled_event,
+        scheduled_participation,
+        final_status,
+        invalid_status,
+    ):
+        scheduled_participation.status = invalid_status
+        scheduled_participation.save()
+        self.client.force_authenticate(user=admin_user)
+
+        response = self.client.patch(
+            f"/api/events/{scheduled_event.id}/",
+            {"event_status": final_status},
+        )
+
+        assert response.status_code == 400
+        assert "Attendance statuses must be resolved" in response.data["detail"][0]
+        assert response.data["invalid_participation_ids"] == [str(scheduled_participation.id)]
+        scheduled_event.refresh_from_db()
+        assert scheduled_event.event_status == EventStatus.SCHEDULED
+
+    @pytest.mark.parametrize(
+        "valid_status",
+        [
+            CommitmentStatus.REJECTED,
+            CommitmentStatus.ATTENDED,
+            CommitmentStatus.NO_SHOW,
+        ],
+    )
+    def test_patch_final_status_allowed_with_resolved_attendance(
+        self,
+        admin_user,
+        scheduled_event,
+        scheduled_participation,
+        valid_status,
+    ):
+        scheduled_participation.status = valid_status
+        scheduled_participation.save()
+        self.client.force_authenticate(user=admin_user)
+
+        response = self.client.patch(
+            f"/api/events/{scheduled_event.id}/",
+            {"event_status": EventStatus.COMPLETED},
+        )
+
+        assert response.status_code == 200
+        scheduled_event.refresh_from_db()
+        assert scheduled_event.event_status == EventStatus.COMPLETED
 
     def test_patch_denied_without_edit_permission(
         self,

@@ -53,11 +53,19 @@ export interface PaginatedTableProps<T> {
    * @returns
    */
   onRowClick?: (ele: T) => void;
+  /**
+   * optional row background resolver. Takes precedence over selected row color.
+   */
+  getRowBg?: (ele: T) => string | undefined;
 }
 
 function toggleOne(prev: Set<number>, id: number) {
   const next = new Set(prev);
-  next.has(id) ? next.delete(id) : next.add(id);
+  if (next.has(id)) {
+    next.delete(id);
+  } else {
+    next.add(id);
+  }
   return next;
 }
 
@@ -90,6 +98,7 @@ export default function PaginatedTable<T>(props: PaginatedTableProps<T>) {
     showTitle,
     loading,
     noDataText,
+    getRowBg,
   } = props;
 
   if (useCheckboxes && (!selected || !onSelectionChange || !keyFn)) {
@@ -142,13 +151,14 @@ export default function PaginatedTable<T>(props: PaginatedTableProps<T>) {
           ) : (
             data.map((ele, index) => {
               const id = keyFn?.(ele);
+              const customRowBg = getRowBg?.(ele);
 
               return (
                 <Table.Tr
                   bg={
                     id !== undefined && selected!.has(id)
                       ? "var(--mantine-color-blue-light)"
-                      : undefined
+                      : customRowBg
                   }
                   style={{ cursor: "pointer" }}
                   key={id ?? `row-${index}`}
