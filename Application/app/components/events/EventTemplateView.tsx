@@ -14,7 +14,7 @@ import {
   ActionIcon,
 } from "@mantine/core";
 import { IconPlus, IconSearch, IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { apiClient } from "@/app/lib/apiClient";
 import { useForm } from "@mantine/form";
 import EventsTable from "@/app/components/EventsTable";
@@ -56,39 +56,42 @@ export default function EventTemplateView({ eventType, title = "Events" }: Event
     },
   });
 
+  const fetchEvents = useCallback(
+    async (url?: string) => {
+      try {
+        setLoading(true);
+
+        let fetchPath = url?.replace(/^\/api/, "");
+        if (!fetchPath) {
+          const params = new URLSearchParams();
+          params.append("event_type", eventType);
+          if (searchQuery) params.append("search", searchQuery);
+          fetchPath = `/events/?${params}`;
+        }
+
+        const data = await apiClient.get<{
+          results: Event[];
+          count: number;
+          next: string | null;
+          previous: string | null;
+        }>(fetchPath);
+
+        setEvents(data.results || []);
+        setTotalCount(data.count || 0);
+        setNextUrl(data.next);
+        setPreviousUrl(data.previous);
+      } catch (error) {
+        console.error("Error fetching events:", error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [searchQuery, eventType]
+  );
+
   useEffect(() => {
     fetchEvents();
-  }, [searchQuery]);
-
-  const fetchEvents = async (url?: string) => {
-    try {
-      setLoading(true);
-
-      let fetchPath = url?.replace(/^\/api/, "");
-      if (!fetchPath) {
-        const params = new URLSearchParams();
-        params.append("event_type", eventType);
-        if (searchQuery) params.append("search", searchQuery);
-        fetchPath = `/events/?${params}`;
-      }
-
-      const data = await apiClient.get<{
-        results: Event[];
-        count: number;
-        next: string | null;
-        previous: string | null;
-      }>(fetchPath);
-
-      setEvents(data.results || []);
-      setTotalCount(data.count || 0);
-      setNextUrl(data.next);
-      setPreviousUrl(data.previous);
-    } catch (error) {
-      console.error("Error fetching events:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [fetchEvents]);
 
   const handleSubmitEvent = async (values: typeof form.values) => {
     setSubmitting(true);
