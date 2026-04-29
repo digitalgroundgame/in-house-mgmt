@@ -19,14 +19,12 @@ import {
   Loader,
   Center,
   Textarea,
-  ScrollArea,
-  Avatar,
 } from "@mantine/core";
 import { IconSend } from "@tabler/icons-react";
 import { getStatusColor, getPriorityColor } from "./TicketTable";
 import TicketDescription from "./TicketDescription";
 import { Ticket, TicketType } from "./ticket-utils";
-import ContactSearch, { Contact } from "@/app/components/ContactSearch";
+import { Contact } from "@/app/components/ContactSearch";
 import { SearchSelect, SearchSelectOption } from "@/app/components/SearchSelect";
 import { EnumSelect, EnumSelectOption } from "@/app/components/EnumSelect";
 import { useUser } from "@/app/components/provider/UserContext";
@@ -57,7 +55,7 @@ interface TicketViewProps {
   timelineLoading: boolean;
   showType: TimelineShowType;
   onShowTypeChange: (value: TimelineShowType) => void;
-  setTimeline?: React.Dispatch<React.SetStateAction<TimelineEntry[]>>;
+  onUpdate: () => void;
 }
 
 export default function TicketView({
@@ -66,7 +64,7 @@ export default function TicketView({
   timelineLoading,
   showType,
   onShowTypeChange,
-  setTimeline,
+  onUpdate,
 }: TicketViewProps) {
   const [contact, setContact] = useState<Contact | null>(null);
   const [event, setEvent] = useState<Event | null>(null);
@@ -80,6 +78,8 @@ export default function TicketView({
           } catch {
             setContact(null);
           }
+        } else {
+          setContact(null);
         }
 
         if (ticket.event) {
@@ -88,6 +88,8 @@ export default function TicketView({
           } catch {
             setEvent(null);
           }
+        } else {
+          setEvent(null);
         }
       } catch (err) {
         console.error("Failed to fetch associated contact/event", err);
@@ -110,13 +112,13 @@ export default function TicketView({
               showType={showType}
               onShowTypeChange={onShowTypeChange}
               ticketId={ticket.id}
-              setTimeline={setTimeline}
+              onUpdate={onUpdate}
             />
           </Stack>
         </Grid.Col>
         <Grid.Col span={{ base: 12, md: 4 }}>
           <Stack gap="md">
-            <TicketMetadataCard ticket={ticket} />
+            <TicketMetadataCard ticket={ticket} onUpdate={onUpdate} />
             <TicketActions
               ticket={ticket}
               contact={contact ?? undefined}
@@ -133,36 +135,7 @@ function TitleCard({ ticket }: { ticket: Ticket }) {
   return <Title order={2}>{ticket.title}</Title>;
 }
 
-function CallInstructionsCard({ ticket }: { ticket: Ticket }) {
-  return (
-    <Paper p="md" withBorder style={{ position: "relative", minHeight: "400px" }}>
-      <Stack gap="md">
-        <Title order={4}>Call Instructions</Title>
-
-        <Box>
-          <Text size="sm" c="dimmed" mb="xs">
-            Description
-          </Text>
-          <Paper p="md" bg="gray.0" style={{ borderRadius: "4px" }}>
-            <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>
-              {ticket.description}
-            </Text>
-          </Paper>
-        </Box>
-
-        <ol style={{ paddingLeft: "1.5rem" }}>
-          <li>Review the reach details and requirements</li>
-          <li>Contact the assigned person or team</li>
-          <li>Discuss the reach objectives and timeline</li>
-          <li>Update the reach status based on the outcome</li>
-          <li>Mark follow-up actions if needed</li>
-        </ol>
-      </Stack>
-    </Paper>
-  );
-}
-
-function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
+function TicketMetadataCard({ ticket, onUpdate }: { ticket: Ticket; onUpdate: () => void }) {
   const [loading, setLoading] = useState(false);
   const isClaimed = Boolean(ticket.assigned_to);
   const { user } = useUser();
@@ -222,6 +195,46 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
     hidden: false,
   });
 
+  // Sync local state when the ticket prop changes from the parent
+  useEffect(() => {
+    setAssignedTo(
+      ticket.assigned_to
+        ? {
+            id: ticket.assigned_to,
+            label: ticket.assigned_to_username ?? String(ticket.assigned_to),
+            raw: null,
+          }
+        : null
+    );
+    setContact(
+      ticket.contact
+        ? { id: ticket.contact, label: ticket.contact_display ?? String(ticket.contact), raw: null }
+        : null
+    );
+    setEvent(
+      ticket.event
+        ? { id: ticket.event, label: ticket.event_display ?? String(ticket.event), raw: null }
+        : null
+    );
+    setTicketStatus({
+      id: ticket.ticket_status,
+      label: ticket.status_display ?? "",
+      hidden: false,
+      color: getStatusColor(ticket.ticket_status),
+    });
+    setPriority({
+      id: ticket.priority.toString(),
+      label: ticket.priority_display ?? "",
+      hidden: false,
+      color: getPriorityColor(ticket.priority),
+    });
+    setTicketType({
+      id: ticket.ticket_type,
+      label: ticket.type_display ?? "",
+      hidden: false,
+    });
+  }, [ticket]);
+
   const handleClaimToggle = async () => {
     setLoading(true);
     try {
@@ -230,7 +243,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
       } else {
         await apiClient.post(`/tickets/${ticket.id}/claim/`, {});
       }
-      window.location.reload();
+      onUpdate();
     } catch (err) {
       console.error(err);
       alert("Failed to update ticket claim status");
@@ -245,8 +258,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
       await apiClient.patch(`/tickets/${ticket.id}/status/`, {
         ticket_status: status.id,
       });
-      setTicketStatus(status);
-      window.location.reload();
+      onUpdate();
     } catch (err) {
       console.error(err);
       alert("Error updating status");
@@ -260,8 +272,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
       await apiClient.patch(`/tickets/${ticket.id}/assign/`, {
         assigned_to: option?.raw?.id ?? null,
       });
-      setAssignedTo(option);
-      window.location.reload();
+      onUpdate();
     } catch (err) {
       console.error(err);
       alert("Error updating assigned_to");
@@ -275,8 +286,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
       await apiClient.patch(`/tickets/${ticket.id}/`, {
         contact: option?.raw?.id ?? null,
       });
-      setContact(option);
-      window.location.reload();
+      onUpdate();
     } catch (err) {
       console.error(err);
       alert("Error updating contact");
@@ -288,8 +298,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
       await apiClient.patch(`/tickets/${ticket.id}/`, {
         event: option?.raw?.id ?? null,
       });
-      setEvent(option);
-      window.location.reload();
+      onUpdate();
     } catch (err) {
       console.error(err);
       alert("Error updating event");
@@ -302,8 +311,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
       await apiClient.patch(`/tickets/${ticket.id}/`, {
         priority: option.id,
       });
-      setPriority(option);
-      window.location.reload();
+      onUpdate();
     } catch (err) {
       console.error(err);
       alert("Error updating priority");
@@ -316,8 +324,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
       await apiClient.patch(`/tickets/${ticket.id}/`, {
         ticket_type: option.id,
       });
-      setTicketType(option);
-      window.location.reload();
+      onUpdate();
     } catch (err) {
       console.error(err);
       alert("Error updating ticket type");
@@ -371,6 +378,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
             Status
           </Text>
           <EnumSelect<TicketStatus>
+            data-testid="status-select"
             endpoint="/api/ticket-statuses/"
             value={ticketStatus}
             onChange={upsertTicketStatus}
@@ -392,6 +400,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
           </Text>
           {canEditPriority ? (
             <EnumSelect<TicketType>
+              data-testid="priority-select"
               endpoint="/api/ticket-priorities/"
               value={priority}
               onChange={upsertPriority}
@@ -411,12 +420,13 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
 
         <Divider />
 
-        <Box>
+        <Box data-testid="claimed-by-container">
           <Text size="sm" c="dimmed">
             Claimed By
           </Text>
           {canEditAssignedTo ? (
             <SearchSelect<{ id: number; username: string }>
+              data-testid="assigned-to-select"
               endpoint="/api/users/"
               label={""}
               value={assignedTo}
@@ -466,6 +476,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
           </Text>
           {canEditTicketType ? (
             <EnumSelect<TicketType>
+              data-testid="type-select"
               endpoint="/api/ticket-types/"
               value={ticketType}
               onChange={upsertTicketType}
@@ -490,6 +501,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
           </Text>
           {canEditContact ? (
             <SearchSelect<{ id: number; full_name: string }>
+              data-testid="contact-select"
               endpoint="/api/contacts/"
               label=""
               value={contact}
@@ -519,6 +531,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
           </Text>
           {canEditEvent ? (
             <SearchSelect<{ id: number; name: string }>
+              data-testid="event-select"
               endpoint="/api/events/"
               label=""
               value={event}
@@ -550,8 +563,7 @@ interface TicketTimelineProps {
   showType: TimelineShowType;
   onShowTypeChange: (value: TimelineShowType) => void;
   ticketId: number;
-  onRefresh?: () => void;
-  setTimeline?: React.Dispatch<React.SetStateAction<TimelineEntry[]>>;
+  onUpdate?: () => void;
 }
 
 function ResolvedName({ field, id }: { field: string; id: string }) {
@@ -594,7 +606,7 @@ function TicketTimeline({
   showType,
   onShowTypeChange,
   ticketId,
-  setTimeline,
+  onUpdate,
 }: TicketTimelineProps) {
   const [commentText, setCommentText] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -628,11 +640,7 @@ function TicketTimeline({
         ticket: ticketId,
       });
       setCommentText("");
-      // Refresh timeline with current tab filter
-      const data = await apiClient.get<TimelineEntry[] | { results: TimelineEntry[] }>(
-        `/tickets/${ticketId}/timeline/?show=${showType}`
-      );
-      setTimeline?.(Array.isArray(data) ? data : (data.results ?? []));
+      onUpdate?.();
     } catch (err) {
       console.error("Failed to post comment", err);
     } finally {
@@ -715,118 +723,6 @@ function TicketTimeline({
           </Button>
         </Group>
       )}
-    </Paper>
-  );
-}
-
-interface CommentEntry {
-  created_at: string;
-  actor_display: string | null;
-  message: string;
-}
-
-function TicketComments({ ticketId }: { ticketId: number }) {
-  const [comments, setComments] = useState<CommentEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [commentText, setCommentText] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
-  const fetchComments = async () => {
-    try {
-      setLoading(true);
-      const data = await apiClient.get<CommentEntry[] | { results: CommentEntry[] }>(
-        `/tickets/${ticketId}/timeline/?show=comment`
-      );
-      setComments(Array.isArray(data) ? data : (data.results ?? []));
-    } catch (err) {
-      console.error("Failed to fetch comments", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchComments();
-  }, [ticketId]);
-
-  const handleSubmit = async () => {
-    if (!commentText.trim()) return;
-    setSubmitting(true);
-    try {
-      await apiClient.post(`/tickets/${ticketId}/comment/`, {
-        message: commentText.trim(),
-        ticket: ticketId,
-      });
-      setCommentText("");
-      await fetchComments();
-    } catch (err) {
-      console.error("Failed to post comment", err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <Paper p="md" withBorder>
-      <Title order={4} mb="md">
-        Comments
-      </Title>
-
-      <ScrollArea h={300} mb="md">
-        {loading ? (
-          <Center h={100}>
-            <Loader size="sm" />
-          </Center>
-        ) : comments.length === 0 ? (
-          <Text c="dimmed" size="sm" ta="center" py="xl">
-            No comments yet.
-          </Text>
-        ) : (
-          <Stack gap="sm">
-            {comments.map((c, i) => (
-              <Box key={i}>
-                <Group gap="sm" align="flex-start">
-                  <Avatar size="sm" radius="xl" color="blue">
-                    {(c.actor_display || "?")[0].toUpperCase()}
-                  </Avatar>
-                  <Box style={{ flex: 1 }}>
-                    <Group gap="xs" mb={2}>
-                      <Text size="sm" fw={600}>
-                        {c.actor_display ?? "Unknown"}
-                      </Text>
-                      <Text size="xs" c="dimmed">
-                        {formatBackendProvidedDateTime(c.created_at)}
-                      </Text>
-                    </Group>
-                    <Text size="sm">{c.message}</Text>
-                  </Box>
-                </Group>
-                {i < comments.length - 1 && <Divider mt="sm" />}
-              </Box>
-            ))}
-          </Stack>
-        )}
-      </ScrollArea>
-
-      <Group align="flex-end" gap="sm">
-        <Textarea
-          placeholder="Add a comment"
-          style={{ flex: 1 }}
-          autosize
-          minRows={2}
-          maxRows={5}
-          value={commentText}
-          onChange={(e) => setCommentText(e.currentTarget.value)}
-        />
-        <Button
-          leftSection={<IconSend size={16} />}
-          loading={submitting}
-          disabled={!commentText.trim()}
-          onClick={handleSubmit}
-        >
-          Send
-        </Button>
-      </Group>
     </Paper>
   );
 }
