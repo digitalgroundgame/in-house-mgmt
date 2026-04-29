@@ -1,4 +1,5 @@
 import argparse
+import json
 import random
 import sqlite3
 from datetime import datetime, timedelta
@@ -177,11 +178,24 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=25, num_tickets=30
         starts_at = created_at + timedelta(days=random.randint(0, 30), hours=random.randint(0, 23))
         ends_at = starts_at + timedelta(hours=random.randint(1, 4))  # 1-4 hours duration
 
+        anonymous_attendee_count = random.randint(0, 8)
+        num_detail_entries = random.randint(0, anonymous_attendee_count) if anonymous_attendee_count else 0
+        anonymous_attendees_detail = [
+            {
+                "name": fake.name(),
+                "contact_info": fake.email(),
+                "notes": fake.sentence(nb_words=6),
+            }
+            for _ in range(num_detail_entries)
+        ]
+
         c.execute(
             """
             INSERT INTO events
-            (name, description, event_status, event_type, location_name, location_address, created_at, modified_at, starts_at, ends_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
+            (name, description, event_status, event_type, location_name, location_address,
+             anonymous_attendee_count, anonymous_attendees_detail,
+             created_at, modified_at, starts_at, ends_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
             """,
             (
                 name,
@@ -190,6 +204,8 @@ def populate_with_fake_data(conn, num_contacts=50, num_events=25, num_tickets=30
                 event_type,
                 location_name,
                 location_address,
+                anonymous_attendee_count,
+                json.dumps(anonymous_attendees_detail),
                 created_at,
                 modified_at,
                 starts_at,

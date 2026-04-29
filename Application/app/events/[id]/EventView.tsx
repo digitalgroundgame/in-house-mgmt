@@ -1,3 +1,4 @@
+import { AnonymousAttendeesModal } from "@/app/events/[id]/components/AnonymousAttendeesSection";
 import { Contact } from "@/app/components/ContactSearch";
 import PaginatedTable from "@/app/components/pagination/PaginatedTable";
 import PaginationBar, {
@@ -43,7 +44,14 @@ import {
   ActionIcon,
   Tooltip,
 } from "@mantine/core";
-import { IconPencil, IconSearch } from "@tabler/icons-react";
+import {
+  IconUpload,
+  IconPencil,
+  IconSearch,
+  IconUserPlus,
+  IconUserQuestion,
+  IconUsersGroup,
+} from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -188,7 +196,7 @@ function EventViewMain({ event }: { event: Event }) {
             <Tabs.Tab value="users">Users</Tabs.Tab>
           </Tabs.List>
           <Tabs.Panel value="participants" style={{ minWidth: "432px" }}>
-            <EventViewContactTable event={currentEvent} />
+            <EventViewContactTable event={currentEvent} onEventUpdate={setCurrentEvent} />
           </Tabs.Panel>
           <Tabs.Panel value="users">
             <EventViewUsersTable event={currentEvent} />
@@ -863,13 +871,25 @@ function BulkUploadModal({
   );
 }
 
-function EventViewContactTable({ event }: { event: Event }) {
+function EventViewContactTable({
+  event,
+  onEventUpdate,
+}: {
+  event: Event;
+  onEventUpdate: (updated: Event) => void;
+}) {
   const currentParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [statusArray, setStatusArray] = useState<string[]>();
   const [opened, { open, close }] = useDisclosure(false);
   const [bulkOpened, { open: openBulk, close: closeBulk }] = useDisclosure(false);
+  const [anonymousOpened, { open: openAnonymous, close: closeAnonymous }] = useDisclosure(false);
   const [modalMode, setModalMode] = useState<"add" | "modify">("add");
+
+  const canEditAnonymous = event.editable_fields?.includes("anonymous_attendee_count") ?? false;
+  const hasAnonymousContent =
+    event.anonymous_attendee_count > 0 || event.anonymous_attendees_detail.length > 0;
+  const showAnonymousButton = canEditAnonymous || hasAnonymousContent;
 
   const pageNum = currentParams.get("page");
   const apiParams = new URLSearchParams();
@@ -921,50 +941,96 @@ function EventViewContactTable({ event }: { event: Event }) {
           eventId={event.id}
         />
       )}
+      {anonymousOpened && (
+        <AnonymousAttendeesModal
+          event={event}
+          opened={anonymousOpened}
+          close={closeAnonymous}
+          onUpdate={onEventUpdate}
+        />
+      )}
       <Paper p="md" mt="sm" withBorder style={{ position: "relative" }}>
         <Stack>
-          <Group grow align="flex-end">
-            <TextInput
-              label="Search"
-              placeholder="Search by name, Discord ID, email, or phone..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              leftSection={<IconSearch size={16} />}
-            />
-            <MultiSelect
-              label="Participation Status"
-              data={EVENT_PARTICIPATION_STATUSES}
-              onChange={setStatusArray}
-              value={statusArray}
-            />
-            {selected.size === 0 ? (
-              <Group gap="xs" wrap="nowrap" grow>
+          <Group justify="space-between" align="center" wrap="wrap" gap="xs">
+            <Title order={4}>
+              {data ? `${data.count} ` : ""}Participants
+              {data && event.anonymous_attendee_count > 0
+                ? ` (+${event.anonymous_attendee_count} anonymous)`
+                : ""}
+            </Title>
+            <Group gap="xs">
+              {selected.size === 0 ? (
+                <>
+                  <Button
+                    size="xs"
+                    radius="xl"
+                    variant="light"
+                    leftSection={<IconUserPlus size={13} />}
+                    onClick={() => {
+                      setModalMode("add");
+                      open();
+                    }}
+                  >
+                    Add Participant
+                  </Button>
+                  <Button
+                    size="xs"
+                    radius="xl"
+                    variant="light"
+                    leftSection={<IconUpload size={13} />}
+                    onClick={openBulk}
+                  >
+                    Discord Import
+                  </Button>
+                  {showAnonymousButton && (
+                    <Button
+                      size="xs"
+                      radius="xl"
+                      variant="light"
+                      leftSection={<IconUserQuestion size={13} />}
+                      onClick={openAnonymous}
+                    >
+                      Anonymous Participants
+                    </Button>
+                  )}
+                </>
+              ) : (
                 <Button
+                  size="xs"
+                  radius="xl"
+                  variant="light"
+                  color="green"
+                  leftSection={<IconUsersGroup size={13} />}
                   onClick={() => {
-                    setModalMode("add");
+                    setModalMode("modify");
                     open();
                   }}
                 >
-                  Add Participant
+                  Modify Selected
                 </Button>
-                <Button onClick={openBulk}>Bulk Upload</Button>
-              </Group>
-            ) : (
-              <Button
-                color="green"
-                onClick={() => {
-                  setModalMode("modify");
-                  open();
-                }}
-              >
-                Modify Selected
-              </Button>
-            )}
+              )}
+            </Group>
+          </Group>
+          <Group gap="xs" wrap="wrap">
+            <TextInput
+              size="xs"
+              placeholder="Search by name, Discord ID, email, or phone..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              leftSection={<IconSearch size={14} />}
+              style={{ flex: "2 1 180px" }}
+            />
+            <MultiSelect
+              size="xs"
+              placeholder="Status"
+              data={EVENT_PARTICIPATION_STATUSES}
+              onChange={setStatusArray}
+              value={statusArray}
+              style={{ flex: "1 1 140px" }}
+            />
           </Group>
           {data && (
             <PaginatedTable
-              title="Participants"
-              showTitle={true}
               data={data.results}
               onRowClick={(ep: EventParticipation) => router.push(`/contacts/${ep.contact.id}`)}
               columns={["Name", "Contact", "Status"]}
@@ -1010,6 +1076,12 @@ function EventViewContactTable({ event }: { event: Event }) {
           )}
         </Stack>
       </Paper>
+      {data && event.anonymous_attendee_count > 0 && (
+        <Text size="sm" c="dimmed" mt="xs" ta="right">
+          Total attendance: {data.count + event.anonymous_attendee_count} ({data.count} tracked +{" "}
+          {event.anonymous_attendee_count} anonymous)
+        </Text>
+      )}
     </>
   );
 }
