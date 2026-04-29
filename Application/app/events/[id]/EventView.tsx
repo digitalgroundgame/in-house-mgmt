@@ -1,4 +1,5 @@
 import { Contact } from "@/app/components/ContactSearch";
+import Link from "next/link";
 import PaginatedTable from "@/app/components/pagination/PaginatedTable";
 import PaginationBar, {
   decrementPageSearchParam,
@@ -6,6 +7,8 @@ import PaginationBar, {
 } from "@/app/components/pagination/PaginationBar";
 import { formatContactInfo } from "@/app/components/contact-utils";
 import { User } from "@/app/components/provider/types";
+import { useUser } from "@/app/components/provider/UserContext";
+import { type Ticket } from "@/app/components/tickets/ticket-utils";
 import {
   Event,
   EventParticipation,
@@ -44,7 +47,7 @@ import {
   Tooltip,
   Alert,
 } from "@mantine/core";
-import { IconPencil, IconSearch } from "@tabler/icons-react";
+import { IconPencil, IconSearch, IconTicket } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -222,9 +225,113 @@ function EventViewMain({ event }: { event: Event }) {
         </Tabs>
       </GridCol>
       <GridCol style={{ flex: "0 0 239px", maxWidth: "239px", minWidth: "239px" }}>
-        <EventViewMetadata event={currentEvent} isEditing={isEditing} form={form} />
+        <Stack gap="md">
+          <EventViewMetadata event={currentEvent} isEditing={isEditing} form={form} />
+          <YourTicketCallout eventId={currentEvent.id} />
+        </Stack>
       </GridCol>
     </Grid>
+  );
+}
+
+function YourTicketCallout({ eventId }: { eventId: number }) {
+  const { user, loading: userLoading } = useUser();
+  const userId = user?.id;
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (userLoading || !userId) {
+      setTickets([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function fetchYourTicket() {
+      setLoading(true);
+      try {
+        const data = await apiClient.get<BackendPaginatedResults<Ticket>>(
+          `/tickets/?event=${eventId}&assigned_to=${userId}`
+        );
+        if (!cancelled) {
+          setTickets(data.results);
+        }
+      } catch (error) {
+        console.error("Failed to fetch current user's event ticket", error);
+        if (!cancelled) {
+          setTickets([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchYourTicket();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [eventId, userId, userLoading]);
+
+  if (loading || tickets.length === 0) {
+    return null;
+  }
+
+  const title =
+    tickets.length === 1
+      ? "You have a ticket for this event"
+      : `You have ${tickets.length} tickets for this event`;
+
+  return (
+    <Alert
+      color="blue"
+      variant="light"
+      styles={{
+        root: { overflow: "hidden" },
+        body: { minWidth: 0 },
+        message: { minWidth: 0 },
+      }}
+    >
+      <Stack gap="sm">
+        <Group gap="sm" align="flex-start" wrap="nowrap">
+          <IconTicket size={18} style={{ flex: "0 0 auto", marginTop: 1 }} />
+          <Text fw={700} size="sm" style={{ overflowWrap: "anywhere", lineHeight: 1.3 }}>
+            {title}
+          </Text>
+        </Group>
+        {tickets.map((ticket) => (
+          <Button
+            key={ticket.id}
+            component={Link}
+            href={`/tickets/${ticket.id}`}
+            size="xs"
+            variant="default"
+            fullWidth
+            styles={{
+              root: {
+                backgroundColor: "var(--mantine-color-white)",
+                height: "auto",
+                minHeight: 32,
+                paddingTop: 8,
+                paddingBottom: 8,
+              },
+              label: {
+                color: "var(--mantine-color-black)",
+                whiteSpace: "normal",
+                textAlign: "left",
+                overflowWrap: "anywhere",
+                lineHeight: 1.3,
+              },
+            }}
+          >
+            {ticket.title}
+          </Button>
+        ))}
+      </Stack>
+    </Alert>
   );
 }
 

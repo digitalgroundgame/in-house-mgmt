@@ -21,8 +21,10 @@ import {
   Textarea,
   ScrollArea,
   Avatar,
+  ActionIcon,
+  Tooltip,
 } from "@mantine/core";
-import { IconSend } from "@tabler/icons-react";
+import { IconPencil, IconSend, IconX } from "@tabler/icons-react";
 import { getStatusColor, getPriorityColor } from "./TicketTable";
 import TicketDescription from "./TicketDescription";
 import { Ticket, TicketType } from "./ticket-utils";
@@ -164,6 +166,7 @@ function CallInstructionsCard({ ticket }: { ticket: Ticket }) {
 
 function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
   const [loading, setLoading] = useState(false);
+  const [isEditingEvent, setIsEditingEvent] = useState(false);
   const isClaimed = Boolean(ticket.assigned_to);
   const { user } = useUser();
 
@@ -289,6 +292,7 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
         event: option?.raw?.id ?? null,
       });
       setEvent(option);
+      setIsEditingEvent(false);
       window.location.reload();
     } catch (err) {
       console.error(err);
@@ -514,10 +518,25 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
         <Divider />
 
         <Box>
-          <Text size="sm" c="dimmed">
-            Event
-          </Text>
-          {canEditEvent ? (
+          <Group justify="space-between" align="center" mb={4}>
+            <Text size="sm" c="dimmed">
+              Event
+            </Text>
+            {canEditEvent && (
+              <Tooltip label={isEditingEvent ? "Cancel event edit" : "Edit event"}>
+                <ActionIcon
+                  size="sm"
+                  variant="subtle"
+                  color="gray"
+                  aria-label={isEditingEvent ? "Cancel event edit" : "Edit event"}
+                  onClick={() => setIsEditingEvent((editing) => !editing)}
+                >
+                  {isEditingEvent ? <IconX size={16} /> : <IconPencil size={16} />}
+                </ActionIcon>
+              </Tooltip>
+            )}
+          </Group>
+          {canEditEvent && isEditingEvent ? (
             <SearchSelect<{ id: number; name: string }>
               endpoint="/api/events/"
               label=""
@@ -527,10 +546,10 @@ function TicketMetadataCard({ ticket }: { ticket: Ticket }) {
               placeholder="Select event..."
               clearable
             />
-          ) : ticket.event ? (
-            <Link href={`/events/${ticket.event}`}>
+          ) : event ? (
+            <Link href={`/events/${event.id}`}>
               <Text size="sm" mt={4}>
-                {ticket.event_display}
+                {event.label}
               </Text>
             </Link>
           ) : (
